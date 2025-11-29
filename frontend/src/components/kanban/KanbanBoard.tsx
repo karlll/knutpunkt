@@ -1,5 +1,13 @@
 import { useState, useMemo } from 'react'
-import { DndContext, DragOverlay, closestCorners, type DragEndEvent, type DragStartEvent } from '@dnd-kit/core'
+import {
+  DndContext,
+  DragOverlay,
+  closestCorners,
+  type DragEndEvent,
+  type DragStartEvent,
+  type DropAnimation,
+  defaultDropAnimationSideEffects,
+} from '@dnd-kit/core'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { KanbanColumn } from './KanbanColumn'
 import { TaskCard } from './TaskCard'
@@ -11,6 +19,18 @@ const COLUMNS: { status: TaskStatus; title: string }[] = [
   { status: 'ongoing', title: 'Ongoing' },
   { status: 'done', title: 'Done' },
 ]
+
+// Disable drop animation to prevent visual glitch where card slides back to original position
+const dropAnimationConfig: DropAnimation = {
+  duration: 0,
+  sideEffects: defaultDropAnimationSideEffects({
+    styles: {
+      active: {
+        opacity: '0',
+      },
+    },
+  }),
+}
 
 export function KanbanBoard() {
   const [activeTask, setActiveTask] = useState<Task | null>(null)
@@ -126,6 +146,10 @@ export function KanbanBoard() {
         return updated
       })
 
+      // Clear the active task after optimistic update is applied
+      // This ensures the drag overlay disappears only after the card is in its new position
+      setActiveTask(null)
+
       return { previousTasks }
     },
     onError: (_err, _variables, context) => {
@@ -162,9 +186,11 @@ export function KanbanBoard() {
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event
-    setActiveTask(null)
 
-    if (!over) return
+    if (!over) {
+      setActiveTask(null)
+      return
+    }
 
     const draggedTaskId = active.id as string
     const draggedTask = tasks.find((t) => t.id === draggedTaskId)
@@ -193,7 +219,10 @@ export function KanbanBoard() {
     const orderChanged = draggedTask.order !== targetOrder
     const sameColumn = !statusChanged
 
-    if (!statusChanged && !orderChanged) return // No change
+    if (!statusChanged && !orderChanged) {
+      setActiveTask(null)
+      return // No change
+    }
 
     // Update task position (handles both order and status changes)
     updateTaskOrderMutation.mutate({
@@ -230,7 +259,7 @@ export function KanbanBoard() {
               />
             ))}
           </div>
-          <DragOverlay>
+          <DragOverlay dropAnimation={dropAnimationConfig}>
             {activeTask ? <TaskCard task={activeTask} /> : null}
           </DragOverlay>
         </DndContext>
