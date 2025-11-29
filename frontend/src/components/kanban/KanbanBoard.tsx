@@ -3,6 +3,7 @@ import { DndContext, DragOverlay, closestCorners, type DragEndEvent, type DragSt
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { KanbanColumn } from './KanbanColumn'
 import { TaskCard } from './TaskCard'
+import { Header } from '@/components/Header'
 import { api, type Task, type TaskStatus } from '@/lib/api'
 
 const COLUMNS: { status: TaskStatus; title: string }[] = [
@@ -74,9 +75,7 @@ export function KanbanBoard() {
 
   return (
     <div className="h-screen flex flex-col">
-      <header className="border-b bg-background px-6 py-4">
-        <h1 className="text-2xl font-bold">Knutpunkt Kanban</h1>
-      </header>
+      <Header />
       <main className="flex-1 overflow-hidden p-6">
         <DndContext
           collisionDetection={closestCorners}
