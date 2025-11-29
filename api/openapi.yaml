@@ -1,0 +1,435 @@
+openapi: 3.0.3
+info:
+  title: Knutpunkt Kanban API
+  description: |
+    REST API for a Kanban task board application with file-based persistence.
+
+    Tasks are stored as Markdown files with YAML front matter, organized in directories
+    that represent their status (planned, ongoing, done).
+  version: 1.0.0
+  contact:
+    name: Knutpunkt Project
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Development server
+
+tags:
+  - name: tasks
+    description: Task management operations
+
+paths:
+  /tasks:
+    get:
+      summary: List all tasks
+      description: Retrieve a list of all tasks with optional filtering
+      operationId: listTasks
+      tags:
+        - tasks
+      parameters:
+        - name: status
+          in: query
+          description: Filter tasks by status
+          required: false
+          schema:
+            $ref: '#/components/schemas/TaskStatus'
+        - name: assignee
+          in: query
+          description: Filter tasks by assignee
+          required: false
+          schema:
+            type: string
+        - name: category
+          in: query
+          description: Filter tasks by category
+          required: false
+          schema:
+            type: string
+        - name: priority
+          in: query
+          description: Filter tasks by priority
+          required: false
+          schema:
+            $ref: '#/components/schemas/TaskPriority'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Task'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      summary: Create a new task
+      description: Create a new task with the provided details
+      operationId: createTask
+      tags:
+        - tasks
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskCreate'
+      responses:
+        '201':
+          description: Task created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '400':
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Conflict (e.g., duplicate slug)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /tasks/{id}:
+    get:
+      summary: Get a specific task
+      description: Retrieve a task by its unique ID
+      operationId: getTask
+      tags:
+        - tasks
+      parameters:
+        - name: id
+          in: path
+          description: Task ID (UUID)
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '404':
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    put:
+      summary: Update a task
+      description: Update an existing task (full replacement)
+      operationId: updateTask
+      tags:
+        - tasks
+      parameters:
+        - name: id
+          in: path
+          description: Task ID (UUID)
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskUpdate'
+      responses:
+        '200':
+          description: Task updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '400':
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Conflict (e.g., duplicate slug)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      summary: Delete a task
+      description: Delete a task by its unique ID
+      operationId: deleteTask
+      tags:
+        - tasks
+      parameters:
+        - name: id
+          in: path
+          description: Task ID (UUID)
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Task deleted successfully
+        '404':
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /tasks/{id}/status:
+    patch:
+      summary: Update task status
+      description: Move a task to a different status/column (planned, ongoing, done)
+      operationId: updateTaskStatus
+      tags:
+        - tasks
+      parameters:
+        - name: id
+          in: path
+          description: Task ID (UUID)
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskStatusUpdate'
+      responses:
+        '200':
+          description: Task status updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '400':
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    Task:
+      type: object
+      required:
+        - id
+        - title
+        - description
+        - status
+        - createdAt
+        - updatedAt
+        - assignees
+        - categories
+        - priority
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the task
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        title:
+          type: string
+          description: Human-readable task title
+          example: "Implement user authentication"
+          minLength: 1
+          maxLength: 200
+        description:
+          type: string
+          description: Task description in Markdown format
+          example: "## Description\n\nImplement JWT-based authentication...\n\n## Acceptance Criteria\n\n- [ ] Login endpoint\n- [ ] Token validation"
+        status:
+          $ref: '#/components/schemas/TaskStatus'
+        createdAt:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp of task creation
+          example: "2025-01-15T10:30:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp of last update
+          example: "2025-01-15T14:22:00Z"
+        assignees:
+          type: array
+          description: List of assignee usernames
+          items:
+            type: string
+          example: ["alice", "bob"]
+        categories:
+          type: array
+          description: List of category tags
+          items:
+            type: string
+          example: ["feature", "backend"]
+        priority:
+          $ref: '#/components/schemas/TaskPriority'
+
+    TaskCreate:
+      type: object
+      required:
+        - title
+        - description
+      properties:
+        title:
+          type: string
+          description: Human-readable task title
+          example: "Implement user authentication"
+          minLength: 1
+          maxLength: 200
+        description:
+          type: string
+          description: Task description in Markdown format
+          example: "## Description\n\nImplement JWT-based authentication..."
+        status:
+          $ref: '#/components/schemas/TaskStatus'
+          default: planned
+        assignees:
+          type: array
+          description: List of assignee usernames
+          items:
+            type: string
+          default: []
+        categories:
+          type: array
+          description: List of category tags
+          items:
+            type: string
+          default: []
+        priority:
+          $ref: '#/components/schemas/TaskPriority'
+          default: medium
+
+    TaskUpdate:
+      type: object
+      required:
+        - title
+        - description
+      properties:
+        title:
+          type: string
+          description: Human-readable task title
+          minLength: 1
+          maxLength: 200
+        description:
+          type: string
+          description: Task description in Markdown format
+        status:
+          $ref: '#/components/schemas/TaskStatus'
+        assignees:
+          type: array
+          description: List of assignee usernames
+          items:
+            type: string
+        categories:
+          type: array
+          description: List of category tags
+          items:
+            type: string
+        priority:
+          $ref: '#/components/schemas/TaskPriority'
+
+    TaskStatusUpdate:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          $ref: '#/components/schemas/TaskStatus'
+
+    TaskStatus:
+      type: string
+      enum:
+        - planned
+        - ongoing
+        - done
+      description: Task status corresponding to board columns
+      example: planned
+
+    TaskPriority:
+      type: string
+      enum:
+        - low
+        - medium
+        - high
+      description: Task priority level
+      example: medium
+
+    Error:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          description: Error message
+          example: "Task not found"
+        code:
+          type: string
+          description: Error code for client handling
+          example: "TASK_NOT_FOUND"
+        details:
+          type: object
+          description: Additional error details
+          additionalProperties: true

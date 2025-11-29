@@ -1,0 +1,31 @@
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node.js (Frontend)
+node_modules/
+dist/
+.env
+.env.local
+
+# Kotlin/Gradle (Backend)
+.gradle/
+build/
+*.jar
+*.war
+*.class
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+.cache/
