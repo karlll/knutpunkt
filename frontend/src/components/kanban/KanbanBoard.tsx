@@ -80,10 +80,23 @@ export function KanbanBoard() {
     if (!over) return
 
     const taskId = active.id as string
-    const newStatus = over.id as TaskStatus
-
     const task = tasks.find((t) => t.id === taskId)
     if (!task) return
+
+    // Determine the new status
+    // over.id could be either a column status or a task ID (if dropped over another task)
+    let newStatus: TaskStatus
+    const validStatuses: TaskStatus[] = ['planned', 'ongoing', 'done']
+
+    if (validStatuses.includes(over.id as TaskStatus)) {
+      // Dropped over a column
+      newStatus = over.id as TaskStatus
+    } else {
+      // Dropped over a task - find which column that task belongs to
+      const targetTask = tasks.find((t) => t.id === over.id)
+      if (!targetTask) return
+      newStatus = targetTask.status
+    }
 
     // Only update if status changed
     if (task.status !== newStatus) {
