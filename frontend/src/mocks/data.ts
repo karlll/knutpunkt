@@ -52,7 +52,8 @@ export const mockTasks: Task[] = [
 
 // Helper functions for CRUD operations
 export function getAllTasks(): Task[] {
-  return mockTasks
+  // Return a copy to avoid reference issues with React Query caching
+  return [...mockTasks]
 }
 
 export function getTaskById(id: string): Task | undefined {
