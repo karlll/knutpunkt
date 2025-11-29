@@ -26,7 +26,33 @@ export function KanbanBoard() {
   const updateStatusMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: TaskStatus }) =>
       api.tasks.updateStatus(id, status),
-    onSuccess: () => {
+    // Optimistically update the cache before the mutation completes
+    onMutate: async ({ id, status }) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['tasks'] })
+
+      // Snapshot the previous value
+      const previousTasks = queryClient.getQueryData<Task[]>(['tasks'])
+
+      // Optimistically update to the new value
+      queryClient.setQueryData<Task[]>(['tasks'], (old) => {
+        if (!old) return old
+        return old.map((task) =>
+          task.id === id ? { ...task, status, updatedAt: new Date().toISOString() } : task
+        )
+      })
+
+      // Return a context object with the snapshotted value
+      return { previousTasks }
+    },
+    // If the mutation fails, use the context returned from onMutate to roll back
+    onError: (_err, _variables, context) => {
+      if (context?.previousTasks) {
+        queryClient.setQueryData(['tasks'], context.previousTasks)
+      }
+    },
+    // Always refetch after error or success
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] })
     },
   })
