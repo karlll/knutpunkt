@@ -39,7 +39,7 @@ knutpunkt/
 │   │   ├── hooks/
 │   │   ├── lib/
 │   │   │   ├── utils.ts
-│   │   │   └── api.ts           # API client (generated or manual)
+│   │   │   └── api.ts           # API client (generated)
 │   │   └── types/
 │   │       └── task.ts
 │   └── index.html
@@ -167,6 +167,7 @@ Location: `api/openapi.yaml`
 - Tailwind CSS
 - TanStack Query (React Query) for data fetching
 - Vitest for testing
+- MSW for API mocking during development
 
 **Key Components:**
 
