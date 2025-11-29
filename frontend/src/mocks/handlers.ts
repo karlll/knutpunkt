@@ -7,11 +7,13 @@ import {
   updateTask,
   deleteTask,
   updateTaskStatus,
+  updateTaskOrder,
 } from './data'
 
 type TaskCreate = components['schemas']['TaskCreate']
 type TaskUpdate = components['schemas']['TaskUpdate']
 type TaskStatusUpdate = components['schemas']['TaskStatusUpdate']
+type TaskOrderUpdate = components['schemas']['TaskOrderUpdate']
 type TaskStatus = components['schemas']['TaskStatus']
 type TaskPriority = components['schemas']['TaskPriority']
 
@@ -163,6 +165,38 @@ export const handlers = [
       }
 
       return HttpResponse.json(updatedTask)
+    } catch (error) {
+      return HttpResponse.json(
+        { message: 'Invalid request body', code: 'INVALID_JSON' },
+        { status: 400 }
+      )
+    }
+  }),
+
+  // PATCH /tasks/{id}/order - Update task position
+  http.patch(`${API_BASE}/tasks/:id/order`, async ({ params, request }) => {
+    const { id } = params
+
+    try {
+      const body = (await request.json()) as TaskOrderUpdate
+
+      if (!body.newOrder || body.newOrder < 1) {
+        return HttpResponse.json(
+          { message: 'newOrder is required and must be >= 1', code: 'VALIDATION_ERROR' },
+          { status: 400 }
+        )
+      }
+
+      const result = updateTaskOrder(id as string, body.newOrder, body.newStatus)
+
+      if (!result) {
+        return HttpResponse.json(
+          { message: 'Task not found', code: 'TASK_NOT_FOUND' },
+          { status: 404 }
+        )
+      }
+
+      return HttpResponse.json(result)
     } catch (error) {
       return HttpResponse.json(
         { message: 'Invalid request body', code: 'INVALID_JSON' },

@@ -4,6 +4,7 @@ type Task = components['schemas']['Task']
 type TaskCreate = components['schemas']['TaskCreate']
 type TaskUpdate = components['schemas']['TaskUpdate']
 type TaskStatus = components['schemas']['TaskStatus']
+type TaskOrderUpdate = components['schemas']['TaskOrderUpdate']
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1'
 
@@ -93,6 +94,24 @@ export const api = {
         body: JSON.stringify({ status }),
       })
       return handleResponse<Task>(response)
+    },
+
+    updateOrder: async (
+      id: string,
+      newOrder: number,
+      newStatus?: TaskStatus
+    ): Promise<{ updated: Task[] }> => {
+      const body: TaskOrderUpdate = { newOrder }
+      if (newStatus) {
+        body.newStatus = newStatus
+      }
+
+      const response = await fetch(`${API_BASE}/tasks/${id}/order`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      return handleResponse<{ updated: Task[] }>(response)
     },
   },
 }

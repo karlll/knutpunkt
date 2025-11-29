@@ -269,6 +269,61 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
+  /tasks/{id}/order:
+    patch:
+      summary: Update task position
+      description: |
+        Update a task's position within its column, or move it to another column
+        at a specific position. Automatically adjusts order of affected tasks.
+      operationId: updateTaskOrder
+      tags:
+        - tasks
+      parameters:
+        - name: id
+          in: path
+          description: Task ID (UUID)
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskOrderUpdate'
+      responses:
+        '200':
+          description: Task positions updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  updated:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Task'
+                    description: All tasks whose order was changed
+        '400':
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
 components:
   schemas:
     Task:
@@ -283,6 +338,7 @@ components:
         - assignees
         - categories
         - priority
+        - order
       properties:
         id:
           type: string
@@ -301,6 +357,11 @@ components:
           example: "## Description\n\nImplement JWT-based authentication...\n\n## Acceptance Criteria\n\n- [ ] Login endpoint\n- [ ] Token validation"
         status:
           $ref: '#/components/schemas/TaskStatus'
+        order:
+          type: integer
+          description: Position of task within its column (1-based). Lower numbers appear first. 1 = highest priority position.
+          minimum: 1
+          example: 1
         createdAt:
           type: string
           format: date-time
@@ -360,6 +421,11 @@ components:
         priority:
           $ref: '#/components/schemas/TaskPriority'
           default: medium
+        order:
+          type: integer
+          description: Position within the column (1-based)
+          minimum: 1
+          default: 1
 
     TaskUpdate:
       type: object
@@ -389,6 +455,10 @@ components:
             type: string
         priority:
           $ref: '#/components/schemas/TaskPriority'
+        order:
+          type: integer
+          description: Position within the column (1-based)
+          minimum: 1
 
     TaskStatusUpdate:
       type: object
@@ -397,6 +467,19 @@ components:
       properties:
         status:
           $ref: '#/components/schemas/TaskStatus'
+
+    TaskOrderUpdate:
+      type: object
+      required:
+        - newOrder
+      properties:
+        newOrder:
+          type: integer
+          minimum: 1
+          description: Target position (1-based)
+        newStatus:
+          $ref: '#/components/schemas/TaskStatus'
+          description: Target column (if moving between columns)
 
     TaskStatus:
       type: string

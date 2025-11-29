@@ -9,6 +9,7 @@ export const mockTasks: Task[] = [
     title: 'Setup project infrastructure',
     description: '## Description\n\nSetup the initial project structure including frontend and backend.\n\n## Acceptance Criteria\n\n- [x] Create OpenAPI specification\n- [x] Initialize frontend with Vite\n- [ ] Initialize backend with Ktor',
     status: 'ongoing',
+    order: 1,
     priority: 'high',
     assignees: ['alice'],
     categories: ['infrastructure', 'setup'],
@@ -20,6 +21,7 @@ export const mockTasks: Task[] = [
     title: 'Implement authentication',
     description: '## Description\n\nImplement JWT-based authentication for the API.\n\n## Acceptance Criteria\n\n- [ ] Create login endpoint\n- [ ] Implement token validation middleware\n- [ ] Add refresh token logic',
     status: 'planned',
+    order: 1,
     priority: 'high',
     assignees: ['bob'],
     categories: ['feature', 'backend'],
@@ -31,6 +33,7 @@ export const mockTasks: Task[] = [
     title: 'Design UI mockups',
     description: '## Description\n\nCreate Figma mockups for the main application views.\n\n## Acceptance Criteria\n\n- [x] Kanban board layout\n- [x] Task detail view\n- [x] User settings page',
     status: 'done',
+    order: 1,
     priority: 'medium',
     assignees: ['alice', 'charlie'],
     categories: ['design', 'frontend'],
@@ -42,6 +45,7 @@ export const mockTasks: Task[] = [
     title: 'Write API documentation',
     description: '## Description\n\nDocument all API endpoints with examples.\n\n## Notes\n\nUse the OpenAPI spec as the source of truth.',
     status: 'planned',
+    order: 2,
     priority: 'low',
     assignees: [],
     categories: ['documentation'],
@@ -66,6 +70,7 @@ export function createTask(taskData: Omit<Task, 'id' | 'createdAt' | 'updatedAt'
     id: crypto.randomUUID(),
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
+    order: taskData.order ?? 1, // Default to order 1 if not specified
   }
   mockTasks.push(newTask)
   return newTask
@@ -93,4 +98,68 @@ export function deleteTask(id: string): boolean {
 
 export function updateTaskStatus(id: string, status: Task['status']): Task | null {
   return updateTask(id, { status })
+}
+
+export function updateTaskOrder(
+  id: string,
+  newOrder: number,
+  newStatus?: Task['status']
+): { updated: Task[] } | null {
+  const task = getTaskById(id)
+  if (!task) return null
+
+  const oldStatus = task.status
+  const targetStatus = newStatus || oldStatus
+  const sameColumn = oldStatus === targetStatus
+
+  if (sameColumn) {
+    // Reorder within same column
+    const oldOrder = task.order
+
+    mockTasks.forEach((t) => {
+      if (t.status === targetStatus) {
+        if (newOrder < oldOrder) {
+          // Moving up: shift tasks down
+          if (t.order >= newOrder && t.order < oldOrder) {
+            t.order++
+            t.updatedAt = new Date().toISOString()
+          }
+        } else if (newOrder > oldOrder) {
+          // Moving down: shift tasks up
+          if (t.order > oldOrder && t.order <= newOrder) {
+            t.order--
+            t.updatedAt = new Date().toISOString()
+          }
+        }
+      }
+    })
+
+    task.order = newOrder
+    task.updatedAt = new Date().toISOString()
+  } else {
+    // Move to different column
+    // Decrement orders in old column
+    mockTasks.forEach((t) => {
+      if (t.status === oldStatus && t.order > task.order) {
+        t.order--
+        t.updatedAt = new Date().toISOString()
+      }
+    })
+
+    // Increment orders in new column
+    mockTasks.forEach((t) => {
+      if (t.status === targetStatus && t.order >= newOrder) {
+        t.order++
+        t.updatedAt = new Date().toISOString()
+      }
+    })
+
+    task.status = targetStatus
+    task.order = newOrder
+    task.updatedAt = new Date().toISOString()
+  }
+
+  // Return all updated tasks
+  const updatedTasks = mockTasks.filter((t) => t.status === oldStatus || t.status === targetStatus)
+  return { updated: updatedTasks }
 }

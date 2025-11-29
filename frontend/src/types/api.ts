@@ -76,6 +76,27 @@ export interface paths {
         patch: operations["updateTaskStatus"];
         trace?: never;
     };
+    "/tasks/{id}/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update task position
+         * @description Update a task's position within its column, or move it to another column
+         *     at a specific position. Automatically adjusts order of affected tasks.
+         */
+        patch: operations["updateTaskOrder"];
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -105,6 +126,11 @@ export interface components {
              */
             description: string;
             status: components["schemas"]["TaskStatus"];
+            /**
+             * @description Position of task within its column (1-based). Lower numbers appear first. 1 = highest priority position.
+             * @example 1
+             */
+            order: number;
             /**
              * Format: date-time
              * @description ISO 8601 timestamp of task creation
@@ -162,6 +188,11 @@ export interface components {
             categories: string[];
             /** @default medium */
             priority: components["schemas"]["TaskPriority"];
+            /**
+             * @description Position within the column (1-based)
+             * @default 1
+             */
+            order: number;
         };
         TaskUpdate: {
             /** @description Human-readable task title */
@@ -174,9 +205,17 @@ export interface components {
             /** @description List of category tags */
             categories?: string[];
             priority?: components["schemas"]["TaskPriority"];
+            /** @description Position within the column (1-based) */
+            order?: number;
         };
         TaskStatusUpdate: {
             status: components["schemas"]["TaskStatus"];
+        };
+        TaskOrderUpdate: {
+            /** @description Target position (1-based) */
+            newOrder: number;
+            /** @description Target column (if moving between columns) */
+            newStatus?: components["schemas"]["TaskStatus"];
         };
         /**
          * @description Task status corresponding to board columns
@@ -470,6 +509,63 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Task"];
+                };
+            };
+            /** @description Invalid request body */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Task not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    updateTaskOrder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Task ID (UUID) */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TaskOrderUpdate"];
+            };
+        };
+        responses: {
+            /** @description Task positions updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description All tasks whose order was changed */
+                        updated?: components["schemas"]["Task"][];
+                    };
                 };
             };
             /** @description Invalid request body */

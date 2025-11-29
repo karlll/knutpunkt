@@ -57,12 +57,99 @@ export function KanbanBoard() {
     },
   })
 
-  // Group tasks by status
+  // Mutation for updating task order (and optionally status)
+  const updateTaskOrderMutation = useMutation({
+    mutationFn: ({ id, newOrder, newStatus }: { id: string; newOrder: number; newStatus?: TaskStatus }) =>
+      api.tasks.updateOrder(id, newOrder, newStatus),
+    onMutate: async ({ id, newOrder, newStatus }) => {
+      await queryClient.cancelQueries({ queryKey: ['tasks'] })
+      const previousTasks = queryClient.getQueryData<Task[]>(['tasks'])
+
+      queryClient.setQueryData<Task[]>(['tasks'], (old) => {
+        if (!old) return old
+
+        const task = old.find((t) => t.id === id)
+        if (!task) return old
+
+        const oldStatus = task.status
+        const targetStatus = newStatus || oldStatus
+        const sameColumn = oldStatus === targetStatus
+
+        let updated = [...old]
+
+        if (sameColumn) {
+          // Reordering within same column
+          const oldOrder = task.order
+
+          if (newOrder < oldOrder) {
+            // Moving up: increment tasks between newOrder and oldOrder
+            updated = updated.map((t) => {
+              if (t.status === targetStatus && t.order >= newOrder && t.order < oldOrder) {
+                return { ...t, order: t.order + 1 }
+              }
+              if (t.id === id) {
+                return { ...t, order: newOrder }
+              }
+              return t
+            })
+          } else if (newOrder > oldOrder) {
+            // Moving down: decrement tasks between oldOrder and newOrder
+            updated = updated.map((t) => {
+              if (t.status === targetStatus && t.order > oldOrder && t.order <= newOrder) {
+                return { ...t, order: t.order - 1 }
+              }
+              if (t.id === id) {
+                return { ...t, order: newOrder }
+              }
+              return t
+            })
+          }
+        } else {
+          // Moving to different column
+          updated = updated.map((t) => {
+            // Decrement orders in old column (tasks below moved item)
+            if (t.status === oldStatus && t.order > task.order) {
+              return { ...t, order: t.order - 1 }
+            }
+            // Increment orders in new column (tasks at/below insertion point)
+            if (t.status === targetStatus && t.order >= newOrder) {
+              return { ...t, order: t.order + 1 }
+            }
+            // Update moved task
+            if (t.id === id) {
+              return { ...t, status: targetStatus, order: newOrder }
+            }
+            return t
+          })
+        }
+
+        return updated
+      })
+
+      return { previousTasks }
+    },
+    onError: (_err, _variables, context) => {
+      if (context?.previousTasks) {
+        queryClient.setQueryData(['tasks'], context.previousTasks)
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] })
+    },
+  })
+
+  // Group tasks by status and sort by order
   const tasksByStatus = useMemo(() => {
     return {
-      planned: tasks.filter((task) => task.status === 'planned'),
-      ongoing: tasks.filter((task) => task.status === 'ongoing'),
-      done: tasks.filter((task) => task.status === 'done'),
+      planned: tasks
+        .filter((task) => task.status === 'planned')
+        .sort((a, b) => a.order - b.order),
+      ongoing: tasks
+        .filter((task) => task.status === 'ongoing')
+        .sort((a, b) => a.order - b.order),
+      done: tasks
+        .filter((task) => task.status === 'done')
+        .sort((a, b) => a.order - b.order),
     }
   }, [tasks])
 
@@ -79,29 +166,41 @@ export function KanbanBoard() {
 
     if (!over) return
 
-    const taskId = active.id as string
-    const task = tasks.find((t) => t.id === taskId)
-    if (!task) return
+    const draggedTaskId = active.id as string
+    const draggedTask = tasks.find((t) => t.id === draggedTaskId)
+    if (!draggedTask) return
 
-    // Determine the new status
-    // over.id could be either a column status or a task ID (if dropped over another task)
-    let newStatus: TaskStatus
+    // Determine target column and position
+    let targetStatus: TaskStatus
+    let targetOrder: number
     const validStatuses: TaskStatus[] = ['planned', 'ongoing', 'done']
 
     if (validStatuses.includes(over.id as TaskStatus)) {
-      // Dropped over a column
-      newStatus = over.id as TaskStatus
+      // Dropped in empty column space
+      targetStatus = over.id as TaskStatus
+      targetOrder = tasksByStatus[targetStatus].length + 1 // End of list
     } else {
-      // Dropped over a task - find which column that task belongs to
+      // Dropped over another task
       const targetTask = tasks.find((t) => t.id === over.id)
       if (!targetTask) return
-      newStatus = targetTask.status
+
+      targetStatus = targetTask.status
+      targetOrder = targetTask.order // Insert at this position (target task shifts down)
     }
 
-    // Only update if status changed
-    if (task.status !== newStatus) {
-      updateStatusMutation.mutate({ id: taskId, status: newStatus })
-    }
+    // Check if anything changed
+    const statusChanged = draggedTask.status !== targetStatus
+    const orderChanged = draggedTask.order !== targetOrder
+    const sameColumn = !statusChanged
+
+    if (!statusChanged && !orderChanged) return // No change
+
+    // Update task position (handles both order and status changes)
+    updateTaskOrderMutation.mutate({
+      id: draggedTaskId,
+      newOrder: targetOrder,
+      newStatus: statusChanged ? targetStatus : undefined,
+    })
   }
 
   if (isLoading) {
