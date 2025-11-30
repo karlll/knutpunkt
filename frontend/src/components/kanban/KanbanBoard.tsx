@@ -4,6 +4,7 @@ import {
   DragOverlay,
   closestCorners,
   type DragEndEvent,
+  type DragOverEvent,
   type DragStartEvent,
   type DropAnimation,
   defaultDropAnimationSideEffects,
@@ -13,6 +14,7 @@ import { KanbanColumn } from './KanbanColumn'
 import { TaskCard } from './TaskCard'
 import { Header } from '@/components/Header'
 import { api, type Task, type TaskStatus } from '@/lib/api'
+import { applyDragResult, type DragPosition } from './dndLogic'
 
 const COLUMNS: { status: TaskStatus; title: string }[] = [
   { status: 'planned', title: 'Planned' },
@@ -32,6 +34,41 @@ const dropAnimationConfig: DropAnimation = {
   }),
 }
 
+/**
+ * Extract the drag position from a dnd-kit event.
+ * Returns null if the drop target is invalid.
+ */
+function getPositionFromEvent(
+  tasks: Task[],
+  event: DragOverEvent | DragEndEvent,
+): DragPosition | null {
+  const { over } = event
+  if (!over) return null
+
+  const validStatuses: TaskStatus[] = ['planned', 'ongoing', 'done']
+  const overId = String(over.id)
+
+  // Check if hovering/dropping over a column (empty space)
+  if (validStatuses.includes(overId as TaskStatus)) {
+    const status = overId as TaskStatus
+    // Count tasks in this column to determine end position
+    const tasksInColumn = tasks.filter((t) => t.status === status)
+    return {
+      targetStatus: status,
+      targetOrder: tasksInColumn.length + 1, // Append at end (1-based)
+    }
+  }
+
+  // Hovering/dropping over another task
+  const targetTask = tasks.find((t) => t.id === overId)
+  if (!targetTask) return null
+
+  return {
+    targetStatus: targetTask.status,
+    targetOrder: targetTask.order,
+  }
+}
+
 export function KanbanBoard() {
   const [activeTask, setActiveTask] = useState<Task | null>(null)
   const queryClient = useQueryClient()
@@ -42,122 +79,26 @@ export function KanbanBoard() {
     queryFn: () => api.tasks.list(),
   })
 
-  // Mutation for updating task status
-  const updateStatusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: TaskStatus }) =>
-      api.tasks.updateStatus(id, status),
-    // Optimistically update the cache before the mutation completes
-    onMutate: async ({ id, status }) => {
-      // Cancel any outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ['tasks'] })
-
-      // Snapshot the previous value
-      const previousTasks = queryClient.getQueryData<Task[]>(['tasks'])
-
-      // Optimistically update to the new value
-      queryClient.setQueryData<Task[]>(['tasks'], (old) => {
-        if (!old) return old
-        return old.map((task) =>
-          task.id === id ? { ...task, status, updatedAt: new Date().toISOString() } : task
-        )
-      })
-
-      // Return a context object with the snapshotted value
-      return { previousTasks }
-    },
-    // If the mutation fails, use the context returned from onMutate to roll back
-    onError: (_err, _variables, context) => {
-      if (context?.previousTasks) {
-        queryClient.setQueryData(['tasks'], context.previousTasks)
-      }
-    },
-    // Always refetch after error or success
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['tasks'] })
-    },
-  })
-
   // Mutation for updating task order (and optionally status)
+  // Note: Optimistic updates are handled in handleDragEnd, not here
   const updateTaskOrderMutation = useMutation({
     mutationFn: ({ id, newOrder, newStatus }: { id: string; newOrder: number; newStatus?: TaskStatus }) =>
       api.tasks.updateOrder(id, newOrder, newStatus),
-    onMutate: async ({ id, newOrder, newStatus }) => {
+    onMutate: async () => {
+      // Cancel any outgoing refetches to prevent race conditions
       await queryClient.cancelQueries({ queryKey: ['tasks'] })
+      // Snapshot previous state for rollback on error
       const previousTasks = queryClient.getQueryData<Task[]>(['tasks'])
-
-      queryClient.setQueryData<Task[]>(['tasks'], (old) => {
-        if (!old) return old
-
-        const task = old.find((t) => t.id === id)
-        if (!task) return old
-
-        const oldStatus = task.status
-        const targetStatus = newStatus || oldStatus
-        const sameColumn = oldStatus === targetStatus
-
-        let updated = [...old]
-
-        if (sameColumn) {
-          // Reordering within same column
-          const oldOrder = task.order
-
-          if (newOrder < oldOrder) {
-            // Moving up: increment tasks between newOrder and oldOrder
-            updated = updated.map((t) => {
-              if (t.status === targetStatus && t.order >= newOrder && t.order < oldOrder) {
-                return { ...t, order: t.order + 1 }
-              }
-              if (t.id === id) {
-                return { ...t, order: newOrder }
-              }
-              return t
-            })
-          } else if (newOrder > oldOrder) {
-            // Moving down: decrement tasks between oldOrder and newOrder
-            updated = updated.map((t) => {
-              if (t.status === targetStatus && t.order > oldOrder && t.order <= newOrder) {
-                return { ...t, order: t.order - 1 }
-              }
-              if (t.id === id) {
-                return { ...t, order: newOrder }
-              }
-              return t
-            })
-          }
-        } else {
-          // Moving to different column
-          updated = updated.map((t) => {
-            // Decrement orders in old column (tasks below moved item)
-            if (t.status === oldStatus && t.order > task.order) {
-              return { ...t, order: t.order - 1 }
-            }
-            // Increment orders in new column (tasks at/below insertion point)
-            if (t.status === targetStatus && t.order >= newOrder) {
-              return { ...t, order: t.order + 1 }
-            }
-            // Update moved task
-            if (t.id === id) {
-              return { ...t, status: targetStatus, order: newOrder }
-            }
-            return t
-          })
-        }
-
-        return updated
-      })
-
-      // Clear the active task after optimistic update is applied
-      // This ensures the drag overlay disappears only after the card is in its new position
-      setActiveTask(null)
-
       return { previousTasks }
     },
     onError: (_err, _variables, context) => {
+      // Rollback on error
       if (context?.previousTasks) {
         queryClient.setQueryData(['tasks'], context.previousTasks)
       }
     },
     onSettled: () => {
+      // Refetch to sync with backend
       queryClient.invalidateQueries({ queryKey: ['tasks'] })
     },
   })
@@ -184,51 +125,55 @@ export function KanbanBoard() {
     }
   }
 
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event
+  const handleDragOver = (event: DragOverEvent) => {
+    // Get current cache state (which may have been updated by previous onDragOver calls)
+    const currentTasks = queryClient.getQueryData<Task[]>(['tasks']) ?? tasks
 
-    if (!over) {
-      setActiveTask(null)
+    // Calculate the position from the event
+    const position = getPositionFromEvent(currentTasks, event)
+    if (!position) return
+
+    // Apply the drag result to get preview
+    const activeId = String(event.active.id)
+    const previewTasks = applyDragResult(currentTasks, activeId, position)
+
+    // Only update cache if something changed
+    if (previewTasks !== currentTasks) {
+      queryClient.setQueryData(['tasks'], previewTasks)
+    }
+  }
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    // Get current cache state
+    const currentTasks = queryClient.getQueryData<Task[]>(['tasks']) ?? tasks
+
+    // Calculate the final position from the event
+    const position = getPositionFromEvent(currentTasks, event)
+    const activeId = String(event.active.id)
+
+    // Apply the drag result to get the final order
+    const newTasks = applyDragResult(currentTasks, activeId, position)
+
+    // Clear active task
+    setActiveTask(null)
+
+    // If nothing changed, no need to persist
+    if (newTasks === currentTasks) {
       return
     }
 
-    const draggedTaskId = active.id as string
-    const draggedTask = tasks.find((t) => t.id === draggedTaskId)
-    if (!draggedTask) return
+    // Apply optimistic update
+    queryClient.setQueryData(['tasks'], newTasks)
 
-    // Determine target column and position
-    let targetStatus: TaskStatus
-    let targetOrder: number
-    const validStatuses: TaskStatus[] = ['planned', 'ongoing', 'done']
+    // Find the task's new position and status
+    const movedTask = newTasks.find((t) => t.id === activeId)
+    if (!movedTask) return
 
-    if (validStatuses.includes(over.id as TaskStatus)) {
-      // Dropped in empty column space
-      targetStatus = over.id as TaskStatus
-      targetOrder = tasksByStatus[targetStatus].length + 1 // End of list
-    } else {
-      // Dropped over another task
-      const targetTask = tasks.find((t) => t.id === over.id)
-      if (!targetTask) return
-
-      targetStatus = targetTask.status
-      targetOrder = targetTask.order // Insert at this position (target task shifts down)
-    }
-
-    // Check if anything changed
-    const statusChanged = draggedTask.status !== targetStatus
-    const orderChanged = draggedTask.order !== targetOrder
-    const sameColumn = !statusChanged
-
-    if (!statusChanged && !orderChanged) {
-      setActiveTask(null)
-      return // No change
-    }
-
-    // Update task position (handles both order and status changes)
+    // Persist to backend
     updateTaskOrderMutation.mutate({
-      id: draggedTaskId,
-      newOrder: targetOrder,
-      newStatus: statusChanged ? targetStatus : undefined,
+      id: activeId,
+      newOrder: movedTask.order,
+      newStatus: movedTask.status,
     })
   }
 
@@ -247,6 +192,7 @@ export function KanbanBoard() {
         <DndContext
           collisionDetection={closestCorners}
           onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
           onDragEnd={handleDragEnd}
         >
           <div className="flex gap-6 h-full overflow-x-auto pb-4">
