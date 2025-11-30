@@ -79,6 +79,7 @@ export const handlers = [
         title: body.title,
         description: body.description,
         status: body.status || 'planned',
+        order: body.order || 1,
         priority: body.priority || 'medium',
         assignees: body.assignees || [],
         categories: body.categories || [],

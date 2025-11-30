@@ -29,6 +29,7 @@ const baseTask: Task = {
   title: 'Setup project infrastructure',
   description: '## Description\n\nSetup the initial project structure including frontend and backend.\n\n## Acceptance Criteria\n\n- [x] Create OpenAPI specification\n- [x] Initialize frontend with Vite\n- [ ] Initialize backend with Ktor',
   status: 'ongoing',
+  order: 1,
   priority: 'high',
   assignees: ['alice'],
   categories: ['infrastructure', 'setup'],

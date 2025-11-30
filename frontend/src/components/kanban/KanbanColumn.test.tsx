@@ -10,6 +10,7 @@ const mockTasks: Task[] = [
     title: 'Task 1',
     description: 'Description 1',
     status: 'planned',
+    order: 1,
     priority: 'high',
     categories: ['feature'],
     assignees: ['alice'],
@@ -21,6 +22,7 @@ const mockTasks: Task[] = [
     title: 'Task 2',
     description: 'Description 2',
     status: 'planned',
+    order: 2,
     priority: 'medium',
     categories: ['bug'],
     assignees: ['bob'],
@@ -124,7 +126,7 @@ describe('KanbanColumn', () => {
     })
 
     it('empty message has correct styling', () => {
-      const { container } = render(
+      render(
         <DndWrapper>
           <KanbanColumn status="planned" tasks={[]} title="Planned" />
         </DndWrapper>

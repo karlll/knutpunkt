@@ -9,6 +9,7 @@ const mockTask: Task = {
   title: 'Test Task',
   description: '# Test Description\n\nSome details',
   status: 'planned',
+  order: 1,
   priority: 'high',
   categories: ['feature', 'frontend'],
   assignees: ['alice', 'bob'],
