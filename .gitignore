@@ -17,10 +17,11 @@ dist/
 
 # Kotlin/Gradle (Backend)
 .gradle/
-build/
-*.jar
-*.war
+backend/build/
 *.class
+
+# Distribution JAR (built by make dist)
+build/*.jar
 
 # Logs
 *.log
