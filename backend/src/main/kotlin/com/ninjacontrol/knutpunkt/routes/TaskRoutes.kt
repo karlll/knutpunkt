@@ -66,6 +66,15 @@ fun Route.taskRoutes() {
                 val task = taskService.updateTaskStatus(id, statusUpdate)
                 call.respond(HttpStatusCode.OK, task)
             }
+            
+            patch("/order") {
+                val id = call.parameters["id"] 
+                    ?: return@patch call.respond(HttpStatusCode.BadRequest, Error("Missing task id"))
+                
+                val orderUpdate = call.receive<TaskOrderUpdate>()
+                val updatedTasks = taskService.updateTaskOrder(id, orderUpdate)
+                call.respond(HttpStatusCode.OK, TaskOrderResponse(updated = updatedTasks))
+            }
         }
     }
 }

@@ -30,7 +30,8 @@ data class Task(
     val updatedAt: String,
     val assignees: List<String>,
     val categories: List<String>,
-    val priority: TaskPriority
+    val priority: TaskPriority,
+    val order: Int
 )
 
 @Serializable
@@ -40,7 +41,8 @@ data class TaskCreate(
     val status: TaskStatus? = TaskStatus.PLANNED,
     val assignees: List<String>? = emptyList(),
     val categories: List<String>? = emptyList(),
-    val priority: TaskPriority? = TaskPriority.MEDIUM
+    val priority: TaskPriority? = TaskPriority.MEDIUM,
+    val order: Int? = null
 )
 
 @Serializable
@@ -50,12 +52,24 @@ data class TaskUpdate(
     val status: TaskStatus? = null,
     val assignees: List<String>? = null,
     val categories: List<String>? = null,
-    val priority: TaskPriority? = null
+    val priority: TaskPriority? = null,
+    val order: Int? = null
 )
 
 @Serializable
 data class TaskStatusUpdate(
     val status: TaskStatus
+)
+
+@Serializable
+data class TaskOrderUpdate(
+    val newOrder: Int,
+    val newStatus: TaskStatus? = null
+)
+
+@Serializable
+data class TaskOrderResponse(
+    val updated: List<Task>
 )
 
 @Serializable

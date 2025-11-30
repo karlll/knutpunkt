@@ -59,7 +59,8 @@ class TaskService(private val tasksDirectory: String = "../tasks") {
             updatedAt = frontMatter.updatedAt,
             assignees = frontMatter.assignees,
             categories = frontMatter.categories,
-            priority = TaskPriority.valueOf(frontMatter.priority.uppercase())
+            priority = TaskPriority.valueOf(frontMatter.priority.uppercase()),
+            order = frontMatter.order
         )
     }
     
@@ -94,7 +95,7 @@ class TaskService(private val tasksDirectory: String = "../tasks") {
             }
         }
         
-        return tasks
+        return tasks.sortedBy { it.order }
     }
     
     fun getTask(id: String): Task {
@@ -121,6 +122,12 @@ class TaskService(private val tasksDirectory: String = "../tasks") {
             throw TaskConflictException("A task with similar title already exists in $status column")
         }
         
+        // Determine order: use provided value or append to end
+        val order = taskCreate.order ?: run {
+            val existingTasks = listTasks(status = status)
+            (existingTasks.maxOfOrNull { it.order } ?: 0) + 1
+        }
+        
         val frontMatter = TaskFrontMatter(
             id = taskId,
             title = taskCreate.title,
@@ -128,7 +135,8 @@ class TaskService(private val tasksDirectory: String = "../tasks") {
             updatedAt = now,
             assignees = taskCreate.assignees ?: emptyList(),
             categories = taskCreate.categories ?: emptyList(),
-            priority = (taskCreate.priority ?: TaskPriority.MEDIUM).toString().lowercase()
+            priority = (taskCreate.priority ?: TaskPriority.MEDIUM).toString().lowercase(),
+            order = order
         )
         
         MarkdownParser.writeTaskFile(file, frontMatter, taskCreate.description)
@@ -143,7 +151,8 @@ class TaskService(private val tasksDirectory: String = "../tasks") {
             updatedAt = now,
             assignees = taskCreate.assignees ?: emptyList(),
             categories = taskCreate.categories ?: emptyList(),
-            priority = taskCreate.priority ?: TaskPriority.MEDIUM
+            priority = taskCreate.priority ?: TaskPriority.MEDIUM,
+            order = order
         )
     }
     
@@ -168,6 +177,8 @@ class TaskService(private val tasksDirectory: String = "../tasks") {
             throw TaskConflictException("A task with similar title already exists in $newStatus column")
         }
         
+        val order = taskUpdate.order ?: oldFrontMatter.order
+        
         val frontMatter = TaskFrontMatter(
             id = id,
             title = taskUpdate.title,
@@ -175,7 +186,8 @@ class TaskService(private val tasksDirectory: String = "../tasks") {
             updatedAt = now,
             assignees = taskUpdate.assignees ?: emptyList(),
             categories = taskUpdate.categories ?: emptyList(),
-            priority = (taskUpdate.priority ?: TaskPriority.MEDIUM).toString().lowercase()
+            priority = (taskUpdate.priority ?: TaskPriority.MEDIUM).toString().lowercase(),
+            order = order
         )
         
         MarkdownParser.writeTaskFile(newFile, frontMatter, taskUpdate.description)
@@ -195,7 +207,8 @@ class TaskService(private val tasksDirectory: String = "../tasks") {
             updatedAt = now,
             assignees = taskUpdate.assignees ?: emptyList(),
             categories = taskUpdate.categories ?: emptyList(),
-            priority = taskUpdate.priority ?: TaskPriority.MEDIUM
+            priority = taskUpdate.priority ?: TaskPriority.MEDIUM,
+            order = order
         )
     }
     
@@ -233,5 +246,103 @@ class TaskService(private val tasksDirectory: String = "../tasks") {
         val (file, _) = findTaskFile(id)
             ?: throw TaskNotFoundException("Task with id $id not found")
         file.delete()
+    }
+    
+    fun updateTaskOrder(id: String, orderUpdate: TaskOrderUpdate): List<Task> {
+        val (oldFile, currentStatus) = findTaskFile(id)
+            ?: throw TaskNotFoundException("Task with id $id not found")
+        
+        if (orderUpdate.newOrder < 1) {
+            throw TaskValidationException("Order must be >= 1")
+        }
+        
+        val (frontMatter, description) = MarkdownParser.parseTaskFile(oldFile)
+        val targetStatus = orderUpdate.newStatus ?: currentStatus
+        val now = Instant.now().toString()
+        
+        // Get all tasks in target status
+        val tasksInTargetStatus = listTasks(status = targetStatus).toMutableList()
+        
+        // Remove the task being moved if it's in the same column
+        val taskToMove = tasksInTargetStatus.find { it.id == id }
+        if (taskToMove != null) {
+            tasksInTargetStatus.remove(taskToMove)
+        }
+        
+        // Insert at new position (converting from 1-based to 0-based index)
+        val insertIndex = (orderUpdate.newOrder - 1).coerceIn(0, tasksInTargetStatus.size)
+        
+        // Reorder: assign sequential order values
+        val updatedTasks = mutableListOf<Task>()
+        var currentOrder = 1
+        
+        for (i in tasksInTargetStatus.indices) {
+            if (i == insertIndex) {
+                // Insert the moved task here
+                val movedTask = Task(
+                    id = id,
+                    title = frontMatter.title,
+                    description = description,
+                    status = targetStatus,
+                    createdAt = frontMatter.createdAt,
+                    updatedAt = now,
+                    assignees = frontMatter.assignees,
+                    categories = frontMatter.categories,
+                    priority = TaskPriority.valueOf(frontMatter.priority.uppercase()),
+                    order = currentOrder
+                )
+                updatedTasks.add(movedTask)
+                currentOrder++
+            }
+            
+            val task = tasksInTargetStatus[i]
+            if (task.order != currentOrder) {
+                // Update order if changed
+                val updatedTask = task.copy(order = currentOrder, updatedAt = now)
+                updatedTasks.add(updatedTask)
+            }
+            currentOrder++
+        }
+        
+        // If inserting at the end
+        if (insertIndex >= tasksInTargetStatus.size) {
+            val movedTask = Task(
+                id = id,
+                title = frontMatter.title,
+                description = description,
+                status = targetStatus,
+                createdAt = frontMatter.createdAt,
+                updatedAt = now,
+                assignees = frontMatter.assignees,
+                categories = frontMatter.categories,
+                priority = TaskPriority.valueOf(frontMatter.priority.uppercase()),
+                order = currentOrder
+            )
+            updatedTasks.add(movedTask)
+        }
+        
+        // Persist all changes
+        for (task in updatedTasks) {
+            val (existingFile, _) = findTaskFile(task.id) ?: continue
+            val (existingFrontMatter, existingDescription) = MarkdownParser.parseTaskFile(existingFile)
+            
+            val statusDir = getStatusDir(task.status)
+            val slug = SlugGenerator.generateSlug(task.title)
+            val newFile = File(statusDir, "$slug.md")
+            
+            val updatedFrontMatter = existingFrontMatter.copy(
+                order = task.order,
+                updatedAt = task.updatedAt
+            )
+            
+            MarkdownParser.writeTaskFile(newFile, updatedFrontMatter, existingDescription)
+            
+            // Delete old file if moved to different column
+            if (existingFile.canonicalPath != newFile.canonicalPath) {
+                existingFile.delete()
+            }
+        }
+        
+        return updatedTasks
     }
 }

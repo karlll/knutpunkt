@@ -2,13 +2,14 @@
 id: "550e8400-e29b-41d4-a716-446655440000"
 title: "Example Task - Setup Project"
 createdAt: "2025-01-15T10:00:00Z"
-updatedAt: "2025-11-29T17:41:43.722434Z"
+updatedAt: "2025-11-30T17:03:41.199391Z"
 assignees:
 - "developer"
 categories:
 - "setup"
 - "infrastructure"
 priority: "high"
+order: 3
 ---
 
 ## Description

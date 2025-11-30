@@ -14,7 +14,8 @@ data class TaskFrontMatter(
     val updatedAt: String,
     val assignees: List<String> = emptyList(),
     val categories: List<String> = emptyList(),
-    val priority: String = "medium"
+    val priority: String = "medium",
+    val order: Int = 1
 )
 
 object MarkdownParser {
