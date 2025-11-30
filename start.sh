@@ -10,8 +10,16 @@
 #   ./start.sh                    # Use ./tasks (default)
 #   ./start.sh /path/to/tasks     # Use custom path
 #
-# Environment variable TASKS_DIRECTORY is also supported but
-# command-line argument takes precedence.
+# Environment Variables:
+#   TASKS_DIRECTORY    - Custom tasks directory path
+#   APP_LOG_LEVEL      - Application log level (DEBUG, INFO, WARN, ERROR) [default: DEBUG]
+#   KTOR_LOG_LEVEL     - Ktor framework log level [default: INFO]
+#   LOG_LEVEL          - Root log level [default: INFO]
+#
+# Examples with logging:
+#   APP_LOG_LEVEL=INFO ./start.sh              # Only INFO and above
+#   APP_LOG_LEVEL=DEBUG ./start.sh             # Show all debug logs
+#   KTOR_LOG_LEVEL=DEBUG ./start.sh            # Debug Ktor framework too
 
 set -e
 
@@ -35,6 +43,7 @@ echo "Starting Knutpunkt..."
 echo "JAR: $JAR_FILE"
 echo "Port: $PORT"
 echo "Tasks directory: $TASKS_DIR"
+echo "Log level: ${APP_LOG_LEVEL:-DEBUG} (set APP_LOG_LEVEL to change)"
 echo "URL: http://localhost:$PORT"
 echo ""
 echo "Press Ctrl+C to stop"

@@ -5,10 +5,14 @@
         </encoder>
     </appender>
 
-    <root level="INFO">
+    <!-- Default root level is INFO -->
+    <root level="${LOG_LEVEL:-INFO}">
         <appender-ref ref="STDOUT"/>
     </root>
     
-    <logger name="io.ktor" level="INFO"/>
-    <logger name="com.ninjacontrol.knutpunkt" level="DEBUG"/>
+    <!-- Ktor framework logging -->
+    <logger name="io.ktor" level="${KTOR_LOG_LEVEL:-INFO}"/>
+    
+    <!-- Application logging - DEBUG shows detailed task operations -->
+    <logger name="com.ninjacontrol.knutpunkt" level="${APP_LOG_LEVEL:-DEBUG}"/>
 </configuration>
