@@ -2,12 +2,23 @@
 
 # Knutpunkt Startup Script
 # Runs the application JAR file
+#
+# Usage:
+#   ./start.sh [tasks-directory]
+#
+# Examples:
+#   ./start.sh                    # Use ./tasks (default)
+#   ./start.sh /path/to/tasks     # Use custom path
+#
+# Environment variable TASKS_DIRECTORY is also supported but
+# command-line argument takes precedence.
 
 set -e
 
 JAR_FILE="build/knutpunkt-1.0.0.jar"
 PORT=8080
-TASKS_DIR="${TASKS_DIRECTORY:-./tasks}"
+TASKS_ARG="${1:-}"
+TASKS_DIR="${TASKS_ARG:-${TASKS_DIRECTORY:-./tasks}}"
 
 # Check if JAR exists
 if [ ! -f "$JAR_FILE" ]; then
@@ -29,5 +40,9 @@ echo ""
 echo "Press Ctrl+C to stop"
 echo ""
 
-# Run the JAR
-java -jar "$JAR_FILE"
+# Run the JAR with tasks directory as argument if provided
+if [ -n "$TASKS_ARG" ]; then
+    java -jar "$JAR_FILE" "$TASKS_ARG"
+else
+    java -jar "$JAR_FILE"
+fi
