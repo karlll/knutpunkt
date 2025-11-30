@@ -27,6 +27,7 @@ dependencies {
     implementation("io.ktor:ktor-server-cors-jvm:$ktorVersion")
     implementation("io.ktor:ktor-server-status-pages-jvm:$ktorVersion")
     implementation("io.ktor:ktor-server-call-logging-jvm:$ktorVersion")
+    implementation("io.ktor:ktor-server-html-builder-jvm:$ktorVersion")
     
     // Serialization
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$kotlinxSerializationVersion")
@@ -61,4 +62,28 @@ application {
 
 tasks.named<Test>("test") {
     useJUnitPlatform()
+}
+
+// Task to build frontend
+val buildFrontend by tasks.registering(Exec::class) {
+    description = "Build frontend application"
+    workingDir = file("../frontend")
+    commandLine = if (System.getProperty("os.name").lowercase().contains("windows")) {
+        listOf("cmd", "/c", "npm", "run", "build")
+    } else {
+        listOf("npm", "run", "build")
+    }
+}
+
+// Task to copy frontend dist to resources
+val copyFrontend by tasks.registering(Copy::class) {
+    description = "Copy built frontend to backend resources"
+    dependsOn(buildFrontend)
+    from("../frontend/dist")
+    into("src/main/resources/static")
+}
+
+// Make processResources depend on copyFrontend
+tasks.named("processResources") {
+    dependsOn(copyFrontend)
 }

@@ -14,5 +14,6 @@ fun Application.module() {
     configureSerialization()
     configureCORS()
     configureStatusPages()
-    configureRouting()
+    configureRouting()  // API routes first
+    configureStaticContent()  // Then static/SPA fallback
 }
