@@ -16,13 +16,13 @@ help:
 # Build the project (frontend + backend JAR)
 build:
 	@echo "Building Knutpunkt..."
-	cd backend && ./gradlew clean assemble --no-daemon
+	cd backend && ./gradlew clean shadowJar --no-daemon
 
 # Build and copy to project root build directory
 dist: build
 	@echo "Creating distribution..."
 	@mkdir -p build
-	@cp backend/build/libs/knutpunkt-1.0.0.jar build/
+	@cp backend/build/libs/knutpunkt-1.0.0-all.jar build/knutpunkt-1.0.0.jar
 	@echo "✓ JAR copied to: ./build/knutpunkt-1.0.0.jar"
 	@ls -lh build/
 
