@@ -7,6 +7,7 @@ set -e
 
 JAR_FILE="build/knutpunkt-1.0.0.jar"
 PORT=8080
+TASKS_DIR="${TASKS_DIRECTORY:-./tasks}"
 
 # Check if JAR exists
 if [ ! -f "$JAR_FILE" ]; then
@@ -22,6 +23,7 @@ fi
 echo "Starting Knutpunkt..."
 echo "JAR: $JAR_FILE"
 echo "Port: $PORT"
+echo "Tasks directory: $TASKS_DIR"
 echo "URL: http://localhost:$PORT"
 echo ""
 echo "Press Ctrl+C to stop"

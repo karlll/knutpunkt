@@ -58,9 +58,21 @@ java -jar build/knutpunkt-1.0.0.jar
 
 ## Task Storage
 
-Tasks are stored in `./tasks/` directory:
+Tasks are stored in the `./tasks/` directory (relative to where the application is run):
 - `tasks/planned/` - Planned tasks
 - `tasks/ongoing/` - Tasks in progress  
 - `tasks/done/` - Completed tasks
 
-Make sure the tasks directory is accessible when running the JAR.
+The tasks directory location can be customized using the `TASKS_DIRECTORY` environment variable:
+
+```bash
+TASKS_DIRECTORY=/path/to/tasks ./start.sh
+```
+
+or
+
+```bash
+TASKS_DIRECTORY=/path/to/tasks java -jar build/knutpunkt-1.0.0.jar
+```
+
+Make sure the tasks directory exists and is writable when running the application.

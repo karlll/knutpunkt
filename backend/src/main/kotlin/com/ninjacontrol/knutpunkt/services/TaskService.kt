@@ -11,7 +11,7 @@ import java.io.File
 import java.time.Instant
 import java.util.*
 
-class TaskService(private val tasksDirectory: String = "../tasks") {
+class TaskService(private val tasksDirectory: String = System.getenv("TASKS_DIRECTORY") ?: "./tasks") {
     
     private val baseDir = File(tasksDirectory).apply {
         if (!exists()) mkdirs()
