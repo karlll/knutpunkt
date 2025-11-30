@@ -7,14 +7,21 @@ import com.ninjacontrol.knutpunkt.plugins.TaskValidationException
 import com.ninjacontrol.knutpunkt.utils.MarkdownParser
 import com.ninjacontrol.knutpunkt.utils.SlugGenerator
 import com.ninjacontrol.knutpunkt.utils.TaskFrontMatter
+import org.slf4j.LoggerFactory
 import java.io.File
 import java.time.Instant
 import java.util.*
 
 class TaskService(private val tasksDirectory: String = getTasksDirectory()) {
     
+    private val logger = LoggerFactory.getLogger(TaskService::class.java)
+    
     private val baseDir = File(tasksDirectory).apply {
-        if (!exists()) mkdirs()
+        if (!exists()) {
+            mkdirs()
+            logger.debug("Created tasks directory: $absolutePath")
+        }
+        logger.info("Using tasks directory: $absolutePath")
     }
     
     private fun getStatusDir(status: TaskStatus): File {
@@ -105,7 +112,10 @@ class TaskService(private val tasksDirectory: String = getTasksDirectory()) {
     }
     
     fun createTask(taskCreate: TaskCreate): Task {
+        logger.debug("Creating task: title='{}', status={}", taskCreate.title, taskCreate.status)
+        
         if (taskCreate.title.isBlank()) {
+            logger.warn("Task creation failed: blank title")
             throw TaskValidationException("Task title cannot be blank")
         }
         
@@ -119,6 +129,7 @@ class TaskService(private val tasksDirectory: String = getTasksDirectory()) {
         
         // Check for duplicate slug
         if (file.exists()) {
+            logger.warn("Task creation failed: duplicate slug '{}' in status {}", slug, status)
             throw TaskConflictException("A task with similar title already exists in $status column")
         }
         
@@ -127,6 +138,8 @@ class TaskService(private val tasksDirectory: String = getTasksDirectory()) {
             val existingTasks = listTasks(status = status)
             (existingTasks.maxOfOrNull { it.order } ?: 0) + 1
         }
+        
+        logger.debug("Task '{}': assigned id={}, slug={}, order={}", taskCreate.title, taskId, slug, order)
         
         val frontMatter = TaskFrontMatter(
             id = taskId,
@@ -140,6 +153,8 @@ class TaskService(private val tasksDirectory: String = getTasksDirectory()) {
         )
         
         MarkdownParser.writeTaskFile(file, frontMatter, taskCreate.description)
+        logger.info("Created task: id={}, title='{}', status={}, order={}, file={}", 
+            taskId, taskCreate.title, status, order, file.name)
         
         // Return the created task directly instead of re-parsing
         return Task(
@@ -157,12 +172,17 @@ class TaskService(private val tasksDirectory: String = getTasksDirectory()) {
     }
     
     fun updateTask(id: String, taskUpdate: TaskUpdate): Task {
+        logger.debug("Updating task: id={}, title='{}'", id, taskUpdate.title)
+        
         if (taskUpdate.title.isBlank()) {
+            logger.warn("Task update failed: blank title for id={}", id)
             throw TaskValidationException("Task title cannot be blank")
         }
         
         val (oldFile, currentStatus) = findTaskFile(id)
-            ?: throw TaskNotFoundException("Task with id $id not found")
+            ?: throw TaskNotFoundException("Task with id $id not found").also {
+                logger.warn("Task update failed: task id={} not found", id)
+            }
         
         val (oldFrontMatter, _) = MarkdownParser.parseTaskFile(oldFile)
         val newStatus = taskUpdate.status ?: currentStatus
@@ -174,10 +194,16 @@ class TaskService(private val tasksDirectory: String = getTasksDirectory()) {
         
         // Check for duplicate slug (unless it's the same file)
         if (newFile.exists() && newFile.canonicalPath != oldFile.canonicalPath) {
+            logger.warn("Task update failed: duplicate slug '{}' for id={}", newSlug, id)
             throw TaskConflictException("A task with similar title already exists in $newStatus column")
         }
         
         val order = taskUpdate.order ?: oldFrontMatter.order
+        val statusChanged = currentStatus != newStatus
+        val titleChanged = oldFrontMatter.title != taskUpdate.title
+        
+        logger.debug("Task {}: oldStatus={}, newStatus={}, oldTitle='{}', newTitle='{}', order={}", 
+            id, currentStatus, newStatus, oldFrontMatter.title, taskUpdate.title, order)
         
         val frontMatter = TaskFrontMatter(
             id = id,
@@ -195,7 +221,11 @@ class TaskService(private val tasksDirectory: String = getTasksDirectory()) {
         // Delete old file if location changed
         if (oldFile.canonicalPath != newFile.canonicalPath) {
             oldFile.delete()
+            logger.debug("Task {}: moved file from {} to {}", id, oldFile.name, newFile.name)
         }
+        
+        logger.info("Updated task: id={}, title='{}', status={} (changed={}), order={}", 
+            id, taskUpdate.title, newStatus, statusChanged, order)
         
         // Return the updated task directly
         return Task(
@@ -243,22 +273,41 @@ class TaskService(private val tasksDirectory: String = getTasksDirectory()) {
     }
     
     fun deleteTask(id: String) {
-        val (file, _) = findTaskFile(id)
-            ?: throw TaskNotFoundException("Task with id $id not found")
+        logger.debug("Deleting task: id={}", id)
+        
+        val (file, status) = findTaskFile(id)
+            ?: throw TaskNotFoundException("Task with id $id not found").also {
+                logger.warn("Task deletion failed: task id={} not found", id)
+            }
+        
+        val (frontMatter, _) = MarkdownParser.parseTaskFile(file)
         file.delete()
+        
+        logger.info("Deleted task: id={}, title='{}', status={}, file={}", 
+            id, frontMatter.title, status, file.name)
     }
     
     fun updateTaskOrder(id: String, orderUpdate: TaskOrderUpdate): List<Task> {
+        logger.debug("Updating task order: id={}, newOrder={}, newStatus={}", 
+            id, orderUpdate.newOrder, orderUpdate.newStatus)
+        
         val (oldFile, currentStatus) = findTaskFile(id)
-            ?: throw TaskNotFoundException("Task with id $id not found")
+            ?: throw TaskNotFoundException("Task with id $id not found").also {
+                logger.warn("Task order update failed: task id={} not found", id)
+            }
         
         if (orderUpdate.newOrder < 1) {
+            logger.warn("Task order update failed: invalid order={} for id={}", orderUpdate.newOrder, id)
             throw TaskValidationException("Order must be >= 1")
         }
         
         val (frontMatter, description) = MarkdownParser.parseTaskFile(oldFile)
         val targetStatus = orderUpdate.newStatus ?: currentStatus
         val now = Instant.now().toString()
+        val statusChanged = currentStatus != targetStatus
+        
+        logger.debug("Task {}: currentStatus={}, targetStatus={}, currentOrder={}, newOrder={}", 
+            id, currentStatus, targetStatus, frontMatter.order, orderUpdate.newOrder)
         
         // Get all tasks in target status
         val tasksInTargetStatus = listTasks(status = targetStatus).toMutableList()
@@ -271,6 +320,8 @@ class TaskService(private val tasksDirectory: String = getTasksDirectory()) {
         
         // Insert at new position (converting from 1-based to 0-based index)
         val insertIndex = (orderUpdate.newOrder - 1).coerceIn(0, tasksInTargetStatus.size)
+        
+        logger.debug("Task {}: insertIndex={}, tasksInColumn={}", id, insertIndex, tasksInTargetStatus.size)
         
         // Reorder: assign sequential order values
         val updatedTasks = mutableListOf<Task>()
@@ -340,6 +391,15 @@ class TaskService(private val tasksDirectory: String = getTasksDirectory()) {
             // Delete old file if moved to different column
             if (existingFile.canonicalPath != newFile.canonicalPath) {
                 existingFile.delete()
+            }
+        }
+        
+        logger.info("Updated task order: id={}, title='{}', status={} (changed={}), newOrder={}, affectedTasks={}", 
+            id, frontMatter.title, targetStatus, statusChanged, orderUpdate.newOrder, updatedTasks.size)
+        
+        if (logger.isDebugEnabled) {
+            updatedTasks.forEach { task ->
+                logger.debug("  - Task {}: title='{}', order={}", task.id, task.title, task.order)
             }
         }
         
