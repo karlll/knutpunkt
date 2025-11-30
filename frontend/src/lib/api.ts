@@ -4,6 +4,7 @@ type Task = components['schemas']['Task']
 type TaskCreate = components['schemas']['TaskCreate']
 type TaskUpdate = components['schemas']['TaskUpdate']
 type TaskStatus = components['schemas']['TaskStatus']
+type TaskPriority = components['schemas']['TaskPriority']
 type TaskOrderUpdate = components['schemas']['TaskOrderUpdate']
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1'
@@ -117,4 +118,4 @@ export const api = {
 }
 
 export { ApiError }
-export type { Task, TaskCreate, TaskUpdate, TaskStatus }
+export type { Task, TaskCreate, TaskUpdate, TaskStatus, TaskPriority }

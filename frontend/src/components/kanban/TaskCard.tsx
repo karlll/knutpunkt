@@ -1,15 +1,19 @@
+import { useState } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import type { Task } from '@/lib/api'
-import { GripVertical } from 'lucide-react'
+import { GripVertical, Pencil } from 'lucide-react'
+import { TaskEditDialog } from './TaskEditDialog'
 
 interface TaskCardProps {
   task: Task
 }
 
 export function TaskCard({ task }: TaskCardProps) {
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
   const {
     attributes,
     listeners,
@@ -35,22 +39,36 @@ export function TaskCard({ task }: TaskCardProps) {
   }
 
   return (
-    <div ref={setNodeRef} style={style}>
-      <Card className="cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow">
-        <CardHeader className="pb-3">
-          <div className="flex items-start justify-between gap-2">
-            <CardTitle className="text-base font-medium line-clamp-2">
-              {task.title}
-            </CardTitle>
-            <button
-              className="cursor-grab touch-none text-muted-foreground hover:text-foreground"
-              {...attributes}
-              {...listeners}
-            >
-              <GripVertical className="h-4 w-4" />
-            </button>
-          </div>
-        </CardHeader>
+    <>
+      <div ref={setNodeRef} style={style}>
+        <Card className="cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow">
+          <CardHeader className="pb-3">
+            <div className="flex items-start justify-between gap-2">
+              <CardTitle className="text-base font-medium line-clamp-2 flex-1">
+                {task.title}
+              </CardTitle>
+              <div className="flex items-center gap-1">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-6 w-6 cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setEditDialogOpen(true)
+                  }}
+                >
+                  <Pencil className="h-3 w-3" />
+                </Button>
+                <button
+                  className="cursor-grab touch-none text-muted-foreground hover:text-foreground"
+                  {...attributes}
+                  {...listeners}
+                >
+                  <GripVertical className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          </CardHeader>
         <CardContent className="space-y-3">
           {/* Description preview */}
           {task.description && (
@@ -97,5 +115,12 @@ export function TaskCard({ task }: TaskCardProps) {
         </CardContent>
       </Card>
     </div>
+
+    <TaskEditDialog
+      task={task}
+      open={editDialogOpen}
+      onOpenChange={setEditDialogOpen}
+    />
+    </>
   )
 }
