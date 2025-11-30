@@ -1,22 +1,52 @@
 package com.ninjacontrol.knutpunkt.models
 
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.descriptors.PrimitiveKind
+import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 
-@Serializable
+object TaskStatusSerializer : KSerializer<TaskStatus> {
+    override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("TaskStatus", PrimitiveKind.STRING)
+
+    override fun serialize(encoder: Encoder, value: TaskStatus) {
+        encoder.encodeString(value.name.lowercase())
+    }
+
+    override fun deserialize(decoder: Decoder): TaskStatus {
+        return TaskStatus.valueOf(decoder.decodeString().uppercase())
+    }
+}
+
+object TaskPrioritySerializer : KSerializer<TaskPriority> {
+    override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("TaskPriority", PrimitiveKind.STRING)
+
+    override fun serialize(encoder: Encoder, value: TaskPriority) {
+        encoder.encodeString(value.name.lowercase())
+    }
+
+    override fun deserialize(decoder: Decoder): TaskPriority {
+        return TaskPriority.valueOf(decoder.decodeString().uppercase())
+    }
+}
+
+@Serializable(with = TaskStatusSerializer::class)
 enum class TaskStatus {
     PLANNED,
     ONGOING,
     DONE;
-    
+
     override fun toString(): String = name.lowercase()
 }
 
-@Serializable
+@Serializable(with = TaskPrioritySerializer::class)
 enum class TaskPriority {
     LOW,
     MEDIUM,
     HIGH;
-    
+
     override fun toString(): String = name.lowercase()
 }
 
