@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { DndContext } from '@dnd-kit/core'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { TaskCard } from './TaskCard'
 import type { Task } from '@/lib/api'
 
@@ -17,26 +18,39 @@ const mockTask: Task = {
   updatedAt: '2025-01-01T00:00:00Z',
 }
 
-// Wrapper component to provide DndContext
-function DndWrapper({ children }: { children: React.ReactNode }) {
-  return <DndContext>{children}</DndContext>
+// Create a QueryClient instance for tests
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: false,
+    },
+  },
+})
+
+// Wrapper component to provide necessary context
+function TestWrapper({ children }: { children: React.ReactNode }) {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <DndContext>{children}</DndContext>
+    </QueryClientProvider>
+  )
 }
 
 describe('TaskCard', () => {
   it('renders task title', () => {
     render(
-      <DndWrapper>
+      <TestWrapper>
         <TaskCard task={mockTask} />
-      </DndWrapper>
+      </TestWrapper>
     )
     expect(screen.getByText('Test Task')).toBeInTheDocument()
   })
 
   it('renders task description preview', () => {
     render(
-      <DndWrapper>
+      <TestWrapper>
         <TaskCard task={mockTask} />
-      </DndWrapper>
+      </TestWrapper>
     )
     // Description without markdown header
     expect(screen.getByText('Test Description')).toBeInTheDocument()
@@ -45,9 +59,9 @@ describe('TaskCard', () => {
   it('does not render description when empty', () => {
     const taskWithoutDesc = { ...mockTask, description: '' }
     const { container } = render(
-      <DndWrapper>
+      <TestWrapper>
         <TaskCard task={taskWithoutDesc} />
-      </DndWrapper>
+      </TestWrapper>
     )
     expect(container.textContent).not.toContain('Description')
   })
@@ -55,9 +69,9 @@ describe('TaskCard', () => {
   describe('priority badge', () => {
     it('renders high priority with correct styling', () => {
       render(
-        <DndWrapper>
+        <TestWrapper>
           <TaskCard task={mockTask} />
-        </DndWrapper>
+        </TestWrapper>
       )
       const badge = screen.getByText('high')
       expect(badge).toHaveClass('bg-red-100', 'text-red-800', 'border-red-200')
@@ -66,9 +80,9 @@ describe('TaskCard', () => {
     it('renders medium priority with correct styling', () => {
       const mediumTask = { ...mockTask, priority: 'medium' as const }
       render(
-        <DndWrapper>
+        <TestWrapper>
           <TaskCard task={mediumTask} />
-        </DndWrapper>
+        </TestWrapper>
       )
       const badge = screen.getByText('medium')
       expect(badge).toHaveClass('bg-yellow-100', 'text-yellow-800', 'border-yellow-200')
@@ -77,9 +91,9 @@ describe('TaskCard', () => {
     it('renders low priority with correct styling', () => {
       const lowTask = { ...mockTask, priority: 'low' as const }
       render(
-        <DndWrapper>
+        <TestWrapper>
           <TaskCard task={lowTask} />
-        </DndWrapper>
+        </TestWrapper>
       )
       const badge = screen.getByText('low')
       expect(badge).toHaveClass('bg-green-100', 'text-green-800', 'border-green-200')
@@ -89,9 +103,9 @@ describe('TaskCard', () => {
   describe('categories', () => {
     it('renders category badges', () => {
       render(
-        <DndWrapper>
+        <TestWrapper>
           <TaskCard task={mockTask} />
-        </DndWrapper>
+        </TestWrapper>
       )
       expect(screen.getByText('feature')).toBeInTheDocument()
       expect(screen.getByText('frontend')).toBeInTheDocument()
@@ -100,9 +114,9 @@ describe('TaskCard', () => {
     it('does not render categories section when empty', () => {
       const taskWithoutCategories = { ...mockTask, categories: [] }
       const { container } = render(
-        <DndWrapper>
+        <TestWrapper>
           <TaskCard task={taskWithoutCategories} />
-        </DndWrapper>
+        </TestWrapper>
       )
       expect(container.querySelectorAll('[class*="flex-wrap"]')).toHaveLength(1) // Only assignees
     })
@@ -111,9 +125,9 @@ describe('TaskCard', () => {
   describe('assignees', () => {
     it('renders assignee avatars', () => {
       render(
-        <DndWrapper>
+        <TestWrapper>
           <TaskCard task={mockTask} />
-        </DndWrapper>
+        </TestWrapper>
       )
       // Check for avatar initials
       expect(screen.getByText('A')).toBeInTheDocument()
@@ -122,9 +136,9 @@ describe('TaskCard', () => {
 
     it('shows full name on hover via title attribute', () => {
       const { container } = render(
-        <DndWrapper>
+        <TestWrapper>
           <TaskCard task={mockTask} />
-        </DndWrapper>
+        </TestWrapper>
       )
       const avatars = container.querySelectorAll('[title]')
       const titles = Array.from(avatars).map((el) => el.getAttribute('title'))
@@ -135,9 +149,9 @@ describe('TaskCard', () => {
     it('does not render assignees section when empty', () => {
       const taskWithoutAssignees = { ...mockTask, assignees: [] }
       const { container } = render(
-        <DndWrapper>
+        <TestWrapper>
           <TaskCard task={taskWithoutAssignees} />
-        </DndWrapper>
+        </TestWrapper>
       )
       expect(container.querySelectorAll('[class*="rounded-full"]')).toHaveLength(0)
     })
@@ -145,9 +159,9 @@ describe('TaskCard', () => {
     it('capitalizes first letter of assignee name', () => {
       const taskWithLowercase = { ...mockTask, assignees: ['john'] }
       render(
-        <DndWrapper>
+        <TestWrapper>
           <TaskCard task={taskWithLowercase} />
-        </DndWrapper>
+        </TestWrapper>
       )
       expect(screen.getByText('J')).toBeInTheDocument()
     })
@@ -155,21 +169,21 @@ describe('TaskCard', () => {
 
   describe('drag and drop', () => {
     it('renders grip icon for dragging', () => {
-      const { container } = render(
-        <DndWrapper>
+      const { container} = render(
+        <TestWrapper>
           <TaskCard task={mockTask} />
-        </DndWrapper>
+        </TestWrapper>
       )
-      const gripButton = container.querySelector('button')
+      const gripButton = container.querySelector('button.cursor-grab')
       expect(gripButton).toBeInTheDocument()
       expect(gripButton).toHaveClass('cursor-grab')
     })
 
     it('has cursor-grab class on card', () => {
       const { container } = render(
-        <DndWrapper>
+        <TestWrapper>
           <TaskCard task={mockTask} />
-        </DndWrapper>
+        </TestWrapper>
       )
       const card = container.querySelector('[class*="cursor-grab"]')
       expect(card).toHaveClass('cursor-grab', 'active:cursor-grabbing')
@@ -177,9 +191,9 @@ describe('TaskCard', () => {
 
     it('has hover shadow effect', () => {
       const { container } = render(
-        <DndWrapper>
+        <TestWrapper>
           <TaskCard task={mockTask} />
-        </DndWrapper>
+        </TestWrapper>
       )
       const card = container.querySelector('[class*="hover:shadow"]')
       expect(card).toHaveClass('hover:shadow-md', 'transition-shadow')
@@ -193,9 +207,9 @@ describe('TaskCard', () => {
         description: '### Header\nContent below',
       }
       render(
-        <DndWrapper>
+        <TestWrapper>
           <TaskCard task={taskWithHeader} />
-        </DndWrapper>
+        </TestWrapper>
       )
       expect(screen.getByText('Header')).toBeInTheDocument()
       expect(screen.queryByText('###')).not.toBeInTheDocument()
@@ -207,9 +221,9 @@ describe('TaskCard', () => {
         description: 'First line\nSecond line\nThird line',
       }
       const { container } = render(
-        <DndWrapper>
+        <TestWrapper>
           <TaskCard task={multiLineTask} />
-        </DndWrapper>
+        </TestWrapper>
       )
       expect(screen.getByText('First line')).toBeInTheDocument()
       // line-clamp-2 class limits to 2 lines
@@ -221,9 +235,9 @@ describe('TaskCard', () => {
   describe('card structure', () => {
     it('has proper title truncation', () => {
       const { container } = render(
-        <DndWrapper>
+        <TestWrapper>
           <TaskCard task={mockTask} />
-        </DndWrapper>
+        </TestWrapper>
       )
       const title = container.querySelector('.line-clamp-2')
       expect(title).toBeInTheDocument()
@@ -231,9 +245,9 @@ describe('TaskCard', () => {
 
     it('uses Card components from shadcn', () => {
       const { container } = render(
-        <DndWrapper>
+        <TestWrapper>
           <TaskCard task={mockTask} />
-        </DndWrapper>
+        </TestWrapper>
       )
       // Check for Card structure
       const card = container.querySelector('[class*="rounded-xl"]')

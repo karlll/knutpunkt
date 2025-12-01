@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { DndContext } from '@dnd-kit/core'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { KanbanColumn } from './KanbanColumn'
 import type { Task } from '@/lib/api'
 
@@ -31,42 +32,55 @@ const mockTasks: Task[] = [
   },
 ]
 
-// Wrapper component to provide DndContext
-function DndWrapper({ children }: { children: React.ReactNode }) {
-  return <DndContext>{children}</DndContext>
+// Create a QueryClient instance for tests
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: false,
+    },
+  },
+})
+
+// Wrapper component to provide necessary context
+function TestWrapper({ children }: { children: React.ReactNode }) {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <DndContext>{children}</DndContext>
+    </QueryClientProvider>
+  )
 }
 
 describe('KanbanColumn', () => {
   it('renders column title', () => {
     render(
-      <DndWrapper>
+      <TestWrapper>
         <KanbanColumn status="planned" tasks={mockTasks} title="Planned" />
-      </DndWrapper>
+      </TestWrapper>
     )
     expect(screen.getByText('Planned')).toBeInTheDocument()
   })
 
   it('displays task count', () => {
     render(
-      <DndWrapper>
+      <TestWrapper>
         <KanbanColumn status="planned" tasks={mockTasks} title="Planned" />
-      </DndWrapper>
+      </TestWrapper>
     )
     expect(screen.getByText('(2)')).toBeInTheDocument()
   })
 
   it('updates task count based on tasks array', () => {
     const { rerender } = render(
-      <DndWrapper>
+      <TestWrapper>
         <KanbanColumn status="planned" tasks={mockTasks} title="Planned" />
-      </DndWrapper>
+      </TestWrapper>
     )
     expect(screen.getByText('(2)')).toBeInTheDocument()
 
     rerender(
-      <DndWrapper>
+      <TestWrapper>
         <KanbanColumn status="planned" tasks={[mockTasks[0]]} title="Planned" />
-      </DndWrapper>
+      </TestWrapper>
     )
     expect(screen.getByText('(1)')).toBeInTheDocument()
   })
@@ -74,9 +88,9 @@ describe('KanbanColumn', () => {
   describe('status colors', () => {
     it('applies planned status color', () => {
       const { container } = render(
-        <DndWrapper>
+        <TestWrapper>
           <KanbanColumn status="planned" tasks={[]} title="Planned" />
-        </DndWrapper>
+        </TestWrapper>
       )
       const card = container.querySelector('[class*="bg-slate-100"]')
       expect(card).toBeInTheDocument()
@@ -85,9 +99,9 @@ describe('KanbanColumn', () => {
 
     it('applies ongoing status color', () => {
       const { container } = render(
-        <DndWrapper>
+        <TestWrapper>
           <KanbanColumn status="ongoing" tasks={[]} title="Ongoing" />
-        </DndWrapper>
+        </TestWrapper>
       )
       const card = container.querySelector('[class*="bg-blue-100"]')
       expect(card).toBeInTheDocument()
@@ -96,9 +110,9 @@ describe('KanbanColumn', () => {
 
     it('applies done status color', () => {
       const { container } = render(
-        <DndWrapper>
+        <TestWrapper>
           <KanbanColumn status="done" tasks={[]} title="Done" />
-        </DndWrapper>
+        </TestWrapper>
       )
       const card = container.querySelector('[class*="bg-green-100"]')
       expect(card).toBeInTheDocument()
@@ -109,27 +123,27 @@ describe('KanbanColumn', () => {
   describe('empty state', () => {
     it('shows "No tasks" message when empty', () => {
       render(
-        <DndWrapper>
+        <TestWrapper>
           <KanbanColumn status="planned" tasks={[]} title="Planned" />
-        </DndWrapper>
+        </TestWrapper>
       )
       expect(screen.getByText('No tasks')).toBeInTheDocument()
     })
 
     it('displays count as 0 when empty', () => {
       render(
-        <DndWrapper>
+        <TestWrapper>
           <KanbanColumn status="planned" tasks={[]} title="Planned" />
-        </DndWrapper>
+        </TestWrapper>
       )
       expect(screen.getByText('(0)')).toBeInTheDocument()
     })
 
     it('empty message has correct styling', () => {
       render(
-        <DndWrapper>
+        <TestWrapper>
           <KanbanColumn status="planned" tasks={[]} title="Planned" />
-        </DndWrapper>
+        </TestWrapper>
       )
       const emptyMessage = screen.getByText('No tasks')
       expect(emptyMessage).toHaveClass('text-sm', 'text-muted-foreground')
@@ -139,9 +153,9 @@ describe('KanbanColumn', () => {
   describe('task rendering', () => {
     it('renders all tasks', () => {
       render(
-        <DndWrapper>
+        <TestWrapper>
           <KanbanColumn status="planned" tasks={mockTasks} title="Planned" />
-        </DndWrapper>
+        </TestWrapper>
       )
       expect(screen.getByText('Task 1')).toBeInTheDocument()
       expect(screen.getByText('Task 2')).toBeInTheDocument()
@@ -149,9 +163,9 @@ describe('KanbanColumn', () => {
 
     it('renders tasks in order', () => {
       const { container } = render(
-        <DndWrapper>
+        <TestWrapper>
           <KanbanColumn status="planned" tasks={mockTasks} title="Planned" />
-        </DndWrapper>
+        </TestWrapper>
       )
       const titles = Array.from(container.querySelectorAll('[class*="text-base"]')).map(
         (el) => el.textContent
@@ -161,9 +175,9 @@ describe('KanbanColumn', () => {
 
     it('does not show empty message when tasks exist', () => {
       render(
-        <DndWrapper>
+        <TestWrapper>
           <KanbanColumn status="planned" tasks={mockTasks} title="Planned" />
-        </DndWrapper>
+        </TestWrapper>
       )
       expect(screen.queryByText('No tasks')).not.toBeInTheDocument()
     })
@@ -172,9 +186,9 @@ describe('KanbanColumn', () => {
   describe('layout and styling', () => {
     it('has fixed width constraints', () => {
       const { container } = render(
-        <DndWrapper>
+        <TestWrapper>
           <KanbanColumn status="planned" tasks={[]} title="Planned" />
-        </DndWrapper>
+        </TestWrapper>
       )
       const column = container.querySelector('[class*="min-w"]')
       expect(column).toHaveClass('min-w-[300px]', 'max-w-[350px]')
@@ -182,9 +196,9 @@ describe('KanbanColumn', () => {
 
     it('has full height', () => {
       const { container } = render(
-        <DndWrapper>
+        <TestWrapper>
           <KanbanColumn status="planned" tasks={[]} title="Planned" />
-        </DndWrapper>
+        </TestWrapper>
       )
       const column = container.querySelector('[class*="h-full"]')
       expect(column).toBeInTheDocument()
@@ -192,9 +206,9 @@ describe('KanbanColumn', () => {
 
     it('has scrollable content area', () => {
       const { container } = render(
-        <DndWrapper>
+        <TestWrapper>
           <KanbanColumn status="planned" tasks={mockTasks} title="Planned" />
-        </DndWrapper>
+        </TestWrapper>
       )
       const scrollArea = container.querySelector('[class*="overflow-y-auto"]')
       expect(scrollArea).toBeInTheDocument()
@@ -202,9 +216,9 @@ describe('KanbanColumn', () => {
 
     it('has proper spacing between tasks', () => {
       const { container } = render(
-        <DndWrapper>
+        <TestWrapper>
           <KanbanColumn status="planned" tasks={mockTasks} title="Planned" />
-        </DndWrapper>
+        </TestWrapper>
       )
       const taskContainer = container.querySelector('[class*="space-y-3"]')
       expect(taskContainer).toBeInTheDocument()
@@ -214,9 +228,9 @@ describe('KanbanColumn', () => {
   describe('drag and drop', () => {
     it('is a droppable area', () => {
       const { container } = render(
-        <DndWrapper>
+        <TestWrapper>
           <KanbanColumn status="planned" tasks={[]} title="Planned" />
-        </DndWrapper>
+        </TestWrapper>
       )
       // The droppable area should exist
       const droppableArea = container.querySelector('[class*="rounded-md"]')
@@ -225,9 +239,9 @@ describe('KanbanColumn', () => {
 
     it('has transition for drop highlight', () => {
       const { container } = render(
-        <DndWrapper>
+        <TestWrapper>
           <KanbanColumn status="planned" tasks={[]} title="Planned" />
-        </DndWrapper>
+        </TestWrapper>
       )
       const droppableArea = container.querySelector('[class*="transition-colors"]')
       expect(droppableArea).toBeInTheDocument()
@@ -237,9 +251,9 @@ describe('KanbanColumn', () => {
   describe('card structure', () => {
     it('uses Card component', () => {
       const { container } = render(
-        <DndWrapper>
+        <TestWrapper>
           <KanbanColumn status="planned" tasks={[]} title="Planned" />
-        </DndWrapper>
+        </TestWrapper>
       )
       const card = container.querySelector('[class*="rounded-xl"]')
       expect(card).toBeInTheDocument()
@@ -247,9 +261,9 @@ describe('KanbanColumn', () => {
 
     it('has header section', () => {
       const { container } = render(
-        <DndWrapper>
+        <TestWrapper>
           <KanbanColumn status="planned" tasks={[]} title="Planned" />
-        </DndWrapper>
+        </TestWrapper>
       )
       const header = container.querySelector('[class*="p-6"]')
       expect(header).toBeInTheDocument()
@@ -257,9 +271,9 @@ describe('KanbanColumn', () => {
 
     it('title has correct styling', () => {
       render(
-        <DndWrapper>
+        <TestWrapper>
           <KanbanColumn status="planned" tasks={[]} title="Planned" />
-        </DndWrapper>
+        </TestWrapper>
       )
       const titleElement = screen.getByText('Planned').parentElement
       expect(titleElement).toHaveClass('flex', 'items-center', 'justify-between')
@@ -269,9 +283,9 @@ describe('KanbanColumn', () => {
   describe('accessibility', () => {
     it('task count is distinguishable from title', () => {
       render(
-        <DndWrapper>
+        <TestWrapper>
           <KanbanColumn status="planned" tasks={mockTasks} title="Planned" />
-        </DndWrapper>
+        </TestWrapper>
       )
       const count = screen.getByText('(2)')
       expect(count).toHaveClass('text-muted-foreground')
@@ -279,9 +293,9 @@ describe('KanbanColumn', () => {
 
     it('empty state message is accessible', () => {
       render(
-        <DndWrapper>
+        <TestWrapper>
           <KanbanColumn status="planned" tasks={[]} title="Planned" />
-        </DndWrapper>
+        </TestWrapper>
       )
       const message = screen.getByText('No tasks')
       expect(message).toBeInTheDocument()
