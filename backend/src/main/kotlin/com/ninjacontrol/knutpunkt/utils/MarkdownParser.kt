@@ -9,6 +9,7 @@ import java.io.File
 @Serializable
 data class TaskFrontMatter(
     val id: String,
+    val number: Int = 0,
     val title: String,
     val createdAt: String,
     val updatedAt: String,

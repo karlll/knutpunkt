@@ -53,6 +53,7 @@ enum class TaskPriority {
 @Serializable
 data class Task(
     val id: String,
+    val number: Int,
     val title: String,
     val description: String,
     val status: TaskStatus,

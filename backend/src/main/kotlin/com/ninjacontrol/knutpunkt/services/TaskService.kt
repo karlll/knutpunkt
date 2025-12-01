@@ -15,6 +15,7 @@ import java.util.*
 class TaskService(private val tasksDirectory: String = getTasksDirectory()) {
     
     private val logger = LoggerFactory.getLogger(TaskService::class.java)
+    private val stateService = StateService(tasksDirectory)
     
     private val baseDir = File(tasksDirectory).apply {
         if (!exists()) {
@@ -59,6 +60,7 @@ class TaskService(private val tasksDirectory: String = getTasksDirectory()) {
         val (frontMatter, description) = MarkdownParser.parseTaskFile(file)
         return Task(
             id = frontMatter.id,
+            number = frontMatter.number,
             title = frontMatter.title,
             description = description,
             status = status,
@@ -120,6 +122,7 @@ class TaskService(private val tasksDirectory: String = getTasksDirectory()) {
         }
         
         val taskId = UUID.randomUUID().toString()
+        val taskNumber = stateService.getNextTaskNumber()
         val now = Instant.now().toString()
         val slug = SlugGenerator.generateSlug(taskCreate.title)
         val status = taskCreate.status ?: TaskStatus.PLANNED
@@ -139,10 +142,11 @@ class TaskService(private val tasksDirectory: String = getTasksDirectory()) {
             (existingTasks.maxOfOrNull { it.order } ?: 0) + 1
         }
         
-        logger.debug("Task '{}': assigned id={}, slug={}, order={}", taskCreate.title, taskId, slug, order)
+        logger.debug("Task '{}': assigned id={}, number={}, slug={}, order={}", taskCreate.title, taskId, taskNumber, slug, order)
         
         val frontMatter = TaskFrontMatter(
             id = taskId,
+            number = taskNumber,
             title = taskCreate.title,
             createdAt = now,
             updatedAt = now,
@@ -153,12 +157,13 @@ class TaskService(private val tasksDirectory: String = getTasksDirectory()) {
         )
         
         MarkdownParser.writeTaskFile(file, frontMatter, taskCreate.description)
-        logger.info("Created task: id={}, title='{}', status={}, order={}, file={}", 
-            taskId, taskCreate.title, status, order, file.name)
+        logger.info("Created task: id={}, number={}, title='{}', status={}, order={}, file={}", 
+            taskId, taskNumber, taskCreate.title, status, order, file.name)
         
         // Return the created task directly instead of re-parsing
         return Task(
             id = taskId,
+            number = taskNumber,
             title = taskCreate.title,
             description = taskCreate.description,
             status = status,
@@ -207,6 +212,7 @@ class TaskService(private val tasksDirectory: String = getTasksDirectory()) {
         
         val frontMatter = TaskFrontMatter(
             id = id,
+            number = oldFrontMatter.number,
             title = taskUpdate.title,
             createdAt = oldFrontMatter.createdAt,
             updatedAt = now,
@@ -230,6 +236,7 @@ class TaskService(private val tasksDirectory: String = getTasksDirectory()) {
         // Return the updated task directly
         return Task(
             id = id,
+            number = oldFrontMatter.number,
             title = taskUpdate.title,
             description = taskUpdate.description,
             status = newStatus,
@@ -332,6 +339,7 @@ class TaskService(private val tasksDirectory: String = getTasksDirectory()) {
                 // Insert the moved task here
                 val movedTask = Task(
                     id = id,
+                    number = frontMatter.number,
                     title = frontMatter.title,
                     description = description,
                     status = targetStatus,
@@ -359,6 +367,7 @@ class TaskService(private val tasksDirectory: String = getTasksDirectory()) {
         if (insertIndex >= tasksInTargetStatus.size) {
             val movedTask = Task(
                 id = id,
+                number = frontMatter.number,
                 title = frontMatter.title,
                 description = description,
                 status = targetStatus,
