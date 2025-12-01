@@ -48,6 +48,7 @@ function InteractiveDialog({ task }: { task: Task }) {
 
 const baseTask: Task = {
   id: '550e8400-e29b-41d4-a716-446655440001',
+  number: 42,
   title: 'Setup project infrastructure',
   description: `## Description
 
@@ -75,15 +76,26 @@ Consider using Docker for development environment consistency.`,
 }
 
 export const Default: Story = {
+  args: {
+    task: baseTask,
+    open: false,
+    onOpenChange: () => {},
+  },
   render: () => <InteractiveDialog task={baseTask} />,
 }
 
 export const PlannedTask: Story = {
+  args: {
+    task: baseTask,
+    open: false,
+    onOpenChange: () => {},
+  },
   render: () => (
     <InteractiveDialog
       task={{
         ...baseTask,
         id: '550e8400-e29b-41d4-a716-446655440002',
+  number: 42,
         title: 'Implement authentication',
         description: `## Description
 
@@ -104,11 +116,17 @@ Implement JWT-based authentication for the API.
 }
 
 export const DoneTask: Story = {
+  args: {
+    task: baseTask,
+    open: false,
+    onOpenChange: () => {},
+  },
   render: () => (
     <InteractiveDialog
       task={{
         ...baseTask,
         id: '550e8400-e29b-41d4-a716-446655440003',
+  number: 42,
         title: 'Design UI mockups',
         description: `## Description
 
@@ -131,11 +149,17 @@ All mockups have been reviewed and approved by the team.`,
 }
 
 export const LowPriorityTask: Story = {
+  args: {
+    task: baseTask,
+    open: false,
+    onOpenChange: () => {},
+  },
   render: () => (
     <InteractiveDialog
       task={{
         ...baseTask,
         id: '550e8400-e29b-41d4-a716-446655440004',
+  number: 42,
         title: 'Write documentation',
         description: 'Document all API endpoints with examples.',
         status: 'planned',
@@ -148,11 +172,17 @@ export const LowPriorityTask: Story = {
 }
 
 export const MinimalTask: Story = {
+  args: {
+    task: baseTask,
+    open: false,
+    onOpenChange: () => {},
+  },
   render: () => (
     <InteractiveDialog
       task={{
         ...baseTask,
         id: '550e8400-e29b-41d4-a716-446655440005',
+  number: 42,
         title: 'Quick bug fix',
         description: 'Fix typo in error message',
         status: 'planned',
@@ -165,11 +195,17 @@ export const MinimalTask: Story = {
 }
 
 export const MultipleAssignees: Story = {
+  args: {
+    task: baseTask,
+    open: false,
+    onOpenChange: () => {},
+  },
   render: () => (
     <InteractiveDialog
       task={{
         ...baseTask,
         id: '550e8400-e29b-41d4-a716-446655440006',
+  number: 42,
         title: 'Team brainstorming session',
         description: `## Agenda
 
@@ -188,11 +224,17 @@ All team members should attend.`,
 }
 
 export const ManyCategories: Story = {
+  args: {
+    task: baseTask,
+    open: false,
+    onOpenChange: () => {},
+  },
   render: () => (
     <InteractiveDialog
       task={{
         ...baseTask,
         id: '550e8400-e29b-41d4-a716-446655440007',
+  number: 42,
         title: 'Refactor codebase',
         description: `## Overview
 
@@ -222,11 +264,17 @@ Major refactoring effort to improve code quality and maintainability.
 }
 
 export const LongDescription: Story = {
+  args: {
+    task: baseTask,
+    open: false,
+    onOpenChange: () => {},
+  },
   render: () => (
     <InteractiveDialog
       task={{
         ...baseTask,
         id: '550e8400-e29b-41d4-a716-446655440008',
+  number: 42,
         title: 'Implement comprehensive error handling',
         description: `## Description
 

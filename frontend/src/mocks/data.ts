@@ -3,9 +3,12 @@ import type { components } from '../types/api'
 type Task = components['schemas']['Task']
 
 // In-memory mock database
+let nextTaskNumber = 5 // Counter for auto-incrementing task numbers
+
 export const mockTasks: Task[] = [
   {
     id: '550e8400-e29b-41d4-a716-446655440001',
+    number: 1,
     title: 'Setup project infrastructure',
     description: '## Description\n\nSetup the initial project structure including frontend and backend.\n\n## Acceptance Criteria\n\n- [x] Create OpenAPI specification\n- [x] Initialize frontend with Vite\n- [ ] Initialize backend with Ktor',
     status: 'ongoing',
@@ -18,6 +21,7 @@ export const mockTasks: Task[] = [
   },
   {
     id: '550e8400-e29b-41d4-a716-446655440002',
+    number: 2,
     title: 'Implement authentication',
     description: '## Description\n\nImplement JWT-based authentication for the API.\n\n## Acceptance Criteria\n\n- [ ] Create login endpoint\n- [ ] Implement token validation middleware\n- [ ] Add refresh token logic',
     status: 'planned',
@@ -30,6 +34,7 @@ export const mockTasks: Task[] = [
   },
   {
     id: '550e8400-e29b-41d4-a716-446655440003',
+    number: 3,
     title: 'Design UI mockups',
     description: '## Description\n\nCreate Figma mockups for the main application views.\n\n## Acceptance Criteria\n\n- [x] Kanban board layout\n- [x] Task detail view\n- [x] User settings page',
     status: 'done',
@@ -42,6 +47,7 @@ export const mockTasks: Task[] = [
   },
   {
     id: '550e8400-e29b-41d4-a716-446655440004',
+    number: 4,
     title: 'Write API documentation',
     description: '## Description\n\nDocument all API endpoints with examples.\n\n## Notes\n\nUse the OpenAPI spec as the source of truth.',
     status: 'planned',
@@ -64,10 +70,11 @@ export function getTaskById(id: string): Task | undefined {
   return mockTasks.find((task) => task.id === id)
 }
 
-export function createTask(taskData: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>): Task {
+export function createTask(taskData: Omit<Task, 'id' | 'number' | 'createdAt' | 'updatedAt'>): Task {
   const newTask: Task = {
     ...taskData,
     id: crypto.randomUUID(),
+    number: nextTaskNumber++,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     order: taskData.order ?? 1, // Default to order 1 if not specified

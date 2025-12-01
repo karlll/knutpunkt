@@ -38,6 +38,7 @@ type Story = StoryObj<typeof meta>
 const sampleTasks: Task[] = [
   {
     id: '1',
+    number: 1,
     title: 'Setup project infrastructure',
     description: '## Description\n\nSetup the initial project structure.',
     status: 'planned',
@@ -50,6 +51,7 @@ const sampleTasks: Task[] = [
   },
   {
     id: '2',
+    number: 2,
     title: 'Implement authentication',
     description: '## Description\n\nImplement JWT-based authentication.',
     status: 'planned',
@@ -62,6 +64,7 @@ const sampleTasks: Task[] = [
   },
   {
     id: '3',
+    number: 3,
     title: 'Write documentation',
     description: '## Description\n\nDocument all API endpoints.',
     status: 'planned',
@@ -121,6 +124,7 @@ export const ManyTasks: Story = {
     tasks: Array.from({ length: 10 }, (_, i) => ({
       ...sampleTasks[0],
       id: `task-${i}`,
+      number: i + 1,
       title: `Task ${i + 1}`,
       priority: (['high', 'medium', 'low'] as const)[i % 3],
     })),

@@ -8,6 +8,7 @@ import type { Task } from '@/lib/api'
 const mockTasks: Task[] = [
   {
     id: '1',
+    number: 1,
     title: 'Task 1',
     description: 'Description 1',
     status: 'planned',
@@ -20,6 +21,7 @@ const mockTasks: Task[] = [
   },
   {
     id: '2',
+    number: 2,
     title: 'Task 2',
     description: 'Description 2',
     status: 'planned',

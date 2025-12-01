@@ -5,6 +5,7 @@ import type { Task, TaskStatus } from '@/lib/api'
 function makeTask(id: string, status: TaskStatus, order: number): Task {
   return {
     id,
+    number: 1,
     title: id,
     description: '',
     status,

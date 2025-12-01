@@ -7,6 +7,7 @@ import type { Task } from '@/lib/api'
 
 const mockTask: Task = {
   id: '1',
+  number: 42,
   title: 'Test Task',
   description: '# Test Description\n\nSome details',
   status: 'planned',

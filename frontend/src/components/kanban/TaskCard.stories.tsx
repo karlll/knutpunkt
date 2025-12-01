@@ -26,6 +26,7 @@ type Story = StoryObj<typeof meta>
 
 const baseTask: Task = {
   id: '550e8400-e29b-41d4-a716-446655440001',
+  number: 1,
   title: 'Setup project infrastructure',
   description: '## Description\n\nSetup the initial project structure including frontend and backend.\n\n## Acceptance Criteria\n\n- [x] Create OpenAPI specification\n- [x] Initialize frontend with Vite\n- [ ] Initialize backend with Ktor',
   status: 'ongoing',
@@ -48,6 +49,7 @@ export const MediumPriority: Story = {
     task: {
       ...baseTask,
       id: '550e8400-e29b-41d4-a716-446655440002',
+  number: 1,
       title: 'Implement authentication',
       description: '## Description\n\nImplement JWT-based authentication for the API.',
       priority: 'medium',
@@ -62,6 +64,7 @@ export const LowPriority: Story = {
     task: {
       ...baseTask,
       id: '550e8400-e29b-41d4-a716-446655440003',
+  number: 1,
       title: 'Write documentation',
       description: '## Description\n\nDocument all API endpoints with examples.',
       priority: 'low',
@@ -76,6 +79,7 @@ export const MultipleAssignees: Story = {
     task: {
       ...baseTask,
       id: '550e8400-e29b-41d4-a716-446655440004',
+  number: 1,
       title: 'Design UI mockups',
       assignees: ['alice', 'bob', 'charlie'],
       categories: ['design', 'frontend'],
@@ -88,6 +92,7 @@ export const ManyCategories: Story = {
     task: {
       ...baseTask,
       id: '550e8400-e29b-41d4-a716-446655440005',
+  number: 1,
       title: 'Refactor codebase',
       categories: ['refactor', 'backend', 'frontend', 'testing', 'performance'],
       priority: 'medium',
@@ -100,6 +105,7 @@ export const MinimalTask: Story = {
     task: {
       ...baseTask,
       id: '550e8400-e29b-41d4-a716-446655440006',
+  number: 1,
       title: 'Quick fix',
       description: 'A simple task',
       assignees: [],
@@ -114,6 +120,7 @@ export const LongTitle: Story = {
     task: {
       ...baseTask,
       id: '550e8400-e29b-41d4-a716-446655440007',
+  number: 1,
       title: 'This is a very long task title that should wrap to multiple lines to demonstrate how the card handles long titles',
       priority: 'medium',
     },

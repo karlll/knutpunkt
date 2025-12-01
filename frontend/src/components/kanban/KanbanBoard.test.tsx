@@ -18,6 +18,7 @@ vi.mock('@/lib/api', () => ({
 const mockTasks: Task[] = [
   {
     id: '1',
+    number: 1,
     title: 'Planned Task',
     description: 'Test description',
     status: 'planned',
@@ -30,6 +31,7 @@ const mockTasks: Task[] = [
   },
   {
     id: '2',
+    number: 2,
     title: 'Ongoing Task',
     description: 'In progress',
     status: 'ongoing',
@@ -42,6 +44,7 @@ const mockTasks: Task[] = [
   },
   {
     id: '3',
+    number: 3,
     title: 'Done Task',
     description: 'Completed',
     status: 'done',

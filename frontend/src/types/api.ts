@@ -109,6 +109,11 @@ export interface components {
              */
             id: string;
             /**
+             * @description Auto-generated monotonically increasing task number. Read-only, assigned at creation.
+             * @example 42
+             */
+            readonly number: number;
+            /**
              * @description Human-readable task title
              * @example Implement user authentication
              */

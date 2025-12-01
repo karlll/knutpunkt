@@ -9,6 +9,7 @@ describe('updateTaskOrder', () => {
     mockTasks.push(
       {
         id: 'task-1',
+        number: 1,
         title: 'Task 1',
         description: 'Description 1',
         status: 'planned',
@@ -21,6 +22,7 @@ describe('updateTaskOrder', () => {
       },
       {
         id: 'task-2',
+        number: 2,
         title: 'Task 2',
         description: 'Description 2',
         status: 'planned',
@@ -33,6 +35,7 @@ describe('updateTaskOrder', () => {
       },
       {
         id: 'task-3',
+        number: 3,
         title: 'Task 3',
         description: 'Description 3',
         status: 'planned',
@@ -45,6 +48,7 @@ describe('updateTaskOrder', () => {
       },
       {
         id: 'task-4',
+        number: 4,
         title: 'Task 4',
         description: 'Description 4',
         status: 'ongoing',
@@ -57,6 +61,7 @@ describe('updateTaskOrder', () => {
       },
       {
         id: 'task-5',
+        number: 5,
         title: 'Task 5',
         description: 'Description 5',
         status: 'ongoing',
