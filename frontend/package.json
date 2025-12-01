@@ -57,6 +57,7 @@
     "globals": "^16.5.0",
     "jsdom": "^27.0.1",
     "msw": "^2.12.3",
+    "msw-storybook-addon": "^2.0.6",
     "openapi-typescript": "^7.10.1",
     "playwright": "^1.57.0",
     "postcss": "^8.5.6",

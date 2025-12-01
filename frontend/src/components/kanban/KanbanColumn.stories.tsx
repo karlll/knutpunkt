@@ -1,7 +1,16 @@
 import type { Meta, StoryObj } from '@storybook/react'
 import { DndContext } from '@dnd-kit/core'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { KanbanColumn } from './KanbanColumn'
 import type { Task } from '@/lib/api'
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: false,
+    },
+  },
+})
 
 const meta = {
   title: 'Kanban/KanbanColumn',
@@ -12,11 +21,13 @@ const meta = {
   tags: ['autodocs'],
   decorators: [
     (Story) => (
-      <DndContext>
-        <div className="h-[600px]">
-          <Story />
-        </div>
-      </DndContext>
+      <QueryClientProvider client={queryClient}>
+        <DndContext>
+          <div className="h-[600px]">
+            <Story />
+          </div>
+        </DndContext>
+      </QueryClientProvider>
     ),
   ],
 } satisfies Meta<typeof KanbanColumn>

@@ -23,7 +23,7 @@ type Story = StoryObj<typeof meta>
 
 export const Default: Story = {
   args: {
-    title: 'Knutpunkt',
+    title: "knutpunkt",
     showLogo: true,
   },
 }
