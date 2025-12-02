@@ -90,7 +90,15 @@ val copyFrontend by tasks.registering(Copy::class) {
     into("src/main/resources/static")
 }
 
-// Make processResources depend on copyFrontend
-tasks.named("processResources") {
-    dependsOn(copyFrontend)
+// Only build frontend when producing a JAR / distribution, not for tests
+if (file("../frontend").exists()) {
+    // Ensure frontend is copied into resources only when assembling artifacts
+    tasks.named<Jar>("jar") {
+        dependsOn(copyFrontend)
+    }
+    tasks.named<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJar") {
+        dependsOn(copyFrontend)
+    }
+} else {
+    // No frontend directory found; don't wire frontend build into the build lifecycle
 }

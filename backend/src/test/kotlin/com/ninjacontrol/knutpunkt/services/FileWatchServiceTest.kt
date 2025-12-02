@@ -67,12 +67,24 @@ class FileWatchServiceTest {
     
     @Test
     fun `detects file modification`() = runBlocking {
+        fileWatchService.start()
+        
+        delay(100) // Give watch service time to start
+        
+        // Create file and consume the creation event
         val file = File(tempDir, "planned/task.md")
         file.writeText("# Original Content")
         
-        fileWatchService.start()
+        // Consume the creation event
+        val creationEvent = withTimeout(2000) {
+            fileWatchService.events.first()
+        }
+        assertTrue(creationEvent is FileChangeEvent.Created)
         
-        val eventJob = async {
+        delay(100)
+        
+        // Now listen for modification
+        val modificationEventJob = async {
             fileWatchService.events.first()
         }
         
@@ -81,7 +93,7 @@ class FileWatchServiceTest {
         file.writeText("# Modified Content")
         
         val event = withTimeout(2000) {
-            eventJob.await()
+            modificationEventJob.await()
         }
         
         assertTrue(event is FileChangeEvent.Modified)
@@ -91,12 +103,24 @@ class FileWatchServiceTest {
     
     @Test
     fun `detects file deletion`() = runBlocking {
+        fileWatchService.start()
+        
+        delay(100) // Give watch service time to start
+        
+        // Create file and consume the creation event
         val file = File(tempDir, "ongoing/task-to-delete.md")
         file.writeText("# Task")
         
-        fileWatchService.start()
+        // Consume the creation event
+        val creationEvent = withTimeout(2000) {
+            fileWatchService.events.first()
+        }
+        assertTrue(creationEvent is FileChangeEvent.Created)
         
-        val eventJob = async {
+        delay(100)
+        
+        // Now listen for deletion
+        val deletionEventJob = async {
             fileWatchService.events.first()
         }
         
@@ -105,7 +129,7 @@ class FileWatchServiceTest {
         file.delete()
         
         val event = withTimeout(2000) {
-            eventJob.await()
+            deletionEventJob.await()
         }
         
         assertTrue(event is FileChangeEvent.Deleted)

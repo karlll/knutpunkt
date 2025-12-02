@@ -82,6 +82,8 @@ class FileWatchService(
             } catch (e: CancellationException) {
                 logger.info("FileWatchService cancelled")
                 throw e
+            } catch (e: java.nio.file.ClosedWatchServiceException) {
+                logger.debug("WatchService closed - stopping event processing")
             } catch (e: Exception) {
                 logger.error("FileWatchService encountered error: ${e.message}", e)
             }
@@ -149,14 +151,32 @@ class FileWatchService(
         logger.info("Stopping FileWatchService")
         watchJob?.cancel()
         watchJob = null
-        eventChannel.close()
+        
+        // Close event channel if not already closed
+        if (!eventChannel.isClosedForSend) {
+            eventChannel.close()
+        }
     }
     
     fun close() {
-        stop()
+        // Close watch service first to unblock any waiting take() calls
+        try {
+            watchService.close()
+        } catch (e: Exception) {
+            logger.warn("Exception while closing watch service: ${e.message}")
+        }
+        
+        // Then cancel the job and cleanup
+        watchJob?.cancel()
+        watchJob = null
+        
         watchKeys.keys.forEach { it.cancel() }
         watchKeys.clear()
-        watchService.close()
+        
+        if (!eventChannel.isClosedForSend) {
+            eventChannel.close()
+        }
+        
         logger.info("FileWatchService closed")
     }
     

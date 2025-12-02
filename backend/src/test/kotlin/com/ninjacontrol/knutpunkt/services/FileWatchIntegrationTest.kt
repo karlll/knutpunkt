@@ -91,15 +91,27 @@ class FileWatchIntegrationTest {
     
     @Test
     fun `cache invalidation on external file modification`() = runBlocking {
+        fileWatchService.start()
+        
+        delay(100) // Give watch service time to start
+        
+        // Create task through service
         val task = taskService.createTask(TaskCreate(
             title = "Original Title",
             description = "Original description",
             status = TaskStatus.PLANNED
         ))
         
-        fileWatchService.start()
+        // Consume the creation event
+        val creationEvent = withTimeout(2000) {
+            fileWatchService.events.first()
+        }
+        assertTrue(creationEvent is FileChangeEvent.Created)
         
-        val eventJob = async {
+        delay(100)
+        
+        // Now listen for modification
+        val modificationEventJob = async {
             fileWatchService.events.first()
         }
         
@@ -111,7 +123,7 @@ class FileWatchIntegrationTest {
         taskFile.writeText(modifiedContent)
         
         val event = withTimeout(2000) {
-            eventJob.await()
+            modificationEventJob.await()
         }
         
         assertTrue(event is FileChangeEvent.Modified)
@@ -126,6 +138,8 @@ class FileWatchIntegrationTest {
     fun `automatic cache invalidation flow`() = runBlocking {
         fileWatchService.start()
         
+        delay(100) // Give watch service time to start
+        
         val invalidationJob = launch {
             fileWatchService.events.collect { event ->
                 when (event) {
@@ -138,11 +152,15 @@ class FileWatchIntegrationTest {
             }
         }
         
+        delay(100)
+        
         taskService.createTask(TaskCreate(
             title = "Initial Task",
             description = "First",
             status = TaskStatus.PLANNED
         ))
+        
+        delay(300) // Wait for creation and invalidation
         
         assertEquals(1, taskService.listTasks().size)
         
@@ -165,13 +183,13 @@ class FileWatchIntegrationTest {
             |Done externally
         """.trimMargin())
         
-        delay(500)
+        delay(800) // Wait for file watch and cache invalidation
         
         val tasks = taskService.listTasks()
-        assertEquals(2, tasks.size)
+        assertEquals(2, tasks.size, "Expected 2 tasks after external file creation")
         
         val completedTask = tasks.find { it.id == "ext-complete-123" }
-        assertNotNull(completedTask)
+        assertNotNull(completedTask, "External task should be found")
         assertEquals(TaskStatus.DONE, completedTask!!.status)
         assertEquals(TaskPriority.HIGH, completedTask.priority)
         
