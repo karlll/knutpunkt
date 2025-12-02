@@ -12,10 +12,18 @@ import java.io.File
 import java.time.Instant
 import java.util.*
 
-class TaskService(private val tasksDirectory: String = getTasksDirectory()) {
+class TaskService(
+    private val tasksDirectory: String = getTasksDirectory(),
+    private val enableCache: Boolean = false
+) {
     
     private val logger = LoggerFactory.getLogger(TaskService::class.java)
     private val stateService = StateService(tasksDirectory)
+    
+    // Simple cache: taskId -> Task
+    private val taskCache = mutableMapOf<String, Task>()
+    @Volatile
+    private var cacheValid = false
     
     private val baseDir = File(tasksDirectory).apply {
         if (!exists()) {
@@ -73,12 +81,65 @@ class TaskService(private val tasksDirectory: String = getTasksDirectory()) {
         )
     }
     
+    private fun buildCache() {
+        if (!enableCache) return
+        
+        synchronized(taskCache) {
+            taskCache.clear()
+            
+            for (status in TaskStatus.values()) {
+                val dir = getStatusDir(status)
+                val files = dir.listFiles { file -> file.extension == "md" } ?: continue
+                
+                for (file in files) {
+                    try {
+                        val task = taskFromFile(file, status)
+                        taskCache[task.id] = task
+                    } catch (e: Exception) {
+                        logger.warn("Failed to parse task file ${file.name}: ${e.message}")
+                    }
+                }
+            }
+            
+            cacheValid = true
+            logger.debug("Task cache built with ${taskCache.size} tasks")
+        }
+    }
+    
+    fun invalidateCache() {
+        if (!enableCache) return
+        
+        synchronized(taskCache) {
+            cacheValid = false
+            logger.debug("Task cache invalidated")
+        }
+    }
+    
     fun listTasks(
         status: TaskStatus? = null,
         assignee: String? = null,
         category: String? = null,
         priority: TaskPriority? = null
     ): List<Task> {
+        // Use cache if enabled and valid
+        if (enableCache) {
+            synchronized(taskCache) {
+                if (!cacheValid) {
+                    buildCache()
+                }
+                
+                return taskCache.values
+                    .filter { task ->
+                        (status == null || task.status == status) &&
+                        (assignee == null || task.assignees.contains(assignee)) &&
+                        (category == null || task.categories.contains(category)) &&
+                        (priority == null || task.priority == priority)
+                    }
+                    .sortedBy { it.order }
+            }
+        }
+        
+        // Without cache, read from files
         val tasks = mutableListOf<Task>()
         
         val statusesToCheck = status?.let { listOf(it) } ?: TaskStatus.values().toList()
@@ -108,6 +169,17 @@ class TaskService(private val tasksDirectory: String = getTasksDirectory()) {
     }
     
     fun getTask(id: String): Task {
+        // Use cache if enabled and valid
+        if (enableCache) {
+            synchronized(taskCache) {
+                if (!cacheValid) {
+                    buildCache()
+                }
+                return taskCache[id] ?: throw TaskNotFoundException("Task with id $id not found")
+            }
+        }
+        
+        // Without cache, read from files
         val (file, status) = findTaskFile(id) 
             ?: throw TaskNotFoundException("Task with id $id not found")
         return taskFromFile(file, status)
@@ -159,6 +231,9 @@ class TaskService(private val tasksDirectory: String = getTasksDirectory()) {
         MarkdownParser.writeTaskFile(file, frontMatter, taskCreate.description)
         logger.info("Created task: id={}, number={}, title='{}', status={}, order={}, file={}", 
             taskId, taskNumber, taskCreate.title, status, order, file.name)
+        
+        // Invalidate cache after modification
+        invalidateCache()
         
         // Return the created task directly instead of re-parsing
         return Task(
@@ -233,6 +308,9 @@ class TaskService(private val tasksDirectory: String = getTasksDirectory()) {
         logger.info("Updated task: id={}, title='{}', status={} (changed={}), order={}", 
             id, taskUpdate.title, newStatus, statusChanged, order)
         
+        // Invalidate cache after modification
+        invalidateCache()
+        
         // Return the updated task directly
         return Task(
             id = id,
@@ -276,6 +354,9 @@ class TaskService(private val tasksDirectory: String = getTasksDirectory()) {
         
         oldFile.delete()
         
+        // Invalidate cache after modification
+        invalidateCache()
+        
         return taskFromFile(newFile, newStatus)
     }
     
@@ -292,6 +373,9 @@ class TaskService(private val tasksDirectory: String = getTasksDirectory()) {
         
         logger.info("Deleted task: id={}, title='{}', status={}, file={}", 
             id, frontMatter.title, status, file.name)
+        
+        // Invalidate cache after modification
+        invalidateCache()
     }
     
     fun updateTaskOrder(id: String, orderUpdate: TaskOrderUpdate): List<Task> {
@@ -411,6 +495,9 @@ class TaskService(private val tasksDirectory: String = getTasksDirectory()) {
                 logger.debug("  - Task {}: title='{}', order={}", task.id, task.title, task.order)
             }
         }
+        
+        // Invalidate cache after modification
+        invalidateCache()
         
         return updatedTasks
     }

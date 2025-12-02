@@ -44,7 +44,9 @@ dependencies {
     
     // Testing
     testImplementation("io.ktor:ktor-server-tests-jvm:$ktorVersion")
-    testImplementation("org.jetbrains.kotlin:kotlin-test-junit:1.9.21")
+    testImplementation("org.jetbrains.kotlin:kotlin-test-junit5:1.9.21")
+    testImplementation("org.junit.jupiter:junit-jupiter:5.10.1")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
 java {
@@ -63,6 +65,10 @@ application {
 
 tasks.named<Test>("test") {
     useJUnitPlatform()
+    testLogging {
+        events("passed", "skipped", "failed")
+        showStandardStreams = false
+    }
 }
 
 // Task to build frontend
