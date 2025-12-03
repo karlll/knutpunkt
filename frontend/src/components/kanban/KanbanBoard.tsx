@@ -71,6 +71,7 @@ function getPositionFromEvent(
 
 export function KanbanBoard() {
   const [activeTask, setActiveTask] = useState<Task | null>(null)
+  const [originalTask, setOriginalTask] = useState<Task | null>(null)
   const queryClient = useQueryClient()
 
   // Fetch all tasks
@@ -122,6 +123,8 @@ export function KanbanBoard() {
     const task = tasks.find((t) => t.id === event.active.id)
     if (task) {
       setActiveTask(task)
+      // Store the original task state before any drag operations
+      setOriginalTask({ ...task })
     }
   }
 
@@ -154,20 +157,32 @@ export function KanbanBoard() {
     // Apply the drag result to get the final order
     const newTasks = applyDragResult(currentTasks, activeId, position)
 
-    // Clear active task
+    // Find the task's new position and status
+    const movedTask = newTasks.find((t) => t.id === activeId)
+
+    // Clear active task state
     setActiveTask(null)
 
+    // Check if the task actually moved by comparing with original state
+    if (!originalTask || !movedTask) {
+      setOriginalTask(null)
+      return
+    }
+
+    const taskMoved =
+      originalTask.status !== movedTask.status ||
+      originalTask.order !== movedTask.order
+
+    // Clear original task
+    setOriginalTask(null)
+
     // If nothing changed, no need to persist
-    if (newTasks === currentTasks) {
+    if (!taskMoved) {
       return
     }
 
     // Apply optimistic update
     queryClient.setQueryData(['tasks'], newTasks)
-
-    // Find the task's new position and status
-    const movedTask = newTasks.find((t) => t.id === activeId)
-    if (!movedTask) return
 
     // Persist to backend
     updateTaskOrderMutation.mutate({
