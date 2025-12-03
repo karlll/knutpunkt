@@ -92,6 +92,12 @@ val copyFrontend by tasks.registering(Copy::class) {
 
 // Only build frontend when producing a JAR / distribution, not for tests
 if (file("../frontend").exists()) {
+    // Copy frontend before processing resources when building JARs
+    // This ensures the static files are included in the JAR
+    tasks.named("processResources") {
+        mustRunAfter(copyFrontend)
+    }
+    
     // Ensure frontend is copied into resources only when assembling artifacts
     tasks.named<Jar>("jar") {
         dependsOn(copyFrontend)

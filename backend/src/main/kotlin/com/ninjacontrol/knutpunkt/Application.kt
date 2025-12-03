@@ -1,6 +1,7 @@
 package com.ninjacontrol.knutpunkt
 
 import com.ninjacontrol.knutpunkt.plugins.*
+import com.ninjacontrol.knutpunkt.services.TaskService
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
@@ -20,9 +21,18 @@ fun main(args: Array<String>) {
 }
 
 fun Application.module() {
+    // Determine tasks directory (precedence: CLI arg > env var > default)
+    val tasksDirectory = tasksDirectoryOverride
+        ?: System.getenv("TASKS_DIRECTORY")
+        ?: "./tasks"
+    
+    // Create shared TaskService instance
+    val taskService = TaskService(tasksDirectory, enableCache = true)
+    
     configureSerialization()
     configureCORS()
     configureStatusPages()
-    configureRouting()  // API routes first
+    configureFileWatch(taskService, tasksDirectory)  // Initialize file watching
+    configureRouting(taskService)  // API routes first
     configureStaticContent()  // Then static/SPA fallback
 }

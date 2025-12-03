@@ -8,8 +8,7 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 
-fun Route.taskRoutes() {
-    val taskService = TaskService()
+fun Route.taskRoutes(taskService: TaskService) {
     
     route("/tasks") {
         get {

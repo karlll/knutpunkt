@@ -152,10 +152,7 @@ class FileWatchService(
         watchJob?.cancel()
         watchJob = null
         
-        // Close event channel if not already closed
-        if (!eventChannel.isClosedForSend) {
-            eventChannel.close()
-        }
+        eventChannel.close()
     }
     
     fun close() {
@@ -173,9 +170,7 @@ class FileWatchService(
         watchKeys.keys.forEach { it.cancel() }
         watchKeys.clear()
         
-        if (!eventChannel.isClosedForSend) {
-            eventChannel.close()
-        }
+        eventChannel.close()
         
         logger.info("FileWatchService closed")
     }
