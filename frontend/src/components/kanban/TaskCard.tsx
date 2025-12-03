@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import type { Task } from '@/lib/api'
 import { GripVertical, Pencil } from 'lucide-react'
-import { TaskEditDialog } from './TaskEditDialog'
+import { TaskDialog } from './TaskDialog'
 
 interface TaskCardProps {
   task: Task
@@ -121,7 +121,8 @@ export function TaskCard({ task }: TaskCardProps) {
       </Card>
     </div>
 
-    <TaskEditDialog
+    <TaskDialog
+      mode="edit"
       task={task}
       open={editDialogOpen}
       onOpenChange={setEditDialogOpen}

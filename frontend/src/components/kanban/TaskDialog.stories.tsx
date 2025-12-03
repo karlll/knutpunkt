@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react'
 import { useState } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { TaskEditDialog } from './TaskEditDialog'
+import { TaskDialog } from './TaskDialog'
 import { Button } from '@/components/ui/button'
 import type { Task } from '@/lib/api'
 
@@ -14,8 +14,8 @@ const queryClient = new QueryClient({
 })
 
 const meta = {
-  title: 'Kanban/TaskEditDialog',
-  component: TaskEditDialog,
+  title: 'Kanban/TaskDialog',
+  component: TaskDialog,
   parameters: {
     layout: 'centered',
   },
@@ -29,19 +29,30 @@ const meta = {
       </QueryClientProvider>
     ),
   ],
-} satisfies Meta<typeof TaskEditDialog>
+} satisfies Meta<typeof TaskDialog>
 
 export default meta
 type Story = StoryObj<typeof meta>
 
-// Interactive wrapper component
-function InteractiveDialog({ task }: { task: Task }) {
+// Interactive wrapper components
+function InteractiveCreateDialog() {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <div className="flex flex-col items-center gap-4">
+      <Button onClick={() => setOpen(true)}>Create Task</Button>
+      <TaskDialog mode="create" open={open} onOpenChange={setOpen} />
+    </div>
+  )
+}
+
+function InteractiveEditDialog({ task }: { task: Task }) {
   const [open, setOpen] = useState(false)
 
   return (
     <div className="flex flex-col items-center gap-4">
       <Button onClick={() => setOpen(true)}>Edit Task</Button>
-      <TaskEditDialog task={task} open={open} onOpenChange={setOpen} />
+      <TaskDialog mode="edit" task={task} open={open} onOpenChange={setOpen} />
     </div>
   )
 }
@@ -75,27 +86,34 @@ Consider using Docker for development environment consistency.`,
   updatedAt: '2025-01-15T14:30:00Z',
 }
 
-export const Default: Story = {
-  args: {
-    task: baseTask,
-    open: false,
-    onOpenChange: () => {},
-  },
-  render: () => <InteractiveDialog task={baseTask} />,
+// Create mode stories
+export const CreateMode: Story = {
+  args: {} as any,
+  render: () => <InteractiveCreateDialog />,
 }
 
-export const PlannedTask: Story = {
+export const CreateModeOpen: Story = {
   args: {
-    task: baseTask,
-    open: false,
+    mode: 'create',
+    open: true,
     onOpenChange: () => {},
   },
+}
+
+// Edit mode stories
+export const EditMode: Story = {
+  args: {} as any,
+  render: () => <InteractiveEditDialog task={baseTask} />,
+}
+
+export const EditPlannedTask: Story = {
+  args: {} as any,
   render: () => (
-    <InteractiveDialog
+    <InteractiveEditDialog
       task={{
         ...baseTask,
         id: '550e8400-e29b-41d4-a716-446655440002',
-  number: 42,
+        number: 43,
         title: 'Implement authentication',
         description: `## Description
 
@@ -115,18 +133,14 @@ Implement JWT-based authentication for the API.
   ),
 }
 
-export const DoneTask: Story = {
-  args: {
-    task: baseTask,
-    open: false,
-    onOpenChange: () => {},
-  },
+export const EditDoneTask: Story = {
+  args: {} as any,
   render: () => (
-    <InteractiveDialog
+    <InteractiveEditDialog
       task={{
         ...baseTask,
         id: '550e8400-e29b-41d4-a716-446655440003',
-  number: 42,
+        number: 44,
         title: 'Design UI mockups',
         description: `## Description
 
@@ -148,18 +162,14 @@ All mockups have been reviewed and approved by the team.`,
   ),
 }
 
-export const LowPriorityTask: Story = {
-  args: {
-    task: baseTask,
-    open: false,
-    onOpenChange: () => {},
-  },
+export const EditLowPriorityTask: Story = {
+  args: {} as any,
   render: () => (
-    <InteractiveDialog
+    <InteractiveEditDialog
       task={{
         ...baseTask,
         id: '550e8400-e29b-41d4-a716-446655440004',
-  number: 42,
+        number: 45,
         title: 'Write documentation',
         description: 'Document all API endpoints with examples.',
         status: 'planned',
@@ -171,18 +181,14 @@ export const LowPriorityTask: Story = {
   ),
 }
 
-export const MinimalTask: Story = {
-  args: {
-    task: baseTask,
-    open: false,
-    onOpenChange: () => {},
-  },
+export const EditMinimalTask: Story = {
+  args: {} as any,
   render: () => (
-    <InteractiveDialog
+    <InteractiveEditDialog
       task={{
         ...baseTask,
         id: '550e8400-e29b-41d4-a716-446655440005',
-  number: 42,
+        number: 46,
         title: 'Quick bug fix',
         description: 'Fix typo in error message',
         status: 'planned',
@@ -194,18 +200,14 @@ export const MinimalTask: Story = {
   ),
 }
 
-export const MultipleAssignees: Story = {
-  args: {
-    task: baseTask,
-    open: false,
-    onOpenChange: () => {},
-  },
+export const EditMultipleAssignees: Story = {
+  args: {} as any,
   render: () => (
-    <InteractiveDialog
+    <InteractiveEditDialog
       task={{
         ...baseTask,
         id: '550e8400-e29b-41d4-a716-446655440006',
-  number: 42,
+        number: 47,
         title: 'Team brainstorming session',
         description: `## Agenda
 
@@ -223,18 +225,14 @@ All team members should attend.`,
   ),
 }
 
-export const ManyCategories: Story = {
-  args: {
-    task: baseTask,
-    open: false,
-    onOpenChange: () => {},
-  },
+export const EditManyCategories: Story = {
+  args: {} as any,
   render: () => (
-    <InteractiveDialog
+    <InteractiveEditDialog
       task={{
         ...baseTask,
         id: '550e8400-e29b-41d4-a716-446655440007',
-  number: 42,
+        number: 48,
         title: 'Refactor codebase',
         description: `## Overview
 
@@ -263,18 +261,14 @@ Major refactoring effort to improve code quality and maintainability.
   ),
 }
 
-export const LongDescription: Story = {
-  args: {
-    task: baseTask,
-    open: false,
-    onOpenChange: () => {},
-  },
+export const EditLongDescription: Story = {
+  args: {} as any,
   render: () => (
-    <InteractiveDialog
+    <InteractiveEditDialog
       task={{
         ...baseTask,
         id: '550e8400-e29b-41d4-a716-446655440008',
-  number: 42,
+        number: 49,
         title: 'Implement comprehensive error handling',
         description: `## Description
 
@@ -361,8 +355,9 @@ Priority: High`,
   ),
 }
 
-export const OpenByDefault: Story = {
+export const EditModeOpen: Story = {
   args: {
+    mode: 'edit',
     task: baseTask,
     open: true,
     onOpenChange: () => {},

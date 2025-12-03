@@ -1,5 +1,6 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
+import { userEvent } from '@testing-library/user-event'
 import { Header } from './Header'
 
 describe('Header', () => {
@@ -163,6 +164,58 @@ describe('Header', () => {
       await waitFor(() => {}) // Let Logo effects settle
       const heading = screen.getByRole('heading', { level: 1 })
       expect(heading).toHaveTextContent('My App')
+    })
+  })
+
+  describe('Create task button', () => {
+    it('does not render create button when onCreateTask is not provided', async () => {
+      render(<Header />)
+      await waitFor(() => {}) // Let Logo effects settle
+      const buttons = screen.getAllByRole('button')
+      expect(buttons).toHaveLength(1) // Only theme toggle
+    })
+
+    it('renders create button when onCreateTask is provided', async () => {
+      const onCreateTask = vi.fn()
+      render(<Header onCreateTask={onCreateTask} />)
+      await waitFor(() => {}) // Let Logo effects settle
+      const buttons = screen.getAllByRole('button')
+      expect(buttons).toHaveLength(2) // Theme toggle + create button
+    })
+
+    it('calls onCreateTask when create button is clicked', async () => {
+      const user = userEvent.setup()
+      const onCreateTask = vi.fn()
+      render(<Header onCreateTask={onCreateTask} />)
+      await waitFor(() => {}) // Let Logo effects settle
+
+      const buttons = screen.getAllByRole('button')
+      const createButton = buttons.find((btn) => btn.getAttribute('title') === 'Create new task')
+      expect(createButton).toBeDefined()
+
+      if (createButton) {
+        await user.click(createButton)
+        expect(onCreateTask).toHaveBeenCalledOnce()
+      }
+    })
+
+    it('create button has proper accessibility attributes', async () => {
+      const onCreateTask = vi.fn()
+      render(<Header onCreateTask={onCreateTask} />)
+      await waitFor(() => {}) // Let Logo effects settle
+
+      const buttons = screen.getAllByRole('button')
+      const createButton = buttons.find((btn) => btn.getAttribute('title') === 'Create new task')
+      expect(createButton).toHaveAttribute('title', 'Create new task')
+    })
+
+    it('positions create button and theme toggle together', async () => {
+      const onCreateTask = vi.fn()
+      const { container } = render(<Header onCreateTask={onCreateTask} />)
+      await waitFor(() => {}) // Let Logo effects settle
+
+      const rightGroup = container.querySelector('.container > div:last-child')
+      expect(rightGroup).toHaveClass('flex', 'items-center', 'gap-2')
     })
   })
 })

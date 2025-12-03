@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Dialog,
@@ -23,35 +23,83 @@ import { Badge } from '@/components/ui/badge'
 import { X } from 'lucide-react'
 import { api, type Task, type TaskStatus, type TaskPriority } from '@/lib/api'
 
-interface TaskEditDialogProps {
-  task: Task
+interface TaskDialogProps {
+  mode: 'create' | 'edit'
+  task?: Task
   open: boolean
   onOpenChange: (open: boolean) => void
 }
 
-export function TaskEditDialog({ task, open, onOpenChange }: TaskEditDialogProps) {
+const DEFAULT_FORM_DATA = {
+  title: 'New Task',
+  description: '## Description\n\nEmpty',
+  status: 'planned' as TaskStatus,
+  priority: 'medium' as TaskPriority,
+  assignees: [] as string[],
+  categories: [] as string[],
+}
+
+export function TaskDialog({ mode, task, open, onOpenChange }: TaskDialogProps) {
   const queryClient = useQueryClient()
-  const [formData, setFormData] = useState({
-    title: task.title,
-    description: task.description,
-    status: task.status,
-    priority: task.priority,
-    assignees: task.assignees,
-    categories: task.categories,
-  })
+
+  // Initialize form data based on mode
+  const getInitialFormData = () => {
+    if (mode === 'edit' && task) {
+      return {
+        title: task.title,
+        description: task.description,
+        status: task.status,
+        priority: task.priority,
+        assignees: task.assignees,
+        categories: task.categories,
+      }
+    }
+    return { ...DEFAULT_FORM_DATA }
+  }
+
+  const [formData, setFormData] = useState(getInitialFormData())
   const [newAssignee, setNewAssignee] = useState('')
   const [newCategory, setNewCategory] = useState('')
 
-  const updateTaskMutation = useMutation({
-    mutationFn: (data: { id: string; updates: Partial<Task> }) =>
-      api.tasks.update(data.id, {
-        title: data.updates.title!,
-        description: data.updates.description!,
-        status: data.updates.status,
-        priority: data.updates.priority,
-        assignees: data.updates.assignees,
-        categories: data.updates.categories,
+  // Reset form data when dialog opens or mode/task changes
+  useEffect(() => {
+    if (open) {
+      setFormData(getInitialFormData())
+      setNewAssignee('')
+      setNewCategory('')
+    }
+  }, [open, mode, task?.id])
+
+  const createTaskMutation = useMutation({
+    mutationFn: (data: typeof formData) =>
+      api.tasks.create({
+        title: data.title,
+        description: data.description,
+        status: data.status,
+        priority: data.priority,
+        assignees: data.assignees,
+        categories: data.categories,
+        order: 1, // Backend will auto-assign proper order
       }),
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: ['tasks'] })
+      const previousTasks = queryClient.getQueryData<Task[]>(['tasks'])
+      return { previousTasks }
+    },
+    onError: (_err, _variables, context) => {
+      if (context?.previousTasks) {
+        queryClient.setQueryData(['tasks'], context.previousTasks)
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] })
+      onOpenChange(false)
+    },
+  })
+
+  const updateTaskMutation = useMutation({
+    mutationFn: (data: { id: string; updates: typeof formData }) =>
+      api.tasks.update(data.id, data.updates),
     onMutate: async () => {
       await queryClient.cancelQueries({ queryKey: ['tasks'] })
       const previousTasks = queryClient.getQueryData<Task[]>(['tasks'])
@@ -70,10 +118,14 @@ export function TaskEditDialog({ task, open, onOpenChange }: TaskEditDialogProps
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    updateTaskMutation.mutate({
-      id: task.id,
-      updates: formData,
-    })
+    if (mode === 'create') {
+      createTaskMutation.mutate(formData)
+    } else if (task) {
+      updateTaskMutation.mutate({
+        id: task.id,
+        updates: formData,
+      })
+    }
   }
 
   const addAssignee = () => {
@@ -110,13 +162,21 @@ export function TaskEditDialog({ task, open, onOpenChange }: TaskEditDialogProps
     })
   }
 
+  const isPending = mode === 'create' ? createTaskMutation.isPending : updateTaskMutation.isPending
+  const dialogTitle = mode === 'create' ? 'Create New Task' : 'Edit Task'
+  const dialogDescription = mode === 'create'
+    ? 'Fill in the details for your new task.'
+    : 'Make changes to the task details below.'
+  const submitButtonText = mode === 'create' ? 'Create Task' : 'Save Changes'
+  const pendingButtonText = mode === 'create' ? 'Creating...' : 'Saving...'
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Edit Task</DialogTitle>
+          <DialogTitle>{dialogTitle}</DialogTitle>
           <DialogDescription>
-            Make changes to the task details below.
+            {dialogDescription}
           </DialogDescription>
         </DialogHeader>
 
@@ -268,8 +328,8 @@ export function TaskEditDialog({ task, open, onOpenChange }: TaskEditDialogProps
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={updateTaskMutation.isPending}>
-              {updateTaskMutation.isPending ? 'Saving...' : 'Save Changes'}
+            <Button type="submit" disabled={isPending}>
+              {isPending ? pendingButtonText : submitButtonText}
             </Button>
           </DialogFooter>
         </form>

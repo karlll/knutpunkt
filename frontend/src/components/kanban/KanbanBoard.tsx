@@ -12,6 +12,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { KanbanColumn } from './KanbanColumn'
 import { TaskCard } from './TaskCard'
+import { TaskDialog } from './TaskDialog'
 import { Header } from '@/components/Header'
 import { api, type Task, type TaskStatus } from '@/lib/api'
 import { applyDragResult, type DragPosition } from './dndLogic'
@@ -72,6 +73,7 @@ function getPositionFromEvent(
 export function KanbanBoard() {
   const [activeTask, setActiveTask] = useState<Task | null>(null)
   const [originalTask, setOriginalTask] = useState<Task | null>(null)
+  const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const queryClient = useQueryClient()
 
   // Fetch all tasks
@@ -202,7 +204,7 @@ export function KanbanBoard() {
 
   return (
     <div className="h-screen flex flex-col">
-      <Header />
+      <Header onCreateTask={() => setCreateDialogOpen(true)} />
       <main className="flex-1 overflow-hidden p-6">
         <DndContext
           collisionDetection={closestCorners}
@@ -225,6 +227,13 @@ export function KanbanBoard() {
           </DragOverlay>
         </DndContext>
       </main>
+
+      {/* Create task dialog */}
+      <TaskDialog
+        mode="create"
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+      />
     </div>
   )
 }
