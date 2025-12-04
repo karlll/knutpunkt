@@ -168,6 +168,7 @@ Location: `api/openapi.yaml`
 - TanStack Query (React Query) for data fetching
 - Vitest for testing
 - MSW for API mocking during development
+- StoryBook for component development
 
 **Key Components:**
 
@@ -205,63 +206,40 @@ src/components/
 
 ### 4. Backend Specification
 
-**Technology Stack:**
-- Kotlin 1.9.x
-- Gradle (Kotlin DSL)
-- Ktor 2.x
-- kotlinx.serialization for JSON
-- kaml for YAML parsing (front matter)
-- commonmark for Markdown parsing
+Tech Stack:
 
-**Gradle Dependencies:**
-```kotlin
-dependencies {
-    // Ktor server
-    implementation("io.ktor:ktor-server-core-jvm")
-    implementation("io.ktor:ktor-server-netty-jvm")
-    implementation("io.ktor:ktor-server-content-negotiation-jvm")
-    implementation("io.ktor:ktor-serialization-kotlinx-json-jvm")
-    implementation("io.ktor:ktor-server-cors-jvm")
-    implementation("io.ktor:ktor-server-status-pages-jvm")
-    
-    // YAML parsing for front matter
-    implementation("com.charleskorn.kaml:kaml:0.55.0")
-    
-    // Markdown parsing (optional, for validation)
-    implementation("org.commonmark:commonmark:0.21.0")
-    
-    // Testing
-    testImplementation("io.ktor:ktor-server-tests-jvm")
-    testImplementation("org.jetbrains.kotlin:kotlin-test-junit")
-}
-```
+     - Kotlin 1.9.21 + Gradle (Kotlin DSL)
+     - Ktor 2.3.7 (Netty server, JSON serialization, CORS, status pages, call logging)
+     - kotlinx.serialization for JSON
+     - kaml 0.55.0 for YAML front matter parsing
+     - commonmark 0.21.0 for Markdown
+     - JUnit 5 for testing
+     - Java 17 toolchain
 
-**Application Configuration:**
-```kotlin
-// Application.kt
-fun main() {
-    embeddedServer(Netty, port = 8080, host = "0.0.0.0") {
-        configureSerialization()
-        configureCORS()
-        configureRouting()
-    }.start(wait = true)
-}
-```
+Main Components:
 
-**Service Layer:**
-The `TaskService` handles all file operations:
-- Reading/writing Markdown files
-- Parsing/generating YAML front matter
-- Moving files between directories (status changes)
-- Generating slugs from titles
-- UUID generation for new tasks
+     - Application.kt - Entry point, Netty embedded server on port 8080
+     - models/Models.kt - Data models: Task, TaskCreate, TaskUpdate, TaskStatus/Priority enums
+     - services/TaskService.kt - Core logic: file I/O, YAML parsing, CRUD operations, optional in-memory cache
+     - services/StateService.kt - Task number generation
+     - services/FileWatchService.kt - File system monitoring for external changes
+     - routes/TaskRoutes.kt - REST endpoints under /api/v1
+     - plugins/ - CORS, routing, serialization, error handling, static content (SPA)
+     - utils/ - MarkdownParser (YAML frontmatter), SlugGenerator (filename generation)
 
-**Error Handling:**
-- Return appropriate HTTP status codes
-- 404 for task not found
-- 400 for validation errors
-- 409 for conflicts (e.g., duplicate slug)
-- 500 for file system errors
+   API Endpoints: /api/v1/tasks (GET/POST), /api/v1/tasks/{id} (GET/PUT/DELETE), /api/v1/tasks/{id}/status (PATCH), /api/v1/tasks/{id}/order (PATCH)
+
+   Storage: File-based in tasks/{planned,ongoing,done}/*.md with YAML frontmatter + Markdown body
+
+   Commands:
+
+     - Build: ./gradlew build
+     - Run dev: ./gradlew run
+     - Test: ./gradlew test
+     - Fat JAR: ./gradlew shadowJar
+     - Custom tasks dir: pass as CLI arg or set TASKS_DIRECTORY env var
+
+Key Features: In-memory caching (optional), file watching, order management, slug-based filenames, comprehensive error handling (404/400/409/500)
 
 ---
 
