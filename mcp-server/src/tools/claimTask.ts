@@ -10,7 +10,24 @@ export type ClaimTaskArgs = z.infer<typeof ClaimTaskSchema>;
 
 export const claimTaskTool = {
   name: 'claim_task',
-  description: 'Claim a task from the planned column, assign it to an agent, and move it to ongoing status.',
+  description: `This tool handles user requests related to claiming or starting work on tasks.
+
+Use this tool whenever the user asks to:
+- "claim task #3"
+- "start working on task 5"
+- "I'll take task 7"
+- "assign task 2 to me and start it"
+- "begin work on this task"
+- "start task #4"
+
+This tool is responsible for claiming a planned task, assigning it to an agent, and moving it to 'ongoing' status. Only planned tasks can be claimed.
+
+Example:
+User: "Start working on task 5"
+Assistant: (calls claim_task with taskId and agentName)
+
+User: "I'll take task #3"
+Assistant: (calls claim_task)`,
   inputSchema: {
     type: 'object',
     properties: {
@@ -20,7 +37,7 @@ export const claimTaskTool = {
       },
       agentName: {
         type: 'string',
-        description: 'Name of the agent claiming the task',
+        description: 'Name of the agent claiming the task. It should be the name of the agent invoking this tool (i.e. Claude Code, GitHub Copilot, etc), and not the user talking to the agent.',
       },
     },
     required: ['taskId', 'agentName'],

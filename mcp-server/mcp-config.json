@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "knutpunkt": {
+      "command": "node",
+      "args": [
+        "/Users/karl/Project/knutpunkt/mcp-server/build/index.js"
+      ],
+      "env": {
+        "KNUTPUNKT_API_URL": "http://localhost:8080/api/v1"
+      }
+    }
+  }
+}

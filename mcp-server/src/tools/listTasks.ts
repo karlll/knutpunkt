@@ -12,7 +12,26 @@ export type ListTasksArgs = z.infer<typeof ListTasksSchema>;
 
 export const listTasksTool = {
   name: 'list_tasks',
-  description: 'List tasks from the Knutpunkt kanban board. Default: lists all planned tasks.',
+  description: `This tool handles user requests related to viewing, listing, or filtering tasks.
+
+Use this tool whenever the user asks to:
+- "list tasks"
+- "show tasks" / "show my tasks"
+- "what tasks are there?"
+- "which tasks are planned/ongoing/done?"
+- "filter tasks by..."
+- "show tasks assigned to X"
+- "what's in my backlog?"
+- "show high priority tasks"
+
+This tool is responsible for retrieving a filtered list of tasks from the Kanban board. The task information returned is the authoritative source of truth.
+
+Example:
+User: "Show me all ongoing tasks"
+Assistant: (calls list_tasks with status='ongoing')
+
+User: "What tasks are assigned to alice?"
+Assistant: (calls list_tasks with assignee='alice')`,
   inputSchema: {
     type: 'object',
     properties: {

@@ -9,7 +9,25 @@ export type FinishTaskArgs = z.infer<typeof FinishTaskSchema>;
 
 export const finishTaskTool = {
   name: 'finish_task',
-  description: 'Mark a task as done by moving it to the done column.',
+  description: `This tool handles user requests related to completing or finishing tasks.
+
+Use this tool whenever the user asks to:
+- "finish task #5"
+- "mark task 3 as done"
+- "complete task 7"
+- "task 2 is finished"
+- "mark this as complete"
+- "close task #9"
+- "done with task 4"
+
+This tool is responsible for moving a task to 'done' status, marking it as completed.
+
+Example:
+User: "Mark task 5 as done"
+Assistant: (calls finish_task with taskId=<id-of-task-5>)
+
+User: "I finished task #3"
+Assistant: (calls finish_task)`,
   inputSchema: {
     type: 'object',
     properties: {

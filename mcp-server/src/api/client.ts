@@ -14,6 +14,16 @@ export interface Task {
   order: number;
 }
 
+export interface TaskCreate {
+  title: string;
+  description: string;
+  status?: 'planned' | 'ongoing' | 'done';
+  assignees?: string[];
+  categories?: string[];
+  priority?: 'low' | 'medium' | 'high';
+  order?: number;
+}
+
 export interface TaskUpdate {
   title: string;
   description: string;
@@ -60,6 +70,15 @@ export class KnutpunktApiClient {
   async updateTaskStatus(id: string, status: 'planned' | 'ongoing' | 'done'): Promise<Task> {
     const response = await this.client.patch<Task>(`/tasks/${id}/status`, { status });
     return response.data;
+  }
+
+  async createTask(create: TaskCreate): Promise<Task> {
+    const response = await this.client.post<Task>('/tasks', create);
+    return response.data;
+  }
+
+  async deleteTask(id: string): Promise<void> {
+    await this.client.delete(`/tasks/${id}`);
   }
 }
 
