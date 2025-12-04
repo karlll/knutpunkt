@@ -47,7 +47,8 @@ Assistant: (calls create_task with priority='high')`,
         description: `Task description in Markdown format. 
 
 GUIDELINES FOR EFFECTIVE TASK DESCRIPTIONS:
-- Start with ## Overview (1-2 sentences explaining the goal)
+- Start with # [title] (a clear and concise title summarizing the task)
+- Next, ## Overview (1-2 sentences explaining the goal)
 - Include ## Requirements (specific, actionable bullet points with file paths and function names)
 - Add ## Acceptance Criteria (testable checkboxes using - [ ] format)
 - Provide ## Examples (code snippets showing expected inputs/outputs)
