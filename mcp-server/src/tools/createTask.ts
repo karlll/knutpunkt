@@ -44,7 +44,34 @@ Assistant: (calls create_task with priority='high')`,
       },
       description: {
         type: 'string',
-        description: 'Task description in Markdown format',
+        description: `Task description in Markdown format. 
+
+GUIDELINES FOR EFFECTIVE TASK DESCRIPTIONS:
+- Start with ## Overview (1-2 sentences explaining the goal)
+- Include ## Requirements (specific, actionable bullet points with file paths and function names)
+- Add ## Acceptance Criteria (testable checkboxes using - [ ] format)
+- Provide ## Examples (code snippets showing expected inputs/outputs)
+- Be explicit: use absolute file paths, exact function names, specific error codes
+- Include test scenarios and edge cases
+- Keep focused on one main objective (split large tasks into smaller ones)
+
+Example structure:
+## Overview
+[What and why in 1-2 sentences]
+
+## Requirements
+- Create \`path/to/file.ext\` with function \`functionName()\`
+- Add endpoint \`/api/v1/resource\`
+- Update \`specific/file.ts\` line 42
+
+## Acceptance Criteria
+- [ ] Specific testable condition
+- [ ] Another verifiable outcome
+
+## Examples
+\`\`\`typescript
+// Expected code example
+\`\`\``,
       },
       status: {
         type: 'string',
