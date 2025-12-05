@@ -10,9 +10,10 @@ import { TaskDialog } from './TaskDialog'
 
 interface TaskCardProps {
   task: Task
+  compact?: boolean
 }
 
-export function TaskCard({ task }: TaskCardProps) {
+export function TaskCard({ task, compact = false }: TaskCardProps) {
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const {
     attributes,
@@ -42,7 +43,7 @@ export function TaskCard({ task }: TaskCardProps) {
     <>
       <div ref={setNodeRef} style={style}>
         <Card className="cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow">
-          <CardHeader className="pb-3">
+          <CardHeader className={compact ? "py-2 pb-2" : "pb-3"}>
             <div className="flex items-start justify-between gap-2">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
@@ -74,50 +75,52 @@ export function TaskCard({ task }: TaskCardProps) {
               </div>
             </div>
           </CardHeader>
-        <CardContent className="space-y-3">
-          {/* Description preview */}
-          {task.description && (
-            <p className="text-sm text-muted-foreground line-clamp-2">
-              {task.description.split('\n')[0].replace(/^#+\s*/, '')}
-            </p>
-          )}
+          {!compact && (
+            <CardContent className="space-y-3">
+              {/* Description preview */}
+              {task.description && (
+                <p className="text-sm text-muted-foreground line-clamp-2">
+                  {task.description.split('\n')[0].replace(/^#+\s*/, '')}
+                </p>
+              )}
 
-          {/* Priority badge */}
-          <div className="flex items-center gap-2">
-            <Badge
-              variant="outline"
-              className={priorityColor[task.priority]}
-            >
-              {task.priority}
-            </Badge>
-          </div>
-
-          {/* Categories */}
-          {task.categories.length > 0 && (
-            <div className="flex flex-wrap gap-1">
-              {task.categories.map((category) => (
-                <Badge key={category} variant="secondary" className="text-xs">
-                  {category}
-                </Badge>
-              ))}
-            </div>
-          )}
-
-          {/* Assignees */}
-          {task.assignees.length > 0 && (
-            <div className="flex flex-wrap gap-1">
-              {task.assignees.map((assignee) => (
-                <div
-                  key={assignee}
-                  className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-medium"
-                  title={assignee}
+              {/* Priority badge */}
+              <div className="flex items-center gap-2">
+                <Badge
+                  variant="outline"
+                  className={priorityColor[task.priority]}
                 >
-                  {assignee.charAt(0).toUpperCase()}
+                  {task.priority}
+                </Badge>
+              </div>
+
+              {/* Categories */}
+              {task.categories.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {task.categories.map((category) => (
+                    <Badge key={category} variant="secondary" className="text-xs">
+                      {category}
+                    </Badge>
+                  ))}
                 </div>
-              ))}
-            </div>
+              )}
+
+              {/* Assignees */}
+              {task.assignees.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {task.assignees.map((assignee) => (
+                    <div
+                      key={assignee}
+                      className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-medium"
+                      title={assignee}
+                    >
+                      {assignee.charAt(0).toUpperCase()}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
           )}
-        </CardContent>
       </Card>
     </div>
 

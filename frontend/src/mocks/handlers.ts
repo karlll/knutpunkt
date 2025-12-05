@@ -17,7 +17,7 @@ type TaskOrderUpdate = components['schemas']['TaskOrderUpdate']
 type TaskStatus = components['schemas']['TaskStatus']
 type TaskPriority = components['schemas']['TaskPriority']
 
-const API_BASE = 'http://localhost:8080/api/v1'
+const API_BASE = '/api/v1'
 
 export const handlers = [
   // GET /tasks - List all tasks with optional filtering

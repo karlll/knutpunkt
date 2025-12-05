@@ -43,7 +43,7 @@ export function KanbanColumn({ status, tasks, title }: KanbanColumnProps) {
           >
             <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
               {tasks.map((task) => (
-                <TaskCard key={task.id} task={task} />
+                <TaskCard key={task.id} task={task} compact={status === 'done'} />
               ))}
             </SortableContext>
             {tasks.length === 0 && (
