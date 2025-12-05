@@ -17,8 +17,56 @@ servers:
 tags:
   - name: tasks
     description: Task management operations
+  - name: events
+    description: Real-time task update events via Server-Sent Events (SSE)
 
 paths:
+  /events:
+    get:
+      summary: Subscribe to task update events
+      description: |
+        Server-Sent Events (SSE) endpoint for real-time task updates.
+        
+        Clients can subscribe to this endpoint to receive notifications when tasks
+        are created, modified, or deleted. Events are triggered by file system changes
+        detected by the backend's FileWatchService.
+        
+        Each event includes:
+        - `eventType`: Type of event (task.created, task.modified, task.deleted)
+        - `taskId`: UUID of the affected task
+        - `status`: Current status of the task (planned, ongoing, done)
+        
+        Connection stays open indefinitely. Clients should implement reconnection logic.
+      operationId: subscribeToEvents
+      tags:
+        - events
+      responses:
+        '200':
+          description: SSE stream established
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                description: Server-Sent Events stream
+              examples:
+                taskCreated:
+                  value: |
+                    event: task.created
+                    id: 1234567890
+                    data: {"eventType":"task.created","taskId":"550e8400-e29b-41d4-a716-446655440000","status":"planned"}
+                    
+                taskModified:
+                  value: |
+                    event: task.modified
+                    id: 1234567891
+                    data: {"eventType":"task.modified","taskId":"550e8400-e29b-41d4-a716-446655440000","status":"ongoing"}
+                    
+                taskDeleted:
+                  value: |
+                    event: task.deleted
+                    id: 1234567892
+                    data: {"eventType":"task.deleted","taskId":"550e8400-e29b-41d4-a716-446655440000","status":"done"}
+
   /tasks:
     get:
       summary: List all tasks
@@ -523,3 +571,62 @@ components:
           type: object
           description: Additional error details
           additionalProperties: true
+
+    TaskEvent:
+      type: object
+      required:
+        - eventType
+        - taskId
+        - status
+      properties:
+        eventType:
+          type: string
+          enum:
+            - task.created
+            - task.modified
+            - task.deleted
+          description: Type of task event
+          example: "task.created"
+        taskId:
+          type: string
+          format: uuid
+          description: UUID of the affected task
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        status:
+          $ref: '#/components/schemas/TaskStatus'
+      discriminator:
+        propertyName: eventType
+        mapping:
+          task.created: '#/components/schemas/TaskCreatedEvent'
+          task.modified: '#/components/schemas/TaskModifiedEvent'
+          task.deleted: '#/components/schemas/TaskDeletedEvent'
+
+    TaskCreatedEvent:
+      allOf:
+        - $ref: '#/components/schemas/TaskEvent'
+        - type: object
+          properties:
+            eventType:
+              type: string
+              enum:
+                - task.created
+
+    TaskModifiedEvent:
+      allOf:
+        - $ref: '#/components/schemas/TaskEvent'
+        - type: object
+          properties:
+            eventType:
+              type: string
+              enum:
+                - task.modified
+
+    TaskDeletedEvent:
+      allOf:
+        - $ref: '#/components/schemas/TaskEvent'
+        - type: object
+          properties:
+            eventType:
+              type: string
+              enum:
+                - task.deleted

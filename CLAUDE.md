@@ -208,8 +208,8 @@ src/components/
 
 Tech Stack:
 
-     - Kotlin 1.9.21 + Gradle (Kotlin DSL)
-     - Ktor 2.3.7 (Netty server, JSON serialization, CORS, status pages, call logging)
+     - Kotlin 2.0.21 + Gradle (Kotlin DSL)
+     - Ktor 3.0.3 (Netty server, JSON serialization, CORS, SSE, status pages, call logging)
      - kotlinx.serialization for JSON
      - kaml 0.55.0 for YAML front matter parsing
      - commonmark 0.21.0 for Markdown

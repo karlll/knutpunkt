@@ -30,9 +30,10 @@ fun Application.module() {
     val taskService = TaskService(tasksDirectory, enableCache = true)
     
     configureSerialization()
+    configureSSE()
     configureCORS()
     configureStatusPages()
-    configureFileWatch(taskService, tasksDirectory)  // Initialize file watching
-    configureRouting(taskService)  // API routes first
+    val eventService = configureFileWatch(taskService, tasksDirectory)  // Initialize file watching and events
+    configureRouting(taskService, eventService)  // API routes first
     configureStaticContent()  // Then static/SPA fallback
 }

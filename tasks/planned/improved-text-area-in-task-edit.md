@@ -3,11 +3,11 @@ id: "f6ad956b-f243-40c1-9876-9018a5503031"
 number: 10
 title: "Improved text area in task edit"
 createdAt: "2025-12-04T20:43:51.524292Z"
-updatedAt: "2025-12-04T20:43:51.524292Z"
+updatedAt: "2025-12-04T20:58:27.698912Z"
 assignees: []
 categories:
 - "frontend"
-priority: "low"
+priority: "medium"
 order: 1
 ---
 
@@ -25,6 +25,30 @@ The "Description" text area should support syntax highlighting for markdown, as 
 - The VI / Non-VI mode should be configurable
 - It is sufficient if the configuration is a parameter to the Task Dialog component, it doesn't need to be changeable in the UI.
 - The VI support should be provided by a third party library, or as a feature of the edit component that also supports Markdown HL
+- Suggested libraries
+   - Markdown support via @codemirror/lang-markdown. 
+   - Dark themes (e.g. @codemirror/theme-one-dark, GitHub-style themes, etc.). 
+   - Vim keybindings via @replit/codemirror-vim. 
+
+
+```javascript
+import { EditorView, basicSetup } from "codemirror";
+import { markdown } from "@codemirror/lang-markdown";
+import { vim } from "@replit/codemirror-vim";
+import { oneDark } from "@codemirror/theme-one-dark";
+
+const view = new EditorView({
+  parent: document.querySelector("#editor"), // e.g. <div id="editor"></div>
+  doc: "# Hello, Markdown\n\nSome *italic* and **bold**.",
+  extensions: [
+    vim(),           // Vim keybindings
+    basicSetup,      // Line numbers, history, etc.
+    markdown(),      // Markdown syntax highlighting
+    oneDark          // Dark theme
+  ]
+});
+```
+
 
 ## Acceptance Criteria
 

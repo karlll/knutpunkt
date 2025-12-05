@@ -1,5 +1,6 @@
 package com.ninjacontrol.knutpunkt.plugins
 
+import com.ninjacontrol.knutpunkt.services.EventService
 import com.ninjacontrol.knutpunkt.services.FileWatchService
 import com.ninjacontrol.knutpunkt.services.TaskService
 import io.ktor.server.application.*
@@ -8,9 +9,10 @@ import org.slf4j.LoggerFactory
 
 private val logger = LoggerFactory.getLogger("FileWatchPlugin")
 
-fun Application.configureFileWatch(taskService: TaskService, tasksDirectory: String) {
+fun Application.configureFileWatch(taskService: TaskService, tasksDirectory: String): EventService {
     val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     val fileWatchService = FileWatchService(tasksDirectory, scope)
+    val eventService = EventService(fileWatchService, scope)
     
     // Start watching for file changes
     fileWatchService.start()
@@ -28,9 +30,12 @@ fun Application.configureFileWatch(taskService: TaskService, tasksDirectory: Str
     
     // Clean up on application shutdown
     environment.monitor.subscribe(ApplicationStopping) {
-        logger.info("Stopping FileWatchService")
+        logger.info("Stopping FileWatchService and EventService")
         invalidationJob.cancel()
+        eventService.close()
         fileWatchService.close()
         scope.cancel()
     }
+    
+    return eventService
 }

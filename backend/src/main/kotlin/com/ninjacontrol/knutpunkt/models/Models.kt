@@ -109,3 +109,34 @@ data class Error(
     val code: String? = null,
     val details: Map<String, String>? = null
 )
+
+@Serializable
+sealed class TaskEvent {
+    abstract val eventType: String
+    abstract val taskId: String
+    abstract val status: TaskStatus
+    
+    @Serializable
+    data class TaskCreated(
+        override val taskId: String,
+        override val status: TaskStatus
+    ) : TaskEvent() {
+        override val eventType: String = "task.created"
+    }
+    
+    @Serializable
+    data class TaskModified(
+        override val taskId: String,
+        override val status: TaskStatus
+    ) : TaskEvent() {
+        override val eventType: String = "task.modified"
+    }
+    
+    @Serializable
+    data class TaskDeleted(
+        override val taskId: String,
+        override val status: TaskStatus
+    ) : TaskEvent() {
+        override val eventType: String = "task.deleted"
+    }
+}
