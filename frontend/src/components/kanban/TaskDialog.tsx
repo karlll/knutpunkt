@@ -32,7 +32,21 @@ interface TaskDialogProps {
 
 const DEFAULT_FORM_DATA = {
   title: 'New Task',
-  description: '## Description\n\nEmpty',
+  description: `# [Short descriptive title]
+
+## Overview
+
+[A brief overview]
+
+## Requirements
+
+- [requirement 1]
+- [requirement 2]
+
+## Acceptance Criteria
+
+- [ ] [criteria 1]
+- [ ] [criteria 2]`,
   status: 'planned' as TaskStatus,
   priority: 'medium' as TaskPriority,
   assignees: [] as string[],
