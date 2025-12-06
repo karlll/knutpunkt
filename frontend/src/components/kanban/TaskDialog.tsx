@@ -20,7 +20,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
-import { X } from 'lucide-react'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { ChevronDown, X } from 'lucide-react'
 import { api, type Task, type TaskStatus, type TaskPriority } from '@/lib/api'
 
 interface TaskDialogProps {
@@ -75,6 +76,7 @@ export function TaskDialog({ mode, task, open, onOpenChange, enableVimMode = fal
   const [formData, setFormData] = useState(getInitialFormData())
   const [newAssignee, setNewAssignee] = useState('')
   const [newCategory, setNewCategory] = useState('')
+  const [isMetadataOpen, setIsMetadataOpen] = useState(false)
 
   // Reset form data when dialog opens or mode/task changes
   useEffect(() => {
@@ -218,8 +220,27 @@ export function TaskDialog({ mode, task, open, onOpenChange, enableVimMode = fal
             />
           </div>
 
-          {/* Status and Priority */}
-          <div className="grid grid-cols-2 gap-4">
+          {/* Collapsible Metadata Section */}
+          <Collapsible open={isMetadataOpen} onOpenChange={setIsMetadataOpen}>
+            <CollapsibleTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                className="flex w-full items-center justify-between p-2 hover:bg-accent"
+              >
+                <span className="text-sm font-medium">
+                  Task Details (Status, Priority, Assignees, Categories)
+                </span>
+                <ChevronDown
+                  className={`h-4 w-4 transition-transform duration-200 ${
+                    isMetadataOpen ? 'rotate-180' : ''
+                  }`}
+                />
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-4 pt-4">
+              {/* Status and Priority */}
+              <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
               <Select
@@ -331,7 +352,9 @@ export function TaskDialog({ mode, task, open, onOpenChange, enableVimMode = fal
                 ))}
               </div>
             )}
-          </div>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
 
           <DialogFooter>
             <Button
