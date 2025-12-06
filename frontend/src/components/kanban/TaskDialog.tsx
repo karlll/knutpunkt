@@ -11,7 +11,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
+import { MarkdownEditor } from '@/components/ui/markdown-editor'
 import {
   Select,
   SelectContent,
@@ -28,6 +28,7 @@ interface TaskDialogProps {
   task?: Task
   open: boolean
   onOpenChange: (open: boolean) => void
+  enableVimMode?: boolean
 }
 
 const DEFAULT_FORM_DATA = {
@@ -53,7 +54,7 @@ const DEFAULT_FORM_DATA = {
   categories: [] as string[],
 }
 
-export function TaskDialog({ mode, task, open, onOpenChange }: TaskDialogProps) {
+export function TaskDialog({ mode, task, open, onOpenChange, enableVimMode = false }: TaskDialogProps) {
   const queryClient = useQueryClient()
 
   // Initialize form data based on mode
@@ -209,13 +210,11 @@ export function TaskDialog({ mode, task, open, onOpenChange }: TaskDialogProps) 
           {/* Description */}
           <div className="space-y-2">
             <Label htmlFor="description">Description</Label>
-            <Textarea
+            <MarkdownEditor
               id="description"
               value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              rows={8}
-              className="font-mono text-sm"
-              placeholder="## Description&#10;&#10;Task details in Markdown format..."
+              onChange={(value) => setFormData({ ...formData, description: value })}
+              vimMode={enableVimMode}
             />
           </div>
 
