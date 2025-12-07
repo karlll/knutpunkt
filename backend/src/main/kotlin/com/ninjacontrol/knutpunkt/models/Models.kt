@@ -110,33 +110,75 @@ data class Error(
     val details: Map<String, String>? = null
 )
 
+// HIGH-LEVEL: Task Events (Business Logic)
+// These events represent user actions and business operations
 @Serializable
 sealed class TaskEvent {
     abstract val eventType: String
     abstract val taskId: String
-    abstract val status: TaskStatus
+    abstract val timestamp: String
     
     @Serializable
     data class TaskCreated(
         override val taskId: String,
-        override val status: TaskStatus
+        override val timestamp: String,
+        val task: Task
     ) : TaskEvent() {
         override val eventType: String = "task.created"
     }
     
     @Serializable
-    data class TaskModified(
+    data class TaskUpdated(
         override val taskId: String,
-        override val status: TaskStatus
+        override val timestamp: String,
+        val task: Task,
+        val changes: TaskChanges
     ) : TaskEvent() {
-        override val eventType: String = "task.modified"
+        override val eventType: String = "task.updated"
     }
     
     @Serializable
     data class TaskDeleted(
         override val taskId: String,
-        override val status: TaskStatus
+        override val timestamp: String,
+        val title: String,
+        val status: TaskStatus
     ) : TaskEvent() {
         override val eventType: String = "task.deleted"
     }
+}
+
+@Serializable
+data class TaskChanges(
+    val titleChanged: Boolean = false,
+    val descriptionChanged: Boolean = false,
+    val statusChanged: Boolean = false,
+    val priorityChanged: Boolean = false,
+    val assigneesChanged: Boolean = false,
+    val categoriesChanged: Boolean = false,
+    val orderChanged: Boolean = false
+)
+
+// LOW-LEVEL: File Events (Infrastructure)
+// These events represent filesystem changes for cache invalidation
+sealed class FileEvent {
+    abstract val path: String
+    abstract val timestamp: Long
+    
+    data class FileCreated(
+        override val path: String,
+        override val timestamp: Long,
+        val directory: String
+    ) : FileEvent()
+    
+    data class FileModified(
+        override val path: String,
+        override val timestamp: Long
+    ) : FileEvent()
+    
+    data class FileDeleted(
+        override val path: String,
+        override val timestamp: Long,
+        val directory: String
+    ) : FileEvent()
 }

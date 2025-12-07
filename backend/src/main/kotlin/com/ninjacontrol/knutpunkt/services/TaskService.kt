@@ -284,7 +284,11 @@ class TaskService(
         )
         
         // Emit event AFTER successful creation
-        emitEvent(TaskEvent.TaskCreated(taskId, status))
+        emitEvent(TaskEvent.TaskCreated(
+            taskId = taskId,
+            timestamp = now,
+            task = createdTask
+        ))
         
         return createdTask
     }
@@ -364,8 +368,24 @@ class TaskService(
             order = order
         )
         
+        // Calculate what changed
+        val changes = com.ninjacontrol.knutpunkt.models.TaskChanges(
+            titleChanged = titleChanged,
+            descriptionChanged = true, // We don't track old description, assume changed
+            statusChanged = statusChanged,
+            priorityChanged = taskUpdate.priority != null,
+            assigneesChanged = taskUpdate.assignees != null,
+            categoriesChanged = taskUpdate.categories != null,
+            orderChanged = taskUpdate.order != null
+        )
+        
         // Emit event AFTER successful update
-        emitEvent(TaskEvent.TaskModified(id, newStatus))
+        emitEvent(TaskEvent.TaskUpdated(
+            taskId = id,
+            timestamp = now,
+            task = updatedTask,
+            changes = changes
+        ))
         
         return updatedTask
     }
@@ -403,7 +423,16 @@ class TaskService(
         val updatedTask = taskFromFile(newFile, newStatus)
         
         // Emit event AFTER successful status change
-        emitEvent(TaskEvent.TaskModified(id, newStatus))
+        val changes = com.ninjacontrol.knutpunkt.models.TaskChanges(
+            statusChanged = true
+        )
+        
+        emitEvent(TaskEvent.TaskUpdated(
+            taskId = id,
+            timestamp = now,
+            task = updatedTask,
+            changes = changes
+        ))
         
         return updatedTask
     }
@@ -426,7 +455,13 @@ class TaskService(
         invalidateCache()
         
         // Emit event AFTER successful deletion
-        emitEvent(TaskEvent.TaskDeleted(id, status))
+        val now = Instant.now().toString()
+        emitEvent(TaskEvent.TaskDeleted(
+            taskId = id,
+            timestamp = now,
+            title = frontMatter.title,
+            status = status
+        ))
     }
     
     fun updateTaskOrder(id: String, orderUpdate: TaskOrderUpdate): List<Task> {
@@ -550,9 +585,23 @@ class TaskService(
         // Invalidate cache after modification
         invalidateCache()
         
-        // Emit event if status changed (this was a move between columns)
+        // Emit event ONLY for the task that was actually moved (if status changed)
         if (statusChanged) {
-            emitEvent(TaskEvent.TaskModified(id, targetStatus))
+            // Find the moved task in updatedTasks
+            val movedTask = updatedTasks.find { it.id == id }
+            if (movedTask != null) {
+                val changes = com.ninjacontrol.knutpunkt.models.TaskChanges(
+                    statusChanged = true,
+                    orderChanged = true
+                )
+                
+                emitEvent(TaskEvent.TaskUpdated(
+                    taskId = id,
+                    timestamp = now,
+                    task = movedTask,
+                    changes = changes
+                ))
+            }
         }
         
         return updatedTasks

@@ -3,13 +3,13 @@ id: "bbae422c-56e9-42ed-ae4d-ca1fe2dca57d"
 number: 23
 title: "Task archive"
 createdAt: "2025-12-06T19:56:46.601714Z"
-updatedAt: "2025-12-07T16:18:52.363316Z"
+updatedAt: "2025-12-07T20:24:05.247615Z"
 assignees:
 - "Claude Code"
 categories:
 - "frontend"
 priority: "medium"
-order: 1
+order: 2
 ---
 
 # An archive for finished tasks

@@ -1,6 +1,6 @@
 package com.ninjacontrol.knutpunkt.routes
 
-import com.ninjacontrol.knutpunkt.services.EventService
+import com.ninjacontrol.knutpunkt.services.TaskEventService
 import io.ktor.server.routing.*
 import io.ktor.server.sse.*
 import kotlinx.coroutines.flow.catch
@@ -10,28 +10,28 @@ import org.slf4j.LoggerFactory
 
 private val logger = LoggerFactory.getLogger("EventRoutes")
 
-fun Route.eventRoutes(eventService: EventService) {
+fun Route.taskEventRoutes(taskEventService: TaskEventService) {
     sse("/events") {
-        logger.info("SSE client connected")
+        logger.info("SSE client connected to task events")
         
         try {
-            eventService.events
+            taskEventService.events
                 .catch { e ->
-                    logger.error("Error in SSE event stream: ${e.message}", e)
+                    logger.error("Error in SSE task event stream: ${e.message}", e)
                 }
                 .collect { taskEvent ->
                     val eventData = Json.encodeToString(taskEvent)
                     send(
                         data = eventData,
                         event = taskEvent.eventType,
-                        id = System.currentTimeMillis().toString()
+                        id = taskEvent.timestamp
                     )
                     logger.debug("Sent SSE event: ${taskEvent.eventType} for task ${taskEvent.taskId}")
                 }
         } catch (e: Exception) {
             logger.error("SSE connection error: ${e.message}", e)
         } finally {
-            logger.info("SSE client disconnected")
+            logger.info("SSE client disconnected from task events")
         }
     }
 }

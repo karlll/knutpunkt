@@ -3,7 +3,7 @@ id: "2c71bef5-c99e-4d62-b5c1-85f0b8f80d3f"
 number: 7
 title: "Test the Kanban board"
 createdAt: "2025-12-04T19:29:56.126076Z"
-updatedAt: "2025-12-05T22:15:24.097148Z"
+updatedAt: "2025-12-07T20:24:05.247615Z"
 assignees:
 - "GitHub Copilot"
 categories:
@@ -11,7 +11,7 @@ categories:
 - "mcp-server"
 - "integration"
 priority: "high"
-order: 2
+order: 4
 ---
 
 ## Overview

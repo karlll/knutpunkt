@@ -33,7 +33,7 @@ fun Application.module() {
     configureSSE()
     configureCORS()
     configureStatusPages()
-    val eventService = configureFileWatch(taskService, tasksDirectory)  // Initialize file watching and events
-    configureRouting(taskService, eventService)  // API routes first
+    val eventServices = configureFileWatch(taskService, tasksDirectory)  // Initialize file watching and events
+    configureRouting(taskService, eventServices)  // API routes first
     configureStaticContent()  // Then static/SPA fallback
 }
