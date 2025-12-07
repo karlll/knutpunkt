@@ -46,6 +46,8 @@ class FileEventService(
         collectJob = scope.launch {
             fileWatchService.events.collect { fileChange ->
                 try {
+                    logger.debug("Processing FileChangeEvent: ${fileChange::class.simpleName} - ${fileChange.file.name}")
+                    
                     val fileEvent = when (fileChange) {
                         is FileChangeEvent.Created -> FileEvent.FileCreated(
                             path = fileChange.file.absolutePath,
@@ -64,7 +66,7 @@ class FileEventService(
                     }
                     
                     _events.emit(fileEvent)
-                    logger.debug("File event: ${fileEvent::class.simpleName} - ${fileChange.file.name}")
+                    logger.debug("Emitted FileEvent: ${fileEvent::class.simpleName} - ${fileChange.file.name}")
                 } catch (e: Exception) {
                     logger.error("Error processing file event: ${e.message}", e)
                 }

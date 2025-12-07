@@ -3,7 +3,7 @@ id: "7447476b-a3a3-477c-b159-c9f08b9a9b1a"
 number: 8
 title: "Compacting task cards"
 createdAt: "2025-12-04T20:08:58.215380Z"
-updatedAt: "2025-12-07T20:24:07.775343Z"
+updatedAt: "2025-12-07T21:14:15.274034Z"
 assignees:
 - "Claude Code"
 categories:

@@ -3,13 +3,13 @@ id: "6764712f-6107-4f10-b56c-0cbe6be71c36"
 number: 21
 title: "Fix: invalid change event emitted"
 createdAt: "2025-12-05T22:26:57.712799Z"
-updatedAt: "2025-12-07T20:24:07.775343Z"
+updatedAt: "2025-12-07T21:14:13.404153Z"
 assignees: []
 categories:
 - "bug"
 - "backend"
 priority: "high"
-order: 6
+order: 4
 ---
 
 # Invalid SSE emitted when moving card between columns

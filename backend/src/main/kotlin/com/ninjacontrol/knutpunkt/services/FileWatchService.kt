@@ -2,9 +2,10 @@ package com.ninjacontrol.knutpunkt.services
 
 import com.ninjacontrol.knutpunkt.models.TaskStatus
 import kotlinx.coroutines.*
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import org.slf4j.LoggerFactory
 import java.io.File
 import java.nio.file.*
@@ -26,10 +27,16 @@ class FileWatchService(
     private val logger = LoggerFactory.getLogger(FileWatchService::class.java)
     private val watchService: WatchService = FileSystems.getDefault().newWatchService()
     private val watchKeys = ConcurrentHashMap<WatchKey, Pair<Path, TaskStatus>>()
-    private val eventChannel = Channel<FileChangeEvent>(Channel.BUFFERED)
     private var watchJob: Job? = null
     
-    val events: Flow<FileChangeEvent> = eventChannel.receiveAsFlow()
+    // Use SharedFlow instead of Channel so multiple collectors can receive events
+    private val _events = MutableSharedFlow<FileChangeEvent>(
+        replay = 0,
+        extraBufferCapacity = 100,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST
+    )
+    
+    val events: SharedFlow<FileChangeEvent> = _events.asSharedFlow()
     
     init {
         registerDirectories()
@@ -136,7 +143,7 @@ class FileWatchService(
             }
             
             changeEvent?.let {
-                eventChannel.send(it)
+                _events.emit(it)
             }
         }
         
@@ -152,7 +159,7 @@ class FileWatchService(
         watchJob?.cancel()
         watchJob = null
         
-        eventChannel.close()
+        // SharedFlow doesn't need to be closed
     }
     
     fun close() {
@@ -170,7 +177,7 @@ class FileWatchService(
         watchKeys.keys.forEach { it.cancel() }
         watchKeys.clear()
         
-        eventChannel.close()
+        // SharedFlow doesn't need to be closed
         
         logger.info("FileWatchService closed")
     }

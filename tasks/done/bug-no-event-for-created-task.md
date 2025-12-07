@@ -3,13 +3,13 @@ id: "faa9b0e6-9a3f-423e-a03f-1f034a5e267a"
 number: 22
 title: "Bug: No event for created task "
 createdAt: "2025-12-05T22:31:38.586116Z"
-updatedAt: "2025-12-07T20:24:07.775343Z"
+updatedAt: "2025-12-07T21:14:13.404153Z"
 assignees: []
 categories:
 - "bug"
 - "backend"
 priority: "high"
-order: 5
+order: 3
 ---
 
 # SSE is missing when a new card is created.

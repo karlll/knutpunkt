@@ -3,7 +3,7 @@ id: "02930fde-9cae-4571-b218-fbf4a1e85b5f"
 number: 9
 title: "SSE for task updates"
 createdAt: "2025-12-04T20:29:54.595463Z"
-updatedAt: "2025-12-07T20:24:07.775343Z"
+updatedAt: "2025-12-07T21:14:15.274034Z"
 assignees:
 - "GitHub Copilot"
 categories:

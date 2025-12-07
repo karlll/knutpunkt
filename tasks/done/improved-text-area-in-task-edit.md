@@ -3,13 +3,13 @@ id: "f6ad956b-f243-40c1-9876-9018a5503031"
 number: 10
 title: "Improved text area in task edit"
 createdAt: "2025-12-04T20:43:51.524292Z"
-updatedAt: "2025-12-07T20:24:05.247615Z"
+updatedAt: "2025-12-07T21:02:18.185764Z"
 assignees:
 - "Claude Code"
 categories:
 - "frontend"
 priority: "medium"
-order: 3
+order: 2
 ---
 
 # VI and Markdown syntax HL in text edit control
