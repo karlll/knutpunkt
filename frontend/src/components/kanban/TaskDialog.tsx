@@ -30,6 +30,7 @@ interface TaskDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   enableVimMode?: boolean
+  readOnly?: boolean
 }
 
 const DEFAULT_FORM_DATA = {
@@ -55,7 +56,7 @@ const DEFAULT_FORM_DATA = {
   categories: [] as string[],
 }
 
-export function TaskDialog({ mode, task, open, onOpenChange, enableVimMode = false }: TaskDialogProps) {
+export function TaskDialog({ mode, task, open, onOpenChange, enableVimMode = false, readOnly = false }: TaskDialogProps) {
   const queryClient = useQueryClient()
 
   // Initialize form data based on mode
@@ -180,10 +181,12 @@ export function TaskDialog({ mode, task, open, onOpenChange, enableVimMode = fal
   }
 
   const isPending = mode === 'create' ? createTaskMutation.isPending : updateTaskMutation.isPending
-  const dialogTitle = mode === 'create' ? 'Create New Task' : 'Edit Task'
-  const dialogDescription = mode === 'create'
-    ? 'Fill in the details for your new task.'
-    : 'Make changes to the task details below.'
+  const dialogTitle = readOnly ? 'View Task' : (mode === 'create' ? 'Create New Task' : 'Edit Task')
+  const dialogDescription = readOnly
+    ? 'Viewing task details.'
+    : (mode === 'create'
+      ? 'Fill in the details for your new task.'
+      : 'Make changes to the task details below.')
   const submitButtonText = mode === 'create' ? 'Create Task' : 'Save Changes'
   const pendingButtonText = mode === 'create' ? 'Creating...' : 'Saving...'
 
@@ -206,6 +209,7 @@ export function TaskDialog({ mode, task, open, onOpenChange, enableVimMode = fal
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               required
+              disabled={readOnly}
             />
           </div>
 
@@ -217,6 +221,7 @@ export function TaskDialog({ mode, task, open, onOpenChange, enableVimMode = fal
               value={formData.description}
               onChange={(value) => setFormData({ ...formData, description: value })}
               vimMode={enableVimMode}
+              readOnly={readOnly}
             />
           </div>
 
@@ -248,6 +253,7 @@ export function TaskDialog({ mode, task, open, onOpenChange, enableVimMode = fal
                 onValueChange={(value: string) =>
                   setFormData({ ...formData, status: value as TaskStatus })
                 }
+                disabled={readOnly}
               >
                 <SelectTrigger id="status">
                   <SelectValue />
@@ -267,6 +273,7 @@ export function TaskDialog({ mode, task, open, onOpenChange, enableVimMode = fal
                 onValueChange={(value: string) =>
                   setFormData({ ...formData, priority: value as TaskPriority })
                 }
+                disabled={readOnly}
               >
                 <SelectTrigger id="priority">
                   <SelectValue />
@@ -283,34 +290,38 @@ export function TaskDialog({ mode, task, open, onOpenChange, enableVimMode = fal
           {/* Assignees */}
           <div className="space-y-2">
             <Label>Assignees</Label>
-            <div className="flex gap-2">
-              <Input
-                placeholder="Add assignee..."
-                value={newAssignee}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewAssignee(e.target.value)}
-                onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault()
-                    addAssignee()
-                  }
-                }}
-              />
-              <Button type="button" variant="secondary" onClick={addAssignee}>
-                Add
-              </Button>
-            </div>
+            {!readOnly && (
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Add assignee..."
+                  value={newAssignee}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewAssignee(e.target.value)}
+                  onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      addAssignee()
+                    }
+                  }}
+                />
+                <Button type="button" variant="secondary" onClick={addAssignee}>
+                  Add
+                </Button>
+              </div>
+            )}
             {formData.assignees.length > 0 && (
               <div className="flex flex-wrap gap-2 mt-2">
                 {formData.assignees.map((assignee) => (
                   <Badge key={assignee} variant="secondary" className="gap-1">
                     {assignee}
-                    <button
-                      type="button"
-                      onClick={() => removeAssignee(assignee)}
-                      className="ml-1 hover:text-destructive"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
+                    {!readOnly && (
+                      <button
+                        type="button"
+                        onClick={() => removeAssignee(assignee)}
+                        className="ml-1 hover:text-destructive"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    )}
                   </Badge>
                 ))}
               </div>
@@ -320,34 +331,38 @@ export function TaskDialog({ mode, task, open, onOpenChange, enableVimMode = fal
           {/* Categories */}
           <div className="space-y-2">
             <Label>Categories</Label>
-            <div className="flex gap-2">
-              <Input
-                placeholder="Add category..."
-                value={newCategory}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewCategory(e.target.value)}
-                onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault()
-                    addCategory()
-                  }
-                }}
-              />
-              <Button type="button" variant="secondary" onClick={addCategory}>
-                Add
-              </Button>
-            </div>
+            {!readOnly && (
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Add category..."
+                  value={newCategory}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewCategory(e.target.value)}
+                  onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      addCategory()
+                    }
+                  }}
+                />
+                <Button type="button" variant="secondary" onClick={addCategory}>
+                  Add
+                </Button>
+              </div>
+            )}
             {formData.categories.length > 0 && (
               <div className="flex flex-wrap gap-2 mt-2">
                 {formData.categories.map((category) => (
                   <Badge key={category} variant="outline" className="gap-1">
                     {category}
-                    <button
-                      type="button"
-                      onClick={() => removeCategory(category)}
-                      className="ml-1 hover:text-destructive"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
+                    {!readOnly && (
+                      <button
+                        type="button"
+                        onClick={() => removeCategory(category)}
+                        className="ml-1 hover:text-destructive"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    )}
                   </Badge>
                 ))}
               </div>
@@ -357,16 +372,27 @@ export function TaskDialog({ mode, task, open, onOpenChange, enableVimMode = fal
           </Collapsible>
 
           <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isPending}>
-              {isPending ? pendingButtonText : submitButtonText}
-            </Button>
+            {readOnly ? (
+              <Button
+                type="button"
+                onClick={() => onOpenChange(false)}
+              >
+                Close
+              </Button>
+            ) : (
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => onOpenChange(false)}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isPending}>
+                  {isPending ? pendingButtonText : submitButtonText}
+                </Button>
+              </>
+            )}
           </DialogFooter>
         </form>
       </DialogContent>

@@ -219,6 +219,7 @@ export function KanbanBoard() {
                 status={column.status}
                 title={column.title}
                 tasks={tasksByStatus[column.status]}
+                maxVisibleTasks={column.status === 'done' ? 5 : undefined}
               />
             ))}
           </div>

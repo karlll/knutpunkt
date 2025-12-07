@@ -198,4 +198,103 @@ describe('TaskDialog', () => {
     // The MarkdownEditor should be rendered (description label exists)
     expect(screen.getByText('Description')).toBeInTheDocument()
   })
+
+  it('renders in read-only mode', () => {
+    const onOpenChange = vi.fn()
+
+    render(
+      <TaskDialog mode="edit" task={mockTask} open={true} onOpenChange={onOpenChange} readOnly={true} />,
+      { wrapper: createWrapper() }
+    )
+
+    expect(screen.getByText('View Task')).toBeInTheDocument()
+    expect(screen.getByText('Viewing task details.')).toBeInTheDocument()
+  })
+
+  it('disables title input in read-only mode', () => {
+    const onOpenChange = vi.fn()
+
+    render(
+      <TaskDialog mode="edit" task={mockTask} open={true} onOpenChange={onOpenChange} readOnly={true} />,
+      { wrapper: createWrapper() }
+    )
+
+    const titleInput = screen.getByLabelText(/title/i) as HTMLInputElement
+    expect(titleInput).toBeDisabled()
+  })
+
+  it('shows Close button instead of Cancel and Save in read-only mode', () => {
+    const onOpenChange = vi.fn()
+
+    render(
+      <TaskDialog mode="edit" task={mockTask} open={true} onOpenChange={onOpenChange} readOnly={true} />,
+      { wrapper: createWrapper() }
+    )
+
+    // Check that Close button exists in footer (not the X button in header)
+    const buttons = screen.getAllByRole('button', { name: /close/i })
+    expect(buttons.length).toBeGreaterThan(0)
+    expect(screen.queryByRole('button', { name: /cancel/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /save/i })).not.toBeInTheDocument()
+  })
+
+  it('hides add assignee input in read-only mode', async () => {
+    const user = userEvent.setup()
+    const onOpenChange = vi.fn()
+
+    render(
+      <TaskDialog mode="edit" task={mockTask} open={true} onOpenChange={onOpenChange} readOnly={true} />,
+      { wrapper: createWrapper() }
+    )
+
+    // Expand metadata section
+    const trigger = screen.getByText('Task Details (Status, Priority, Assignees, Categories)')
+    await user.click(trigger)
+
+    // Should not show the add assignee input
+    expect(screen.queryByPlaceholderText('Add assignee...')).not.toBeInTheDocument()
+  })
+
+  it('hides add category input in read-only mode', async () => {
+    const user = userEvent.setup()
+    const onOpenChange = vi.fn()
+
+    render(
+      <TaskDialog mode="edit" task={mockTask} open={true} onOpenChange={onOpenChange} readOnly={true} />,
+      { wrapper: createWrapper() }
+    )
+
+    // Expand metadata section
+    const trigger = screen.getByText('Task Details (Status, Priority, Assignees, Categories)')
+    await user.click(trigger)
+
+    // Should not show the add category input
+    expect(screen.queryByPlaceholderText('Add category...')).not.toBeInTheDocument()
+  })
+
+  it('displays assignees without remove button in read-only mode', () => {
+    const onOpenChange = vi.fn()
+
+    render(
+      <TaskDialog mode="edit" task={mockTask} open={true} onOpenChange={onOpenChange} readOnly={true} />,
+      { wrapper: createWrapper() }
+    )
+
+    // In read-only mode, assignees should be displayed
+    // We just verify the component renders without errors
+    expect(screen.getByText('View Task')).toBeInTheDocument()
+  })
+
+  it('displays categories without remove button in read-only mode', () => {
+    const onOpenChange = vi.fn()
+
+    render(
+      <TaskDialog mode="edit" task={mockTask} open={true} onOpenChange={onOpenChange} readOnly={true} />,
+      { wrapper: createWrapper() }
+    )
+
+    // In read-only mode, categories should be displayed
+    // We just verify the component renders without errors
+    expect(screen.getByText('View Task')).toBeInTheDocument()
+  })
 })

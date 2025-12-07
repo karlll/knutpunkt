@@ -9,6 +9,7 @@ interface MarkdownEditorProps {
   value: string
   onChange: (value: string) => void
   vimMode?: boolean
+  readOnly?: boolean
   className?: string
   id?: string
 }
@@ -17,6 +18,7 @@ export function MarkdownEditor({
   value,
   onChange,
   vimMode = false,
+  readOnly = false,
   className,
   id,
 }: MarkdownEditorProps) {
@@ -51,6 +53,11 @@ export function MarkdownEditor({
       extensions.push(vim())
     }
 
+    // Add read-only mode if enabled
+    if (readOnly) {
+      extensions.push(EditorView.editable.of(false))
+    }
+
     // Create editor view
     const view = new EditorView({
       doc: value,
@@ -65,7 +72,7 @@ export function MarkdownEditor({
       view.destroy()
       viewRef.current = null
     }
-  }, [vimMode]) // Only recreate editor when vimMode changes
+  }, [vimMode, readOnly]) // Only recreate editor when vimMode or readOnly changes
 
   // Update editor content when value prop changes externally (but not from user typing)
   useEffect(() => {
@@ -94,6 +101,7 @@ export function MarkdownEditor({
         '[&_.cm-scroller]:overflow-auto',
         '[&_.cm-scroller]:font-mono',
         '[&_.cm-scroller]:text-sm',
+        readOnly && '[&_.cm-editor]:bg-muted/50 [&_.cm-editor]:cursor-not-allowed',
         className
       )}
       ref={editorRef}

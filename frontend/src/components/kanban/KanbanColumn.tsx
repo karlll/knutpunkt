@@ -1,14 +1,19 @@
+import { useState } from 'react'
 import { useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import { TaskCard } from './TaskCard'
+import { ArchiveDialog } from './ArchiveDialog'
 import type { Task, TaskStatus } from '@/lib/api'
 import { cn } from '@/lib/utils'
+import { Archive } from 'lucide-react'
 
 interface KanbanColumnProps {
   status: TaskStatus
   tasks: Task[]
   title: string
+  maxVisibleTasks?: number
 }
 
 const statusColors = {
@@ -17,14 +22,23 @@ const statusColors = {
   done: 'bg-green-100 border-green-200',
 }
 
-export function KanbanColumn({ status, tasks, title }: KanbanColumnProps) {
+export function KanbanColumn({ status, tasks, title, maxVisibleTasks }: KanbanColumnProps) {
+  const [archiveDialogOpen, setArchiveDialogOpen] = useState(false)
   const { setNodeRef, isOver } = useDroppable({
     id: status,
   })
 
-  const taskIds = tasks.map((task) => task.id)
+  // Limit visible tasks if maxVisibleTasks is set
+  const visibleTasks = maxVisibleTasks ? tasks.slice(0, maxVisibleTasks) : tasks
+  const archivedTasks = maxVisibleTasks && tasks.length > maxVisibleTasks
+    ? tasks.slice(maxVisibleTasks)
+    : []
+  const hasArchivedTasks = archivedTasks.length > 0
+
+  const taskIds = visibleTasks.map((task) => task.id)
 
   return (
+    <>
     <div className="flex flex-col h-full min-w-[300px] max-w-[350px]">
       <Card className={cn('flex flex-col h-full', statusColors[status])}>
         <CardHeader>
@@ -33,16 +47,16 @@ export function KanbanColumn({ status, tasks, title }: KanbanColumnProps) {
             <span className="text-muted-foreground">({tasks.length})</span>
           </CardTitle>
         </CardHeader>
-        <CardContent className="flex-1 overflow-hidden">
+        <CardContent className="flex-1 overflow-hidden flex flex-col">
           <div
             ref={setNodeRef}
             className={cn(
-              'space-y-3 overflow-y-auto h-full p-1 rounded-md transition-colors',
+              'space-y-3 overflow-y-auto flex-1 p-1 rounded-md transition-colors',
               isOver && 'bg-primary/10'
             )}
           >
             <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
-              {tasks.map((task) => (
+              {visibleTasks.map((task) => (
                 <TaskCard key={task.id} task={task} compact={status === 'done'} />
               ))}
             </SortableContext>
@@ -52,8 +66,31 @@ export function KanbanColumn({ status, tasks, title }: KanbanColumnProps) {
               </div>
             )}
           </div>
+
+          {/* Archive button */}
+          {hasArchivedTasks && (
+            <div className="pt-3 border-t mt-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start text-muted-foreground hover:text-foreground"
+                onClick={() => setArchiveDialogOpen(true)}
+              >
+                <Archive className="h-4 w-4 mr-2" />
+                View {archivedTasks.length} archived task{archivedTasks.length !== 1 ? 's' : ''}
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
+
+    {/* Archive Dialog */}
+    <ArchiveDialog
+      tasks={archivedTasks}
+      open={archiveDialogOpen}
+      onOpenChange={setArchiveDialogOpen}
+    />
+    </>
   )
 }

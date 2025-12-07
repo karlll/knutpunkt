@@ -75,4 +75,34 @@ describe('MarkdownEditor', () => {
     const editor = container.querySelector('.cm-editor')
     expect(editor).toBeInTheDocument()
   })
+
+  it('renders in read-only mode', () => {
+    const onChange = vi.fn()
+    const { container } = render(
+      <MarkdownEditor value="# Test" onChange={onChange} readOnly={true} />
+    )
+    const editor = container.querySelector('.cm-editor')
+    expect(editor).toBeInTheDocument()
+  })
+
+  it('applies read-only styling', () => {
+    const onChange = vi.fn()
+    const { container } = render(
+      <MarkdownEditor value="# Test" onChange={onChange} readOnly={true} />
+    )
+    const wrapper = container.firstChild as HTMLElement
+    // Should have read-only styling classes
+    expect(wrapper.className).toContain('bg-muted/50')
+    expect(wrapper.className).toContain('cursor-not-allowed')
+  })
+
+  it('does not apply read-only styling when readOnly is false', () => {
+    const onChange = vi.fn()
+    const { container } = render(
+      <MarkdownEditor value="# Test" onChange={onChange} readOnly={false} />
+    )
+    const wrapper = container.firstChild as HTMLElement
+    expect(wrapper.className).not.toContain('bg-muted/50')
+    expect(wrapper.className).not.toContain('cursor-not-allowed')
+  })
 })
