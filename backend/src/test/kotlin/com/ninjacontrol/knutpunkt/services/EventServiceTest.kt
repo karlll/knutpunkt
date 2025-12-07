@@ -31,7 +31,7 @@ class EventServiceTest {
         
         testScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
         fileWatchService = FileWatchService(tempTasksDir.absolutePath, testScope)
-        eventService = EventService(fileWatchService, testScope, moveDetectionWindowMs = 500)
+        eventService = EventService(fileWatchService, tempTasksDir.absolutePath, testScope, moveDetectionWindowMs = 500)
         
         fileWatchService.start()
     }

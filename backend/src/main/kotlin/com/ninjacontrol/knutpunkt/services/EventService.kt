@@ -6,13 +6,15 @@ import com.ninjacontrol.knutpunkt.utils.MarkdownParser
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import org.slf4j.LoggerFactory
+import java.io.File
 import java.util.concurrent.ConcurrentHashMap
 
 class EventService(
     private val fileWatchService: FileWatchService,
+    private val tasksDirectory: String,
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.Default + SupervisorJob()),
     private val moveDetectionWindowMs: Long = 2000 // 2 second window for detecting moves
-) {
+) : TaskEventEmitter {
     private val logger = LoggerFactory.getLogger(EventService::class.java)
     
     // Cache: filename -> task ID mapping
@@ -20,6 +22,10 @@ class EventService(
     
     // Move detection: track recent deletes
     private val recentDeletes = ConcurrentHashMap<String, PendingDelete>()
+    
+    // Track recently emitted events to avoid duplicates from filesystem
+    private val recentlyEmittedEvents = ConcurrentHashMap<String, Long>()
+    private val recentEventWindowMs = 5000L // 5 second window
     
     private data class PendingDelete(
         val taskId: String,
@@ -39,8 +45,55 @@ class EventService(
     private var cleanupJob: Job? = null
     
     init {
+        bootstrapCache()
         start()
         startCleanupTask()
+    }
+    
+    /**
+     * Bootstrap the cache by scanning all existing task files.
+     * This ensures the cache is populated even after server restart.
+     */
+    private fun bootstrapCache() {
+        try {
+            val baseDir = File(tasksDirectory)
+            if (!baseDir.exists()) {
+                logger.warn("Tasks directory does not exist: $tasksDirectory")
+                return
+            }
+            
+            var count = 0
+            TaskStatus.values().forEach { status ->
+                val dir = File(baseDir, status.toString().lowercase())
+                if (!dir.exists()) return@forEach
+                
+                dir.listFiles { f -> f.name.endsWith(".md") }?.forEach { file ->
+                    try {
+                        val (frontMatter, _) = MarkdownParser.parseTaskFile(file)
+                        filenameToIdCache[file.name] = frontMatter.id
+                        count++
+                    } catch (e: Exception) {
+                        logger.warn("Failed to parse ${file.name} during cache bootstrap: ${e.message}")
+                    }
+                }
+            }
+            logger.info("Cache bootstrapped with $count tasks")
+        } catch (e: Exception) {
+            logger.error("Error bootstrapping cache: ${e.message}", e)
+        }
+    }
+    
+    /**
+     * Emit an event directly from TaskService.
+     * This is the primary event source for API operations.
+     */
+    override suspend fun emit(event: TaskEvent) {
+        // Mark as recently emitted to avoid duplicate from filesystem
+        val eventKey = "${event.eventType}:${event.taskId}"
+        recentlyEmittedEvents[eventKey] = System.currentTimeMillis()
+        
+        _events.emit(event)
+        logger.debug("Emitted task event from TaskService: ${event.eventType} for task ${event.taskId}")
     }
     
     private fun start() {
@@ -61,8 +114,15 @@ class EventService(
             while (isActive) {
                 delay(moveDetectionWindowMs)
                 val now = System.currentTimeMillis()
+                
+                // Cleanup pending deletes
                 recentDeletes.entries.removeIf { (_, delete) ->
                     now - delete.timestamp > moveDetectionWindowMs
+                }
+                
+                // Cleanup recent events tracking
+                recentlyEmittedEvents.entries.removeIf { (_, timestamp) ->
+                    now - timestamp > recentEventWindowMs
                 }
             }
         }
@@ -88,16 +148,30 @@ class EventService(
         // Check if this is a move operation (delete + create)
         val pendingDelete = recentDeletes.remove(filename)
         
-        if (pendingDelete != null && pendingDelete.taskId == taskId) {
+        val eventToEmit = if (pendingDelete != null && pendingDelete.taskId == taskId) {
             // This is a MOVE (status change)
             logger.debug("Detected move: $filename from ${pendingDelete.oldStatus} to ${event.status}")
-            _events.emit(TaskEvent.TaskModified(taskId, event.status))
-            logger.debug("Emitted task event: task.modified for task $taskId (status change: ${pendingDelete.oldStatus} -> ${event.status})")
+            TaskEvent.TaskModified(taskId, event.status)
         } else {
             // This is a genuine CREATE
-            _events.emit(TaskEvent.TaskCreated(taskId, event.status))
-            logger.debug("Emitted task event: task.created for task $taskId")
+            TaskEvent.TaskCreated(taskId, event.status)
         }
+        
+        // Check if we recently emitted this event from TaskService
+        val eventKey = "${eventToEmit.eventType}:${taskId}"
+        val recentTimestamp = recentlyEmittedEvents[eventKey]
+        val now = System.currentTimeMillis()
+        
+        if (recentTimestamp != null && (now - recentTimestamp) < recentEventWindowMs) {
+            logger.debug("Skipping duplicate filesystem event for $taskId (already emitted from TaskService)")
+            // Still update cache
+            filenameToIdCache[filename] = taskId
+            return
+        }
+        
+        // Emit the event (this is from external/manual file changes)
+        _events.emit(eventToEmit)
+        logger.debug("Emitted task event from filesystem: ${eventToEmit.eventType} for task $taskId")
         
         // Update cache
         filenameToIdCache[filename] = taskId
@@ -110,8 +184,19 @@ class EventService(
             return
         }
         
+        // Check if recently emitted from TaskService
+        val eventKey = "task.modified:${taskId}"
+        val recentTimestamp = recentlyEmittedEvents[eventKey]
+        val now = System.currentTimeMillis()
+        
+        if (recentTimestamp != null && (now - recentTimestamp) < recentEventWindowMs) {
+            logger.debug("Skipping duplicate filesystem modify event for $taskId")
+            filenameToIdCache[filename] = taskId
+            return
+        }
+        
         _events.emit(TaskEvent.TaskModified(taskId, event.status))
-        logger.debug("Emitted task event: task.modified for task $taskId")
+        logger.debug("Emitted task event from filesystem: task.modified for task $taskId")
         
         // Update cache
         filenameToIdCache[filename] = taskId
@@ -141,8 +226,19 @@ class EventService(
             
             // If still in pending deletes, it's a real delete (not a move)
             if (recentDeletes.remove(filename) != null) {
+                // Check if recently emitted from TaskService
+                val eventKey = "task.deleted:${taskId}"
+                val recentTimestamp = recentlyEmittedEvents[eventKey]
+                val now = System.currentTimeMillis()
+                
+                if (recentTimestamp != null && (now - recentTimestamp) < recentEventWindowMs) {
+                    logger.debug("Skipping duplicate filesystem delete event for $taskId")
+                    filenameToIdCache.remove(filename)
+                    return@launch
+                }
+                
                 _events.emit(TaskEvent.TaskDeleted(taskId, event.status))
-                logger.debug("Emitted task event: task.deleted for task $taskId")
+                logger.debug("Emitted task event from filesystem: task.deleted for task $taskId")
                 
                 // Remove from cache
                 filenameToIdCache.remove(filename)
@@ -150,7 +246,7 @@ class EventService(
         }
     }
     
-    private fun extractTaskId(file: java.io.File): String? {
+    private fun extractTaskId(file: File): String? {
         return try {
             if (!file.exists()) return null
             val (frontMatter, _) = MarkdownParser.parseTaskFile(file)
@@ -166,6 +262,7 @@ class EventService(
         cleanupJob?.cancel()
         filenameToIdCache.clear()
         recentDeletes.clear()
+        recentlyEmittedEvents.clear()
         logger.info("EventService closed")
     }
 }

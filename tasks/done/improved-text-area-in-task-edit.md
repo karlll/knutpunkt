@@ -3,8 +3,9 @@ id: "f6ad956b-f243-40c1-9876-9018a5503031"
 number: 10
 title: "Improved text area in task edit"
 createdAt: "2025-12-04T20:43:51.524292Z"
-updatedAt: "2025-12-04T20:58:27.698912Z"
-assignees: []
+updatedAt: "2025-12-06T16:28:42.915093Z"
+assignees:
+- "Claude Code"
 categories:
 - "frontend"
 priority: "medium"

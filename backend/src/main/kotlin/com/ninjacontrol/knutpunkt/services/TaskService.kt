@@ -7,6 +7,10 @@ import com.ninjacontrol.knutpunkt.plugins.TaskValidationException
 import com.ninjacontrol.knutpunkt.utils.MarkdownParser
 import com.ninjacontrol.knutpunkt.utils.SlugGenerator
 import com.ninjacontrol.knutpunkt.utils.TaskFrontMatter
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import org.slf4j.LoggerFactory
 import java.io.File
 import java.time.Instant
@@ -19,6 +23,10 @@ class TaskService(
     
     private val logger = LoggerFactory.getLogger(TaskService::class.java)
     private val stateService = StateService(tasksDirectory)
+    private val eventScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
+    
+    // Event emitter - set by Application during initialization
+    private var eventEmitter: TaskEventEmitter? = null
     
     // Simple cache: taskId -> Task
     private val taskCache = mutableMapOf<String, Task>()
@@ -112,6 +120,31 @@ class TaskService(
         synchronized(taskCache) {
             cacheValid = false
             logger.debug("Task cache invalidated")
+        }
+    }
+    
+    /**
+     * Set the event emitter for this TaskService.
+     * Must be called during application initialization.
+     */
+    fun setEventEmitter(emitter: TaskEventEmitter) {
+        this.eventEmitter = emitter
+        logger.debug("Event emitter configured")
+    }
+    
+    /**
+     * Emit a task event if emitter is configured.
+     * This is a non-blocking operation.
+     */
+    private fun emitEvent(event: TaskEvent) {
+        eventEmitter?.let { emitter ->
+            eventScope.launch {
+                try {
+                    emitter.emit(event)
+                } catch (e: Exception) {
+                    logger.error("Failed to emit event: ${e.message}", e)
+                }
+            }
         }
     }
     
@@ -235,8 +268,8 @@ class TaskService(
         // Invalidate cache after modification
         invalidateCache()
         
-        // Return the created task directly instead of re-parsing
-        return Task(
+        // Create the task object to return
+        val createdTask = Task(
             id = taskId,
             number = taskNumber,
             title = taskCreate.title,
@@ -249,6 +282,11 @@ class TaskService(
             priority = taskCreate.priority ?: TaskPriority.MEDIUM,
             order = order
         )
+        
+        // Emit event AFTER successful creation
+        emitEvent(TaskEvent.TaskCreated(taskId, status))
+        
+        return createdTask
     }
     
     fun updateTask(id: String, taskUpdate: TaskUpdate): Task {
@@ -311,8 +349,8 @@ class TaskService(
         // Invalidate cache after modification
         invalidateCache()
         
-        // Return the updated task directly
-        return Task(
+        // Create the updated task object
+        val updatedTask = Task(
             id = id,
             number = oldFrontMatter.number,
             title = taskUpdate.title,
@@ -325,6 +363,11 @@ class TaskService(
             priority = taskUpdate.priority ?: TaskPriority.MEDIUM,
             order = order
         )
+        
+        // Emit event AFTER successful update
+        emitEvent(TaskEvent.TaskModified(id, newStatus))
+        
+        return updatedTask
     }
     
     fun updateTaskStatus(id: String, statusUpdate: TaskStatusUpdate): Task {
@@ -357,7 +400,12 @@ class TaskService(
         // Invalidate cache after modification
         invalidateCache()
         
-        return taskFromFile(newFile, newStatus)
+        val updatedTask = taskFromFile(newFile, newStatus)
+        
+        // Emit event AFTER successful status change
+        emitEvent(TaskEvent.TaskModified(id, newStatus))
+        
+        return updatedTask
     }
     
     fun deleteTask(id: String) {
@@ -376,6 +424,9 @@ class TaskService(
         
         // Invalidate cache after modification
         invalidateCache()
+        
+        // Emit event AFTER successful deletion
+        emitEvent(TaskEvent.TaskDeleted(id, status))
     }
     
     fun updateTaskOrder(id: String, orderUpdate: TaskOrderUpdate): List<Task> {
@@ -498,6 +549,11 @@ class TaskService(
         
         // Invalidate cache after modification
         invalidateCache()
+        
+        // Emit event if status changed (this was a move between columns)
+        if (statusChanged) {
+            emitEvent(TaskEvent.TaskModified(id, targetStatus))
+        }
         
         return updatedTasks
     }

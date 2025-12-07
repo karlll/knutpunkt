@@ -3,13 +3,13 @@ id: "7447476b-a3a3-477c-b159-c9f08b9a9b1a"
 number: 8
 title: "Compacting task cards"
 createdAt: "2025-12-04T20:08:58.215380Z"
-updatedAt: "2025-12-05T21:26:51.279989Z"
+updatedAt: "2025-12-05T22:18:32.832448Z"
 assignees:
 - "Claude Code"
 categories:
 - "frontend"
 priority: "low"
-order: 1
+order: 3
 ---
 
 # Minimize/compact finished tasks

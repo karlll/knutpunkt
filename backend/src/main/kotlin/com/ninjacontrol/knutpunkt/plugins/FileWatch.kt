@@ -12,7 +12,10 @@ private val logger = LoggerFactory.getLogger("FileWatchPlugin")
 fun Application.configureFileWatch(taskService: TaskService, tasksDirectory: String): EventService {
     val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     val fileWatchService = FileWatchService(tasksDirectory, scope)
-    val eventService = EventService(fileWatchService, scope)
+    val eventService = EventService(fileWatchService, tasksDirectory, scope)
+    
+    // Set the event emitter in TaskService
+    taskService.setEventEmitter(eventService)
     
     // Start watching for file changes
     fileWatchService.start()
