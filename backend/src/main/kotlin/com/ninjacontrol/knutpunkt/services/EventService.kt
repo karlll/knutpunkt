@@ -145,6 +145,20 @@ class EventService(
             return
         }
         
+        // Check if TaskService recently emitted ANY event for this task
+        // We deduplicate by taskId, not by event type, because TaskService might emit
+        // task.modified while filesystem sees DELETE+CREATE (which looks like task.created)
+        val now = System.currentTimeMillis()
+        val hasRecentTaskServiceEvent = recentlyEmittedEvents.entries.any { (key, timestamp) ->
+            key.endsWith(":$taskId") && (now - timestamp) < recentEventWindowMs
+        }
+        
+        if (hasRecentTaskServiceEvent) {
+            logger.debug("Skipping filesystem CREATE event for $taskId (recently handled by TaskService)")
+            filenameToIdCache[filename] = taskId
+            return
+        }
+        
         // Check if this is a move operation (delete + create)
         val pendingDelete = recentDeletes.remove(filename)
         
@@ -155,18 +169,6 @@ class EventService(
         } else {
             // This is a genuine CREATE
             TaskEvent.TaskCreated(taskId, event.status)
-        }
-        
-        // Check if we recently emitted this event from TaskService
-        val eventKey = "${eventToEmit.eventType}:${taskId}"
-        val recentTimestamp = recentlyEmittedEvents[eventKey]
-        val now = System.currentTimeMillis()
-        
-        if (recentTimestamp != null && (now - recentTimestamp) < recentEventWindowMs) {
-            logger.debug("Skipping duplicate filesystem event for $taskId (already emitted from TaskService)")
-            // Still update cache
-            filenameToIdCache[filename] = taskId
-            return
         }
         
         // Emit the event (this is from external/manual file changes)
@@ -184,13 +186,14 @@ class EventService(
             return
         }
         
-        // Check if recently emitted from TaskService
-        val eventKey = "task.modified:${taskId}"
-        val recentTimestamp = recentlyEmittedEvents[eventKey]
+        // Check if TaskService recently emitted ANY event for this task
         val now = System.currentTimeMillis()
+        val hasRecentTaskServiceEvent = recentlyEmittedEvents.entries.any { (key, timestamp) ->
+            key.endsWith(":$taskId") && (now - timestamp) < recentEventWindowMs
+        }
         
-        if (recentTimestamp != null && (now - recentTimestamp) < recentEventWindowMs) {
-            logger.debug("Skipping duplicate filesystem modify event for $taskId")
+        if (hasRecentTaskServiceEvent) {
+            logger.debug("Skipping filesystem MODIFY event for $taskId (recently handled by TaskService)")
             filenameToIdCache[filename] = taskId
             return
         }
@@ -211,6 +214,18 @@ class EventService(
             return
         }
         
+        // Check if TaskService recently emitted ANY event for this task
+        val now = System.currentTimeMillis()
+        val hasRecentTaskServiceEvent = recentlyEmittedEvents.entries.any { (key, timestamp) ->
+            key.endsWith(":$taskId") && (now - timestamp) < recentEventWindowMs
+        }
+        
+        if (hasRecentTaskServiceEvent) {
+            logger.debug("Skipping filesystem DELETE event for $taskId (recently handled by TaskService)")
+            // Don't remove from cache yet - might be a move operation
+            return
+        }
+        
         // Store as pending delete (might be a move operation)
         recentDeletes[filename] = PendingDelete(
             taskId = taskId,
@@ -226,13 +241,14 @@ class EventService(
             
             // If still in pending deletes, it's a real delete (not a move)
             if (recentDeletes.remove(filename) != null) {
-                // Check if recently emitted from TaskService
-                val eventKey = "task.deleted:${taskId}"
-                val recentTimestamp = recentlyEmittedEvents[eventKey]
-                val now = System.currentTimeMillis()
+                // Double-check TaskService didn't handle this while we were waiting
+                val nowAfterDelay = System.currentTimeMillis()
+                val stillHasRecentEvent = recentlyEmittedEvents.entries.any { (key, timestamp) ->
+                    key.endsWith(":$taskId") && (nowAfterDelay - timestamp) < recentEventWindowMs
+                }
                 
-                if (recentTimestamp != null && (now - recentTimestamp) < recentEventWindowMs) {
-                    logger.debug("Skipping duplicate filesystem delete event for $taskId")
+                if (stillHasRecentEvent) {
+                    logger.debug("Skipping delayed DELETE event for $taskId (TaskService handled it)")
                     filenameToIdCache.remove(filename)
                     return@launch
                 }

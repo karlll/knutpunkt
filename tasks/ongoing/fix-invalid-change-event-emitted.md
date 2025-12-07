@@ -3,7 +3,7 @@ id: "6764712f-6107-4f10-b56c-0cbe6be71c36"
 number: 21
 title: "Fix: invalid change event emitted"
 createdAt: "2025-12-05T22:26:57.712799Z"
-updatedAt: "2025-12-05T22:26:57.712799Z"
+updatedAt: "2025-12-07T20:01:30.703616Z"
 assignees: []
 categories:
 - "bug"
