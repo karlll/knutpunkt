@@ -77,11 +77,12 @@ class TaskServiceEventTest {
         val event = mockEventEmitter.events[0]
         assertIs<TaskEvent.TaskCreated>(event, "Event should be TaskCreated")
         assertEquals(createdTask.id, event.taskId, "Event should have correct task ID")
-        assertEquals(TaskStatus.PLANNED, event.status, "Event should have correct status")
+        assertEquals(createdTask, event.task, "Event should contain the full task")
+        assertTrue(event.timestamp.isNotEmpty(), "Event should have timestamp")
     }
     
     @Test
-    fun `updateTask emits TaskModified event`() = runBlocking {
+    fun `updateTask emits TaskUpdated event`() = runBlocking {
         // Create a task first
         val taskCreate = TaskCreate(
             title = "Original Title",
@@ -113,13 +114,16 @@ class TaskServiceEventTest {
         assertEquals(1, mockEventEmitter.events.size, "Should emit exactly one event")
         
         val event = mockEventEmitter.events[0]
-        assertIs<TaskEvent.TaskModified>(event, "Event should be TaskModified")
+        assertIs<TaskEvent.TaskUpdated>(event, "Event should be TaskUpdated")
         assertEquals(createdTask.id, event.taskId, "Event should have correct task ID")
-        assertEquals(TaskStatus.PLANNED, event.status, "Event should have correct status")
+        assertEquals("Updated Title", event.task.title, "Event should contain updated task")
+        assertTrue(event.changes.titleChanged, "Changes should indicate title changed")
+        assertTrue(event.changes.priorityChanged, "Changes should indicate priority changed")
+        assertTrue(event.timestamp.isNotEmpty(), "Event should have timestamp")
     }
     
     @Test
-    fun `updateTaskStatus emits TaskModified event`() = runBlocking {
+    fun `updateTaskStatus emits TaskUpdated event`() = runBlocking {
         // Create a task in planned
         val taskCreate = TaskCreate(
             title = "Task to Move",
@@ -143,9 +147,10 @@ class TaskServiceEventTest {
         assertEquals(1, mockEventEmitter.events.size, "Should emit exactly one event")
         
         val event = mockEventEmitter.events[0]
-        assertIs<TaskEvent.TaskModified>(event, "Event should be TaskModified")
+        assertIs<TaskEvent.TaskUpdated>(event, "Event should be TaskUpdated")
         assertEquals(createdTask.id, event.taskId, "Event should have correct task ID")
-        assertEquals(TaskStatus.ONGOING, event.status, "Event should reflect new status")
+        assertEquals(TaskStatus.ONGOING, event.task.status, "Event task should reflect new status")
+        assertTrue(event.changes.statusChanged, "Changes should indicate status changed")
     }
     
     @Test
@@ -174,11 +179,12 @@ class TaskServiceEventTest {
         val event = mockEventEmitter.events[0]
         assertIs<TaskEvent.TaskDeleted>(event, "Event should be TaskDeleted")
         assertEquals(createdTask.id, event.taskId, "Event should have correct task ID")
+        assertEquals("Task to Delete", event.title, "Event should have task title")
         assertEquals(TaskStatus.DONE, event.status, "Event should have original status")
     }
     
     @Test
-    fun `updateTaskOrder with status change emits TaskModified event`() = runBlocking {
+    fun `updateTaskOrder with status change emits TaskUpdated event`() = runBlocking {
         // Create two tasks in planned
         val task1 = taskService.createTask(
             TaskCreate(
@@ -218,9 +224,11 @@ class TaskServiceEventTest {
         assertEquals(1, mockEventEmitter.events.size, "Should emit exactly one event when status changes")
         
         val event = mockEventEmitter.events[0]
-        assertIs<TaskEvent.TaskModified>(event, "Event should be TaskModified")
+        assertIs<TaskEvent.TaskUpdated>(event, "Event should be TaskUpdated")
         assertEquals(task1.id, event.taskId, "Event should have correct task ID")
-        assertEquals(TaskStatus.ONGOING, event.status, "Event should reflect new status")
+        assertEquals(TaskStatus.ONGOING, event.task.status, "Event task should reflect new status")
+        assertTrue(event.changes.statusChanged, "Changes should indicate status changed")
+        assertTrue(event.changes.orderChanged, "Changes should indicate order changed")
     }
     
     @Test
@@ -309,16 +317,16 @@ class TaskServiceEventTest {
         assertEquals(5, mockEventEmitter.events.size, "Should emit 5 events")
         
         assertIs<TaskEvent.TaskCreated>(mockEventEmitter.events[0])
-        assertIs<TaskEvent.TaskModified>(mockEventEmitter.events[1])
-        assertIs<TaskEvent.TaskModified>(mockEventEmitter.events[2])
-        assertIs<TaskEvent.TaskModified>(mockEventEmitter.events[3])
+        assertIs<TaskEvent.TaskUpdated>(mockEventEmitter.events[1])
+        assertIs<TaskEvent.TaskUpdated>(mockEventEmitter.events[2])
+        assertIs<TaskEvent.TaskUpdated>(mockEventEmitter.events[3])
         assertIs<TaskEvent.TaskDeleted>(mockEventEmitter.events[4])
         
-        // Verify statuses
-        assertEquals(TaskStatus.PLANNED, mockEventEmitter.events[0].status)
-        assertEquals(TaskStatus.PLANNED, mockEventEmitter.events[1].status)
-        assertEquals(TaskStatus.ONGOING, mockEventEmitter.events[2].status)
-        assertEquals(TaskStatus.DONE, mockEventEmitter.events[3].status)
-        assertEquals(TaskStatus.DONE, mockEventEmitter.events[4].status)
+        // Verify task statuses in events
+        assertEquals(TaskStatus.PLANNED, (mockEventEmitter.events[0] as TaskEvent.TaskCreated).task.status)
+        assertEquals(TaskStatus.PLANNED, (mockEventEmitter.events[1] as TaskEvent.TaskUpdated).task.status)
+        assertEquals(TaskStatus.ONGOING, (mockEventEmitter.events[2] as TaskEvent.TaskUpdated).task.status)
+        assertEquals(TaskStatus.DONE, (mockEventEmitter.events[3] as TaskEvent.TaskUpdated).task.status)
+        assertEquals(TaskStatus.DONE, (mockEventEmitter.events[4] as TaskEvent.TaskDeleted).status)
     }
 }
