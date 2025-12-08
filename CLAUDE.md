@@ -132,7 +132,9 @@ Location: `api/openapi.yaml`
 | POST | `/tasks` | Create a new task |
 | PUT | `/tasks/{id}` | Update a task (including status changes) |
 | DELETE | `/tasks/{id}` | Delete a task |
-| PATCH | `/tasks/{id}/status` | Move task to different status/column |
+| PATCH | `/tasks/{id}/order` | Update task order/status |
+| GET | `/events/tasks` | SSE stream of task-level events |
+| GET | `/events/files` | SSE stream of file-level events |
 
 **Task JSON Schema:**
 ```json
@@ -219,15 +221,21 @@ Tech Stack:
 Main Components:
 
      - Application.kt - Entry point, Netty embedded server on port 8080
-     - models/Models.kt - Data models: Task, TaskCreate, TaskUpdate, TaskStatus/Priority enums
+     - models/Models.kt - Data models: Task, TaskCreate, TaskUpdate, TaskStatus/Priority enums, TaskEvent, FileEvent
      - services/TaskService.kt - Core logic: file I/O, YAML parsing, CRUD operations, optional in-memory cache
      - services/StateService.kt - Task number generation
      - services/FileWatchService.kt - File system monitoring for external changes
+     - services/TaskEventService.kt - High-level task event broadcasting (created/updated/deleted)
+     - services/FileEventService.kt - Low-level file event broadcasting (created/modified/deleted)
      - routes/TaskRoutes.kt - REST endpoints under /api/v1
+     - routes/EventRoutes.kt - SSE endpoints for real-time event streaming
      - plugins/ - CORS, routing, serialization, error handling, static content (SPA)
      - utils/ - MarkdownParser (YAML frontmatter), SlugGenerator (filename generation)
 
-   API Endpoints: /api/v1/tasks (GET/POST), /api/v1/tasks/{id} (GET/PUT/DELETE), /api/v1/tasks/{id}/status (PATCH), /api/v1/tasks/{id}/order (PATCH)
+   API Endpoints: 
+     - /api/v1/tasks (GET/POST), /api/v1/tasks/{id} (GET/PUT/DELETE), /api/v1/tasks/{id}/order (PATCH)
+     - /api/v1/events/tasks (SSE) - Stream of task-level events
+     - /api/v1/events/files (SSE) - Stream of file-level events
 
    Storage: File-based in tasks/{planned,ongoing,done}/*.md with YAML frontmatter + Markdown body
 
@@ -239,9 +247,87 @@ Main Components:
      - Fat JAR: ./gradlew shadowJar
      - Custom tasks dir: pass as CLI arg or set TASKS_DIRECTORY env var
 
-Key Features: In-memory caching (optional), file watching, order management, slug-based filenames, comprehensive error handling (404/400/409/500)
+Key Features: 
+     - In-memory caching (optional)
+     - File watching for external changes
+     - Order management with automatic reordering
+     - Slug-based filenames
+     - Comprehensive error handling (404/400/409/500)
+     - Two-tier event system:
+       * Task events: High-level semantic events (task.created, task.updated, task.deleted)
+       * File events: Low-level filesystem events (file.created, file.modified, file.deleted)
+     - Server-Sent Events (SSE) for real-time updates
+     - Event deduplication between programmatic and filesystem changes
 
 ---
+
+### 5. Event System
+
+The backend implements a two-tier event architecture for real-time updates:
+
+#### Task Events (High-Level)
+Task events represent semantic operations on tasks:
+- `task.created` - A new task was created
+- `task.updated` - A task's properties changed (title, description, status, order, assignees, categories, priority)
+- `task.deleted` - A task was removed
+
+**Event payload:**
+```json
+{
+  "type": "task.created" | "task.updated" | "task.deleted",
+  "taskId": "uuid",
+  "timestamp": "ISO-8601 timestamp"
+}
+```
+
+**When emitted:**
+- Emitted by `TaskEventService` after successful task operations
+- Triggered by API calls (POST, PUT, PATCH, DELETE)
+- Single event per logical operation (even if multiple files are affected)
+
+#### File Events (Low-Level)
+File events represent filesystem changes:
+- `file.created` - A task file was created
+- `file.modified` - A task file was modified
+- `file.deleted` - A task file was deleted
+
+**Event payload:**
+```json
+{
+  "type": "file.created" | "file.modified" | "file.deleted",
+  "filename": "task-slug.md",
+  "timestamp": "ISO-8601 timestamp"
+}
+```
+
+**When emitted:**
+- Emitted by `FileEventService` from `FileWatchService`
+- Triggered by filesystem changes (including external edits)
+- May emit multiple events for a single logical operation (e.g., moving a task emits delete + create)
+
+#### SSE Endpoints
+- **GET /api/v1/events/tasks** - Subscribe to task-level events (recommended for UIs)
+- **GET /api/v1/events/files** - Subscribe to file-level events (for advanced monitoring)
+
+#### Event Flow Example
+When a task is moved from "planned" to "ongoing" via API:
+
+1. **TaskService** moves the file and emits `task.updated` event
+2. **FileWatchService** detects file deletion and creation
+3. **FileEventService** emits `file.deleted` and `file.created` events
+4. **TaskEventService** suppresses duplicate events from filesystem (deduplication window)
+
+#### Event Deduplication
+To prevent duplicate task events when programmatic changes trigger filesystem events:
+- `TaskEventService` maintains a 3-second deduplication window
+- Filesystem events for recently modified tasks are ignored
+- Ensures clients receive only one event per logical operation
+
+#### Best Practices
+- **Frontend**: Subscribe to `/events/tasks` for UI updates
+- **Monitoring tools**: Subscribe to `/events/files` for detailed filesystem activity
+- **Handle reconnection**: SSE clients should handle connection drops and reconnect
+- **Idempotent updates**: UI should handle duplicate events gracefully
 
 ## Development Guidelines
 
