@@ -28,13 +28,19 @@ paths:
         Server-Sent Events (SSE) endpoint for real-time task updates.
         
         Clients can subscribe to this endpoint to receive notifications when tasks
-        are created, modified, or deleted. Events are triggered by file system changes
-        detected by the backend's FileWatchService.
+        are created, updated, or deleted. Events are emitted by TaskEventService
+        directly from TaskService operations, ensuring one event per operation.
         
-        Each event includes:
-        - `eventType`: Type of event (task.created, task.modified, task.deleted)
-        - `taskId`: UUID of the affected task
-        - `status`: Current status of the task (planned, ongoing, done)
+        **Event Guarantees:**
+        - One operation = one event (no duplicates from filesystem)
+        - Events emitted synchronously with task operations
+        - Events include the full task object - no follow-up API calls needed
+        - For updates, includes detailed change information
+        
+        **Event Types:**
+        - `task.created`: New task created - includes the complete task
+        - `task.updated`: Task modified - includes full task + changes object
+        - `task.deleted`: Task deleted - includes the task's last known state
         
         Connection stays open indefinitely. Clients should implement reconnection logic.
       operationId: subscribeToEvents
@@ -53,19 +59,19 @@ paths:
                   value: |
                     event: task.created
                     id: 1234567890
-                    data: {"eventType":"task.created","taskId":"550e8400-e29b-41d4-a716-446655440000","status":"planned"}
+                    data: {"eventType":"task.created","taskId":"550e8400-e29b-41d4-a716-446655440000","task":{"id":"550e8400-e29b-41d4-a716-446655440000","number":42,"title":"New Feature","description":"## Description\n\nImplement new feature","status":"planned","order":1,"createdAt":"2025-01-15T10:30:00Z","updatedAt":"2025-01-15T10:30:00Z","assignees":["alice"],"categories":["feature"],"priority":"high"}}
                     
-                taskModified:
+                taskUpdated:
                   value: |
-                    event: task.modified
+                    event: task.updated
                     id: 1234567891
-                    data: {"eventType":"task.modified","taskId":"550e8400-e29b-41d4-a716-446655440000","status":"ongoing"}
+                    data: {"eventType":"task.updated","taskId":"550e8400-e29b-41d4-a716-446655440000","task":{"id":"550e8400-e29b-41d4-a716-446655440000","number":42,"title":"New Feature (Updated)","description":"## Description\n\nImplement new feature","status":"ongoing","order":2,"createdAt":"2025-01-15T10:30:00Z","updatedAt":"2025-01-15T14:22:00Z","assignees":["alice","bob"],"categories":["feature"],"priority":"high"},"changes":{"title":true,"status":true,"order":true,"assignees":true}}
                     
                 taskDeleted:
                   value: |
                     event: task.deleted
                     id: 1234567892
-                    data: {"eventType":"task.deleted","taskId":"550e8400-e29b-41d4-a716-446655440000","status":"done"}
+                    data: {"eventType":"task.deleted","taskId":"550e8400-e29b-41d4-a716-446655440000","task":{"id":"550e8400-e29b-41d4-a716-446655440000","number":42,"title":"New Feature (Updated)","description":"## Description\n\nImplement new feature","status":"done","order":5,"createdAt":"2025-01-15T10:30:00Z","updatedAt":"2025-01-15T16:00:00Z","assignees":["alice","bob"],"categories":["feature"],"priority":"high"}}
 
   /tasks:
     get:
@@ -577,28 +583,35 @@ components:
       required:
         - eventType
         - taskId
-        - status
+        - task
       properties:
         eventType:
           type: string
           enum:
             - task.created
-            - task.modified
+            - task.updated
             - task.deleted
-          description: Type of task event
+          description: |
+            Type of task event emitted by TaskEventService:
+            - `task.created`: New task was created
+            - `task.updated`: Task was modified (any field changed)
+            - `task.deleted`: Task was deleted
           example: "task.created"
         taskId:
           type: string
           format: uuid
           description: UUID of the affected task
           example: "550e8400-e29b-41d4-a716-446655440000"
-        status:
-          $ref: '#/components/schemas/TaskStatus'
+        task:
+          $ref: '#/components/schemas/Task'
+          description: |
+            Complete task object. For created/updated events, contains current state.
+            For deleted events, contains the last known state before deletion.
       discriminator:
         propertyName: eventType
         mapping:
           task.created: '#/components/schemas/TaskCreatedEvent'
-          task.modified: '#/components/schemas/TaskModifiedEvent'
+          task.updated: '#/components/schemas/TaskUpdatedEvent'
           task.deleted: '#/components/schemas/TaskDeletedEvent'
 
     TaskCreatedEvent:
@@ -610,16 +623,52 @@ components:
               type: string
               enum:
                 - task.created
+          description: Event emitted when a new task is created via POST /tasks
 
-    TaskModifiedEvent:
+    TaskUpdatedEvent:
       allOf:
         - $ref: '#/components/schemas/TaskEvent'
         - type: object
+          required:
+            - changes
           properties:
             eventType:
               type: string
               enum:
-                - task.modified
+                - task.updated
+            changes:
+              type: object
+              description: |
+                Object indicating which fields were modified. Each key corresponds
+                to a task field, value is `true` if changed, omitted if unchanged.
+              properties:
+                title:
+                  type: boolean
+                  description: Title was changed
+                description:
+                  type: boolean
+                  description: Description was changed
+                status:
+                  type: boolean
+                  description: Status was changed (task moved between columns)
+                assignees:
+                  type: boolean
+                  description: Assignees list was changed
+                categories:
+                  type: boolean
+                  description: Categories list was changed
+                priority:
+                  type: boolean
+                  description: Priority was changed
+                order:
+                  type: boolean
+                  description: Order within column was changed
+              example:
+                status: true
+                order: true
+          description: |
+            Event emitted when a task is modified via PUT /tasks/{id} or
+            PATCH /tasks/{id}/order. Includes detailed change tracking.
 
     TaskDeletedEvent:
       allOf:
@@ -630,3 +679,6 @@ components:
               type: string
               enum:
                 - task.deleted
+          description: |
+            Event emitted when a task is deleted via DELETE /tasks/{id}.
+            The `task` field contains the task's state before deletion.
