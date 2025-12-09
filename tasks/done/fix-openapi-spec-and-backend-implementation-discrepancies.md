@@ -3,7 +3,7 @@ id: "5d31d02b-ffc2-4792-a597-93e66460de93"
 number: 26
 title: "Fix OpenAPI Spec and Backend Implementation Discrepancies"
 createdAt: "2025-12-08T20:54:06.616602Z"
-updatedAt: "2025-12-09T18:27:10.870568Z"
+updatedAt: "2025-12-09T19:02:37.597145Z"
 assignees:
 - "Claude Code"
 categories:

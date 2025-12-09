@@ -4,6 +4,83 @@
  */
 
 export interface paths {
+    "/events/tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Subscribe to high-level task events
+         * @description Server-Sent Events (SSE) endpoint for real-time task updates.
+         *
+         *     Clients can subscribe to this endpoint to receive notifications when tasks
+         *     are created, updated, or deleted. Events are emitted by TaskEventService
+         *     directly from TaskService operations, ensuring one event per operation.
+         *
+         *     **Event Guarantees:**
+         *     - One operation = one event (no duplicates from filesystem)
+         *     - Events emitted synchronously with task operations
+         *     - Events include the full task object - no follow-up API calls needed
+         *     - For updates, includes detailed change information
+         *
+         *     **Event Types:**
+         *     - `task.created`: New task created - includes the complete task
+         *     - `task.updated`: Task modified - includes full task + changes object
+         *     - `task.deleted`: Task deleted - includes the task's last known state
+         *
+         *     **Recommended for:** Frontend UI updates
+         *
+         *     Connection stays open indefinitely. Clients should implement reconnection logic.
+         */
+        get: operations["subscribeToTaskEvents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/events/files": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Subscribe to low-level file system events
+         * @description Server-Sent Events (SSE) endpoint for filesystem-level events.
+         *
+         *     This endpoint streams low-level filesystem changes detected by FileWatchService.
+         *     Events are emitted when task files are created, modified, or deleted on disk,
+         *     including changes made externally (outside the API).
+         *
+         *     **Event Types:**
+         *     - `file.created`: A .md file was created in a task directory
+         *     - `file.modified`: A .md file was modified on disk
+         *     - `file.deleted`: A .md file was deleted from disk
+         *
+         *     **Important Notes:**
+         *     - May emit multiple events for a single logical operation (e.g., moving a task emits delete + create)
+         *     - Includes external file changes (manual edits, git operations, etc.)
+         *     - Lower-level than task events - one task operation may generate multiple file events
+         *
+         *     **Recommended for:** Monitoring tools, advanced synchronization, debugging
+         *
+         *     Connection stays open indefinitely. Clients should implement reconnection logic.
+         */
+        get: operations["subscribeToFileEvents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/tasks": {
         parameters: {
             query?: never;
@@ -250,6 +327,151 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        TaskEvent: {
+            /**
+             * @description Type of task event emitted by TaskEventService:
+             *     - `task.created`: New task was created
+             *     - `task.updated`: Task was modified (any field changed)
+             *     - `task.deleted`: Task was deleted
+             * @example task.created
+             * @enum {string}
+             */
+            eventType: "task.created" | "task.updated" | "task.deleted";
+            /**
+             * Format: uuid
+             * @description UUID of the affected task
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            taskId: string;
+            /**
+             * Format: date-time
+             * @description ISO 8601 timestamp when the event occurred.
+             *     Also used as SSE event ID for client reconnection.
+             * @example 2025-01-15T10:30:00Z
+             */
+            timestamp: string;
+            /**
+             * @description Complete task object. For created/updated events, contains current state.
+             *     For deleted events, contains the last known state before deletion.
+             */
+            task: components["schemas"]["Task"];
+        };
+        TaskCreatedEvent: Omit<components["schemas"]["TaskEvent"], "eventType"> & {
+            /** @enum {string} */
+            eventType?: "task.created";
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            eventType: "task.created";
+        };
+        TaskUpdatedEvent: Omit<components["schemas"]["TaskEvent"], "eventType"> & {
+            /** @enum {string} */
+            eventType?: "task.updated";
+            /**
+             * @description Object indicating which fields were modified. Each key corresponds
+             *     to a task field, value is `true` if changed, omitted if unchanged.
+             * @example {
+             *       "status": true,
+             *       "order": true
+             *     }
+             */
+            changes: {
+                /** @description Title was changed */
+                title?: boolean;
+                /** @description Description was changed */
+                description?: boolean;
+                /** @description Status was changed (task moved between columns) */
+                status?: boolean;
+                /** @description Assignees list was changed */
+                assignees?: boolean;
+                /** @description Categories list was changed */
+                categories?: boolean;
+                /** @description Priority was changed */
+                priority?: boolean;
+                /** @description Order within column was changed */
+                order?: boolean;
+            };
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            eventType: "task.updated";
+        };
+        TaskDeletedEvent: Omit<components["schemas"]["TaskEvent"], "eventType"> & {
+            /** @enum {string} */
+            eventType?: "task.deleted";
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            eventType: "task.deleted";
+        };
+        FileEvent: {
+            /**
+             * @description Type of file event emitted by FileEventService:
+             *     - `file.created`: A .md file was created in the tasks directory
+             *     - `file.modified`: A .md file was modified on disk
+             *     - `file.deleted`: A .md file was deleted from disk
+             * @example file.created
+             * @enum {string}
+             */
+            eventType: "file.created" | "file.modified" | "file.deleted";
+            /**
+             * @description Absolute path to the affected file
+             * @example /path/to/tasks/planned/example-task.md
+             */
+            path: string;
+            /**
+             * Format: int64
+             * @description Unix timestamp in milliseconds when the event occurred
+             * @example 1705318200000
+             */
+            timestamp: number;
+            /**
+             * @description Task status directory (only present for created/deleted events)
+             * @example planned
+             * @enum {string}
+             */
+            directory?: "planned" | "ongoing" | "done";
+        };
+        FileCreatedEvent: Omit<components["schemas"]["FileEvent"], "eventType"> & {
+            /** @enum {string} */
+            eventType?: "file.created";
+            /** @enum {string} */
+            directory: "planned" | "ongoing" | "done";
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            eventType: "file.created";
+        };
+        FileModifiedEvent: Omit<components["schemas"]["FileEvent"], "eventType"> & {
+            /** @enum {string} */
+            eventType?: "file.modified";
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            eventType: "file.modified";
+        };
+        FileDeletedEvent: Omit<components["schemas"]["FileEvent"], "eventType"> & {
+            /** @enum {string} */
+            eventType?: "file.deleted";
+            /** @enum {string} */
+            directory: "planned" | "ongoing" | "done";
+        } & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            eventType: "file.deleted";
+        };
     };
     responses: never;
     parameters: never;
@@ -259,6 +481,46 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    subscribeToTaskEvents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description SSE stream established */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": components["schemas"]["TaskEvent"];
+                };
+            };
+        };
+    };
+    subscribeToFileEvents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description SSE stream established */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": components["schemas"]["FileEvent"];
+                };
+            };
+        };
+    };
     listTasks: {
         parameters: {
             query?: {
