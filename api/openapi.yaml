@@ -21,29 +21,31 @@ tags:
     description: Real-time task update events via Server-Sent Events (SSE)
 
 paths:
-  /events:
+  /events/tasks:
     get:
-      summary: Subscribe to task update events
+      summary: Subscribe to high-level task events
       description: |
         Server-Sent Events (SSE) endpoint for real-time task updates.
-        
+
         Clients can subscribe to this endpoint to receive notifications when tasks
         are created, updated, or deleted. Events are emitted by TaskEventService
         directly from TaskService operations, ensuring one event per operation.
-        
+
         **Event Guarantees:**
         - One operation = one event (no duplicates from filesystem)
         - Events emitted synchronously with task operations
         - Events include the full task object - no follow-up API calls needed
         - For updates, includes detailed change information
-        
+
         **Event Types:**
         - `task.created`: New task created - includes the complete task
         - `task.updated`: Task modified - includes full task + changes object
         - `task.deleted`: Task deleted - includes the task's last known state
-        
+
+        **Recommended for:** Frontend UI updates
+
         Connection stays open indefinitely. Clients should implement reconnection logic.
-      operationId: subscribeToEvents
+      operationId: subscribeToTaskEvents
       tags:
         - events
       responses:
@@ -52,26 +54,77 @@ paths:
           content:
             text/event-stream:
               schema:
-                type: string
-                description: Server-Sent Events stream
+                $ref: '#/components/schemas/TaskEvent'
               examples:
                 taskCreated:
                   value: |
                     event: task.created
-                    id: 1234567890
-                    data: {"eventType":"task.created","taskId":"550e8400-e29b-41d4-a716-446655440000","task":{"id":"550e8400-e29b-41d4-a716-446655440000","number":42,"title":"New Feature","description":"## Description\n\nImplement new feature","status":"planned","order":1,"createdAt":"2025-01-15T10:30:00Z","updatedAt":"2025-01-15T10:30:00Z","assignees":["alice"],"categories":["feature"],"priority":"high"}}
-                    
+                    id: 2025-01-15T10:30:00Z
+                    data: {"eventType":"task.created","taskId":"550e8400-e29b-41d4-a716-446655440000","timestamp":"2025-01-15T10:30:00Z","task":{"id":"550e8400-e29b-41d4-a716-446655440000","number":42,"title":"New Feature","description":"## Description\n\nImplement new feature","status":"planned","order":1,"createdAt":"2025-01-15T10:30:00Z","updatedAt":"2025-01-15T10:30:00Z","assignees":["alice"],"categories":["feature"],"priority":"high"}}
+
                 taskUpdated:
                   value: |
                     event: task.updated
-                    id: 1234567891
-                    data: {"eventType":"task.updated","taskId":"550e8400-e29b-41d4-a716-446655440000","task":{"id":"550e8400-e29b-41d4-a716-446655440000","number":42,"title":"New Feature (Updated)","description":"## Description\n\nImplement new feature","status":"ongoing","order":2,"createdAt":"2025-01-15T10:30:00Z","updatedAt":"2025-01-15T14:22:00Z","assignees":["alice","bob"],"categories":["feature"],"priority":"high"},"changes":{"title":true,"status":true,"order":true,"assignees":true}}
-                    
+                    id: 2025-01-15T14:22:00Z
+                    data: {"eventType":"task.updated","taskId":"550e8400-e29b-41d4-a716-446655440000","timestamp":"2025-01-15T14:22:00Z","task":{"id":"550e8400-e29b-41d4-a716-446655440000","number":42,"title":"New Feature (Updated)","description":"## Description\n\nImplement new feature","status":"ongoing","order":2,"createdAt":"2025-01-15T10:30:00Z","updatedAt":"2025-01-15T14:22:00Z","assignees":["alice","bob"],"categories":["feature"],"priority":"high"},"changes":{"title":true,"status":true,"order":true,"assignees":true}}
+
                 taskDeleted:
                   value: |
                     event: task.deleted
-                    id: 1234567892
-                    data: {"eventType":"task.deleted","taskId":"550e8400-e29b-41d4-a716-446655440000","task":{"id":"550e8400-e29b-41d4-a716-446655440000","number":42,"title":"New Feature (Updated)","description":"## Description\n\nImplement new feature","status":"done","order":5,"createdAt":"2025-01-15T10:30:00Z","updatedAt":"2025-01-15T16:00:00Z","assignees":["alice","bob"],"categories":["feature"],"priority":"high"}}
+                    id: 2025-01-15T16:00:00Z
+                    data: {"eventType":"task.deleted","taskId":"550e8400-e29b-41d4-a716-446655440000","timestamp":"2025-01-15T16:00:00Z","task":{"id":"550e8400-e29b-41d4-a716-446655440000","number":42,"title":"New Feature (Updated)","description":"## Description\n\nImplement new feature","status":"done","order":5,"createdAt":"2025-01-15T10:30:00Z","updatedAt":"2025-01-15T16:00:00Z","assignees":["alice","bob"],"categories":["feature"],"priority":"high"}}
+
+  /events/files:
+    get:
+      summary: Subscribe to low-level file system events
+      description: |
+        Server-Sent Events (SSE) endpoint for filesystem-level events.
+
+        This endpoint streams low-level filesystem changes detected by FileWatchService.
+        Events are emitted when task files are created, modified, or deleted on disk,
+        including changes made externally (outside the API).
+
+        **Event Types:**
+        - `file.created`: A .md file was created in a task directory
+        - `file.modified`: A .md file was modified on disk
+        - `file.deleted`: A .md file was deleted from disk
+
+        **Important Notes:**
+        - May emit multiple events for a single logical operation (e.g., moving a task emits delete + create)
+        - Includes external file changes (manual edits, git operations, etc.)
+        - Lower-level than task events - one task operation may generate multiple file events
+
+        **Recommended for:** Monitoring tools, advanced synchronization, debugging
+
+        Connection stays open indefinitely. Clients should implement reconnection logic.
+      operationId: subscribeToFileEvents
+      tags:
+        - events
+      responses:
+        '200':
+          description: SSE stream established
+          content:
+            text/event-stream:
+              schema:
+                $ref: '#/components/schemas/FileEvent'
+              examples:
+                fileCreated:
+                  value: |
+                    event: file.created
+                    id: 1705318200000
+                    data: {"eventType":"file.created","path":"/path/to/tasks/planned/new-feature.md","timestamp":1705318200000,"directory":"planned"}
+
+                fileModified:
+                  value: |
+                    event: file.modified
+                    id: 1705318201000
+                    data: {"eventType":"file.modified","path":"/path/to/tasks/ongoing/in-progress-task.md","timestamp":1705318201000}
+
+                fileDeleted:
+                  value: |
+                    event: file.deleted
+                    id: 1705318202000
+                    data: {"eventType":"file.deleted","path":"/path/to/tasks/done/completed-task.md","timestamp":1705318202000,"directory":"done"}
 
   /tasks:
     get:
@@ -682,3 +735,89 @@ components:
           description: |
             Event emitted when a task is deleted via DELETE /tasks/{id}.
             The `task` field contains the task's state before deletion.
+
+    FileEvent:
+      type: object
+      required:
+        - eventType
+        - path
+        - timestamp
+      properties:
+        eventType:
+          type: string
+          enum:
+            - file.created
+            - file.modified
+            - file.deleted
+          description: |
+            Type of file event emitted by FileEventService:
+            - `file.created`: A .md file was created in the tasks directory
+            - `file.modified`: A .md file was modified on disk
+            - `file.deleted`: A .md file was deleted from disk
+          example: "file.created"
+        path:
+          type: string
+          description: Absolute path to the affected file
+          example: "/path/to/tasks/planned/example-task.md"
+        timestamp:
+          type: integer
+          format: int64
+          description: Unix timestamp in milliseconds when the event occurred
+          example: 1705318200000
+        directory:
+          type: string
+          description: Task status directory (only present for created/deleted events)
+          enum:
+            - planned
+            - ongoing
+            - done
+          example: "planned"
+      discriminator:
+        propertyName: eventType
+        mapping:
+          file.created: '#/components/schemas/FileCreatedEvent'
+          file.modified: '#/components/schemas/FileModifiedEvent'
+          file.deleted: '#/components/schemas/FileDeletedEvent'
+
+    FileCreatedEvent:
+      allOf:
+        - $ref: '#/components/schemas/FileEvent'
+        - type: object
+          required:
+            - directory
+          properties:
+            eventType:
+              type: string
+              enum:
+                - file.created
+            directory:
+              type: string
+              enum: [planned, ongoing, done]
+          description: Event emitted when a task file is created on disk
+
+    FileModifiedEvent:
+      allOf:
+        - $ref: '#/components/schemas/FileEvent'
+        - type: object
+          properties:
+            eventType:
+              type: string
+              enum:
+                - file.modified
+          description: Event emitted when a task file is modified on disk
+
+    FileDeletedEvent:
+      allOf:
+        - $ref: '#/components/schemas/FileEvent'
+        - type: object
+          required:
+            - directory
+          properties:
+            eventType:
+              type: string
+              enum:
+                - file.deleted
+            directory:
+              type: string
+              enum: [planned, ongoing, done]
+          description: Event emitted when a task file is deleted from disk

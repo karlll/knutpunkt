@@ -161,24 +161,35 @@ data class TaskChanges(
 
 // LOW-LEVEL: File Events (Infrastructure)
 // These events represent filesystem changes for cache invalidation
+@Serializable
 sealed class FileEvent {
+    abstract val eventType: String
     abstract val path: String
     abstract val timestamp: Long
-    
+
+    @Serializable
     data class FileCreated(
         override val path: String,
         override val timestamp: Long,
         val directory: String
-    ) : FileEvent()
-    
+    ) : FileEvent() {
+        override val eventType: String = "file.created"
+    }
+
+    @Serializable
     data class FileModified(
         override val path: String,
         override val timestamp: Long
-    ) : FileEvent()
-    
+    ) : FileEvent() {
+        override val eventType: String = "file.modified"
+    }
+
+    @Serializable
     data class FileDeleted(
         override val path: String,
         override val timestamp: Long,
         val directory: String
-    ) : FileEvent()
+    ) : FileEvent() {
+        override val eventType: String = "file.deleted"
+    }
 }
