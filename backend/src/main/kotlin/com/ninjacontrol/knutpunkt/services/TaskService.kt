@@ -439,28 +439,43 @@ class TaskService(
     
     fun deleteTask(id: String) {
         logger.debug("Deleting task: id={}", id)
-        
+
         val (file, status) = findTaskFile(id)
             ?: throw TaskNotFoundException("Task with id $id not found").also {
                 logger.warn("Task deletion failed: task id={} not found", id)
             }
-        
-        val (frontMatter, _) = MarkdownParser.parseTaskFile(file)
+
+        val (frontMatter, description) = MarkdownParser.parseTaskFile(file)
+
+        // Build full task object before deletion
+        val taskBeforeDeletion = Task(
+            id = id,
+            number = frontMatter.number,
+            title = frontMatter.title,
+            description = description,
+            status = status,
+            createdAt = frontMatter.createdAt,
+            updatedAt = frontMatter.updatedAt,
+            assignees = frontMatter.assignees,
+            categories = frontMatter.categories,
+            priority = TaskPriority.valueOf(frontMatter.priority.uppercase()),
+            order = frontMatter.order
+        )
+
         file.delete()
-        
-        logger.info("Deleted task: id={}, title='{}', status={}, file={}", 
+
+        logger.info("Deleted task: id={}, title='{}', status={}, file={}",
             id, frontMatter.title, status, file.name)
-        
+
         // Invalidate cache after modification
         invalidateCache()
-        
+
         // Emit event AFTER successful deletion
         val now = Instant.now().toString()
         emitEvent(TaskEvent.TaskDeleted(
             taskId = id,
             timestamp = now,
-            title = frontMatter.title,
-            status = status
+            task = taskBeforeDeletion
         ))
     }
     

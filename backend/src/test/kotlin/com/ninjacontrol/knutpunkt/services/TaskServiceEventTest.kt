@@ -175,12 +175,12 @@ class TaskServiceEventTest {
         
         // Verify event was emitted
         assertEquals(1, mockEventEmitter.events.size, "Should emit exactly one event")
-        
+
         val event = mockEventEmitter.events[0]
         assertIs<TaskEvent.TaskDeleted>(event, "Event should be TaskDeleted")
         assertEquals(createdTask.id, event.taskId, "Event should have correct task ID")
-        assertEquals("Task to Delete", event.title, "Event should have task title")
-        assertEquals(TaskStatus.DONE, event.status, "Event should have original status")
+        assertEquals("Task to Delete", event.task.title, "Event should have task title")
+        assertEquals(TaskStatus.DONE, event.task.status, "Event should have original status")
     }
     
     @Test
@@ -327,6 +327,6 @@ class TaskServiceEventTest {
         assertEquals(TaskStatus.PLANNED, (mockEventEmitter.events[1] as TaskEvent.TaskUpdated).task.status)
         assertEquals(TaskStatus.ONGOING, (mockEventEmitter.events[2] as TaskEvent.TaskUpdated).task.status)
         assertEquals(TaskStatus.DONE, (mockEventEmitter.events[3] as TaskEvent.TaskUpdated).task.status)
-        assertEquals(TaskStatus.DONE, (mockEventEmitter.events[4] as TaskEvent.TaskDeleted).status)
+        assertEquals(TaskStatus.DONE, (mockEventEmitter.events[4] as TaskEvent.TaskDeleted).task.status)
     }
 }

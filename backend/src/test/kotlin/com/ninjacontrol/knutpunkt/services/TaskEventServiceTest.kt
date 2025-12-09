@@ -112,24 +112,36 @@ class TaskEventServiceTest {
     
     @Test
     fun `emits TaskDeleted event`() = runBlocking {
+        val task = Task(
+            id = "deleted-task",
+            number = 1,
+            title = "Deleted Task",
+            description = "Test description",
+            status = TaskStatus.DONE,
+            createdAt = Instant.now().toString(),
+            updatedAt = Instant.now().toString(),
+            assignees = emptyList(),
+            categories = emptyList(),
+            priority = TaskPriority.MEDIUM,
+            order = 1
+        )
         val event = TaskEvent.TaskDeleted(
             taskId = "deleted-task",
             timestamp = Instant.now().toString(),
-            title = "Deleted Task",
-            status = TaskStatus.DONE
+            task = task
         )
-        
+
         val job = async {
             taskEventService.events.take(1).toList()
         }
-        
+
         delay(100)
         taskEventService.emit(event)
-        
+
         val events = job.await()
         assertEquals(1, events.size)
         assertIs<TaskEvent.TaskDeleted>(events[0])
-        assertEquals("Deleted Task", (events[0] as TaskEvent.TaskDeleted).title)
+        assertEquals("Deleted Task", (events[0] as TaskEvent.TaskDeleted).task.title)
     }
     
     @Test

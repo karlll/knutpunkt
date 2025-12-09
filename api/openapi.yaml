@@ -637,6 +637,7 @@ components:
         - eventType
         - taskId
         - task
+        - timestamp
       properties:
         eventType:
           type: string
@@ -655,6 +656,13 @@ components:
           format: uuid
           description: UUID of the affected task
           example: "550e8400-e29b-41d4-a716-446655440000"
+        timestamp:
+          type: string
+          format: date-time
+          description: |
+            ISO 8601 timestamp when the event occurred.
+            Also used as SSE event ID for client reconnection.
+          example: "2025-01-15T10:30:00Z"
         task:
           $ref: '#/components/schemas/Task'
           description: |

@@ -1,6 +1,7 @@
 package com.ninjacontrol.knutpunkt.models
 
 import kotlinx.serialization.KSerializer
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
@@ -141,8 +142,7 @@ sealed class TaskEvent {
     data class TaskDeleted(
         override val taskId: String,
         override val timestamp: String,
-        val title: String,
-        val status: TaskStatus
+        val task: Task
     ) : TaskEvent() {
         override val eventType: String = "task.deleted"
     }
@@ -150,13 +150,13 @@ sealed class TaskEvent {
 
 @Serializable
 data class TaskChanges(
-    val titleChanged: Boolean = false,
-    val descriptionChanged: Boolean = false,
-    val statusChanged: Boolean = false,
-    val priorityChanged: Boolean = false,
-    val assigneesChanged: Boolean = false,
-    val categoriesChanged: Boolean = false,
-    val orderChanged: Boolean = false
+    @SerialName("title") val titleChanged: Boolean = false,
+    @SerialName("description") val descriptionChanged: Boolean = false,
+    @SerialName("status") val statusChanged: Boolean = false,
+    @SerialName("priority") val priorityChanged: Boolean = false,
+    @SerialName("assignees") val assigneesChanged: Boolean = false,
+    @SerialName("categories") val categoriesChanged: Boolean = false,
+    @SerialName("order") val orderChanged: Boolean = false
 )
 
 // LOW-LEVEL: File Events (Infrastructure)
