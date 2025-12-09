@@ -241,11 +241,13 @@ Main Components:
 
    Commands:
 
-     - Build: ./gradlew build
+     - Build: ./gradlew build (for verifying compilation/tests)
      - Run dev: ./gradlew run
      - Test: ./gradlew test
      - Fat JAR: ./gradlew shadowJar
      - Custom tasks dir: pass as CLI arg or set TASKS_DIRECTORY env var
+     - Build whole project (in project root directory): make dist
+     - Start project with task dir and debug mode (in project root directory): APP_LOG_LEVEL=DEBUG ./start.sh /Users/karl/Project/knutpunkt/tasks
 
 Key Features: 
      - In-memory caching (optional)

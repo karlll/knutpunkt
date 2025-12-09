@@ -17,9 +17,9 @@ interface KanbanColumnProps {
 }
 
 const statusColors = {
-  planned: 'bg-slate-100 border-slate-200 dark:bg-slate-800 dark:border-slate-700',
-  ongoing: 'bg-blue-100 border-blue-200 dark:bg-blue-900/40 dark:border-blue-800',
-  done: 'bg-green-100 border-green-200 dark:bg-green-900/40 dark:border-green-800',
+  planned: 'bg-slate-100 border-slate-200 dark:bg-gray-800/40 dark:border-gray-700',
+  ongoing: 'bg-blue-100 border-blue-200 dark:bg-slate-800 dark:border-slate-700',
+  done: 'bg-green-100 border-green-200 dark:bg-zinc-800 dark:border-zinc-700',
 }
 
 export function KanbanColumn({ status, tasks, title, maxVisibleTasks }: KanbanColumnProps) {

@@ -201,11 +201,10 @@ export function KanbanBoard() {
       </div>
     )
   }
-
   return (
     <div className="h-screen flex flex-col">
       <Header onCreateTask={() => setCreateDialogOpen(true)} />
-      <main className="flex-1 overflow-hidden p-6">
+        <main className="flex-1 overflow-hidden p-6">
         <DndContext
           collisionDetection={closestCorners}
           onDragStart={handleDragStart}
