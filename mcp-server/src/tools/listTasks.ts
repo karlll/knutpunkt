@@ -95,6 +95,9 @@ export async function handleListTasks(args: ListTasksArgs) {
           text: `Found ${tasks.length} task(s):\n\n${taskList}`,
         },
       ],
+      _meta: {
+        tasks: tasks,
+      },
     };
   } catch (error) {
     return {
