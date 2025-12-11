@@ -210,3 +210,32 @@
     letter-spacing: var(--tracking-normal);
     }
 }
+
+/* Scrollbar styling - theme-aware */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--muted) var(--card);
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--card);
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--muted);
+  border-radius: calc(var(--radius) / 2);
+  border: 2px solid var(--card);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
+}
+
+*::-webkit-scrollbar-thumb:active {
+  background: var(--border);
+}
