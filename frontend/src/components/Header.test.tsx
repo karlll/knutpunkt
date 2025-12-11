@@ -52,28 +52,28 @@ describe('Header', () => {
     it('shows logo by default', async () => {
       render(<Header />)
       await waitFor(() => {}) // Let Logo effects settle
-      const logo = screen.getByAltText('Knutpunkt Logo')
+      const logo = screen.getByRole('img', { name: 'Knutpunkt Logo' })
       expect(logo).toBeInTheDocument()
     })
 
     it('shows logo when showLogo is true', async () => {
       render(<Header showLogo={true} />)
       await waitFor(() => {}) // Let Logo effects settle
-      const logo = screen.getByAltText('Knutpunkt Logo')
+      const logo = screen.getByRole('img', { name: 'Knutpunkt Logo' })
       expect(logo).toBeInTheDocument()
     })
 
     it('hides logo when showLogo is false', async () => {
       render(<Header showLogo={false} />)
       await waitFor(() => {}) // Let effects settle
-      const logo = screen.queryByAltText('Knutpunkt Logo')
+      const logo = screen.queryByRole('img', { name: 'Knutpunkt Logo' })
       expect(logo).not.toBeInTheDocument()
     })
 
     it('renders logo in small size', async () => {
       render(<Header />)
       await waitFor(() => {}) // Let Logo effects settle
-      const logo = screen.getByAltText('Knutpunkt Logo')
+      const logo = screen.getByRole('img', { name: 'Knutpunkt Logo' })
       expect(logo).toHaveClass('h-6') // small size
     })
   })

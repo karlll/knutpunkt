@@ -21,7 +21,7 @@ export function Header({ title = 'Knutpunkt', showLogo = true, onCreateTask, cla
     >
       <div className="container flex h-14 max-w-screen-2xl items-center justify-between px-4 md:px-6">
         <div className="flex items-center gap-3">
-          {showLogo && <Logo size="small" />}
+          {showLogo && <Logo size="small" className="text-foreground" />}
           <h1 className="text-xl font-semibold tracking-tight">{title}</h1>
         </div>
         <div className="flex items-center gap-2">

@@ -17,6 +17,7 @@
     "build-storybook": "storybook build"
   },
   "dependencies": {
+    "@catppuccin/tailwindcss": "^1.0.0",
     "@codemirror/lang-markdown": "^6.5.0",
     "@codemirror/theme-one-dark": "^6.1.3",
     "@dnd-kit/core": "^6.3.1",

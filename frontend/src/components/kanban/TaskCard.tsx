@@ -34,9 +34,9 @@ export function TaskCard({ task, compact = false }: TaskCardProps) {
   }
 
   const priorityColor = {
-    high: 'bg-red-100 text-red-800 border-red-200',
-    medium: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-    low: 'bg-green-100 text-green-800 border-green-200',
+    high: 'bg-[color-mix(in_srgb,var(--ctp-red)_20%,var(--background))] text-ctp-red border-[color-mix(in_srgb,var(--ctp-red)_30%,var(--background))]',
+    medium: 'bg-[color-mix(in_srgb,var(--ctp-peach)_20%,var(--background))] text-ctp-peach border-[color-mix(in_srgb,var(--ctp-peach)_30%,var(--background))]',
+    low: 'bg-[color-mix(in_srgb,var(--ctp-green)_20%,var(--background))] text-ctp-green border-[color-mix(in_srgb,var(--ctp-green)_30%,var(--background))]',
   }
 
   return (

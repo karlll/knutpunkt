@@ -75,7 +75,9 @@ describe('TaskCard', () => {
         </TestWrapper>
       )
       const badge = screen.getByText('high')
-      expect(badge).toHaveClass('bg-red-100', 'text-red-800', 'border-red-200')
+      // Check that the badge has Catppuccin color classes applied
+      expect(badge).toHaveClass('text-ctp-red')
+      expect(badge.className).toContain('color-mix')
     })
 
     it('renders medium priority with correct styling', () => {
@@ -86,7 +88,9 @@ describe('TaskCard', () => {
         </TestWrapper>
       )
       const badge = screen.getByText('medium')
-      expect(badge).toHaveClass('bg-yellow-100', 'text-yellow-800', 'border-yellow-200')
+      // Check that the badge has Catppuccin color classes applied
+      expect(badge).toHaveClass('text-ctp-peach')
+      expect(badge.className).toContain('color-mix')
     })
 
     it('renders low priority with correct styling', () => {
@@ -97,7 +101,9 @@ describe('TaskCard', () => {
         </TestWrapper>
       )
       const badge = screen.getByText('low')
-      expect(badge).toHaveClass('bg-green-100', 'text-green-800', 'border-green-200')
+      // Check that the badge has Catppuccin color classes applied
+      expect(badge).toHaveClass('text-ctp-green')
+      expect(badge.className).toContain('color-mix')
     })
   })
 

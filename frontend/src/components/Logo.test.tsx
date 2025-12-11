@@ -1,92 +1,69 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { describe, it, expect } from 'vitest'
+import { render, screen } from '@testing-library/react'
 import { Logo } from './Logo'
 
 describe('Logo', () => {
-  beforeEach(() => {
-    // Reset the document element classes before each test
-    document.documentElement.className = ''
-  })
-
-  afterEach(() => {
-    // Clean up any observers
-    vi.clearAllMocks()
-  })
-
-  it('renders an image', () => {
+  it('renders an svg', () => {
     render(<Logo />)
-    const img = screen.getByAltText('Knutpunkt Logo')
-    expect(img).toBeInTheDocument()
+    const svg = screen.getByRole('img', { name: 'Knutpunkt Logo' })
+    expect(svg).toBeInTheDocument()
+    expect(svg.tagName).toBe('svg')
   })
 
-  it('has correct alt text', () => {
+  it('has correct aria-label', () => {
     render(<Logo />)
-    const img = screen.getByAltText('Knutpunkt Logo')
-    expect(img).toHaveAttribute('alt', 'Knutpunkt Logo')
+    const svg = screen.getByRole('img', { name: 'Knutpunkt Logo' })
+    expect(svg).toHaveAttribute('aria-label', 'Knutpunkt Logo')
   })
 
   describe('size variants', () => {
     it('renders small size', () => {
       render(<Logo size="small" />)
-      const img = screen.getByAltText('Knutpunkt Logo')
-      expect(img).toHaveClass('h-6')
+      const svg = screen.getByRole('img', { name: 'Knutpunkt Logo' })
+      expect(svg).toHaveClass('h-6')
     })
 
     it('renders medium size (default)', () => {
       render(<Logo />)
-      const img = screen.getByAltText('Knutpunkt Logo')
-      expect(img).toHaveClass('h-10')
+      const svg = screen.getByRole('img', { name: 'Knutpunkt Logo' })
+      expect(svg).toHaveClass('h-10')
     })
 
     it('renders large size', () => {
       render(<Logo size="large" />)
-      const img = screen.getByAltText('Knutpunkt Logo')
-      expect(img).toHaveClass('h-16')
+      const svg = screen.getByRole('img', { name: 'Knutpunkt Logo' })
+      expect(svg).toHaveClass('h-16')
     })
 
     it('always has w-auto class', () => {
       render(<Logo />)
-      const img = screen.getByAltText('Knutpunkt Logo')
-      expect(img).toHaveClass('w-auto')
+      const svg = screen.getByRole('img', { name: 'Knutpunkt Logo' })
+      expect(svg).toHaveClass('w-auto')
     })
   })
 
-  describe('theme adaptation', () => {
-    it('uses gray logo in dark mode', () => {
-      document.documentElement.classList.add('dark')
+  describe('color customization', () => {
+    it('uses currentColor by default', () => {
       render(<Logo />)
-      const img = screen.getByAltText('Knutpunkt Logo')
-      expect(img).toHaveAttribute('src', '/logo-gray.svg')
+      const svg = screen.getByRole('img', { name: 'Knutpunkt Logo' })
+      const gElement = svg.querySelector('g')
+      expect(gElement).toHaveAttribute('fill', 'currentColor')
     })
 
-    it('uses black logo in light mode', () => {
-      document.documentElement.classList.remove('dark')
-      render(<Logo />)
-      const img = screen.getByAltText('Knutpunkt Logo')
-      expect(img).toHaveAttribute('src', '/logo-black.svg')
+    it('accepts custom color prop', () => {
+      render(<Logo color="#ff0000" />)
+      const svg = screen.getByRole('img', { name: 'Knutpunkt Logo' })
+      const gElement = svg.querySelector('g')
+      expect(gElement).toHaveAttribute('fill', '#ff0000')
     })
 
-    it('switches logo when theme changes', async () => {
-      render(<Logo />)
-      const img = screen.getByAltText('Knutpunkt Logo')
-
-      // Initially light (no dark class)
-      expect(img).toHaveAttribute('src', '/logo-black.svg')
-
-      // Add dark class to trigger theme change
-      document.documentElement.classList.add('dark')
-
-      // Wait for the MutationObserver to trigger
-      await waitFor(() => {
-        expect(img).toHaveAttribute('src', '/logo-gray.svg')
-      })
-
-      // Remove dark class
-      document.documentElement.classList.remove('dark')
-
-      // Wait for switch back to light
-      await waitFor(() => {
-        expect(img).toHaveAttribute('src', '/logo-black.svg')
+    it('applies color to all path groups', () => {
+      const customColor = '#00ff00'
+      render(<Logo color={customColor} />)
+      const svg = screen.getByRole('img', { name: 'Knutpunkt Logo' })
+      const gElements = svg.querySelectorAll('g')
+      gElements.forEach((g) => {
+        expect(g).toHaveAttribute('fill', customColor)
       })
     })
   })
@@ -94,20 +71,21 @@ describe('Logo', () => {
   describe('custom props', () => {
     it('accepts custom className', () => {
       render(<Logo className="custom-class" />)
-      const img = screen.getByAltText('Knutpunkt Logo')
-      expect(img).toHaveClass('custom-class')
+      const svg = screen.getByRole('img', { name: 'Knutpunkt Logo' })
+      expect(svg).toHaveClass('custom-class')
     })
 
     it('merges custom className with default classes', () => {
       render(<Logo size="small" className="my-4" />)
-      const img = screen.getByAltText('Knutpunkt Logo')
-      expect(img).toHaveClass('h-6', 'w-auto', 'my-4')
+      const svg = screen.getByRole('img', { name: 'Knutpunkt Logo' })
+      expect(svg).toHaveClass('h-6', 'w-auto', 'my-4')
     })
 
-    it('accepts additional img attributes', () => {
+    it('accepts additional svg attributes', () => {
       render(<Logo data-testid="custom-logo" />)
-      const img = screen.getByTestId('custom-logo')
-      expect(img).toBeInTheDocument()
+      const svg = screen.getByTestId('custom-logo')
+      expect(svg).toBeInTheDocument()
+      expect(svg.tagName).toBe('svg')
     })
   })
 })
