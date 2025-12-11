@@ -26,7 +26,13 @@ export function Logo({ size = 'medium', color, className, ...props }: LogoProps)
       className={cn('w-auto', sizeMap[size], className)}
       aria-label="Knutpunkt Logo"
       role="img"
-      style={{ fillRule: 'evenodd', clipRule: 'evenodd', strokeLinejoin: 'round', strokeMiterlimit: 2 }}
+      style={{
+        fillRule: 'evenodd',
+        clipRule: 'evenodd',
+        strokeLinejoin: 'round',
+        strokeMiterlimit: 2,
+        filter: 'drop-shadow(0 0 2px currentColor)'
+      }}
       {...props}
     >
       <g transform="matrix(1,0,0,1,-199.402,-376.706)" fill={color || 'currentColor'}>
