@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Dialog,
@@ -11,7 +11,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { MarkdownEditor } from '@/components/ui/markdown-editor'
+import { MarkdownEditor, type MarkdownEditorRef } from '@/components/ui/markdown-editor'
 import {
   Select,
   SelectContent,
@@ -23,13 +23,13 @@ import { Badge } from '@/components/ui/badge'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { ChevronDown, X } from 'lucide-react'
 import { api, type Task, type TaskStatus, type TaskPriority } from '@/lib/api'
+import { useSettings } from '@/hooks/useSettings'
 
 interface TaskDialogProps {
   mode: 'create' | 'edit'
   task?: Task
   open: boolean
   onOpenChange: (open: boolean) => void
-  enableVimMode?: boolean
   readOnly?: boolean
 }
 
@@ -56,8 +56,22 @@ const DEFAULT_FORM_DATA = {
   categories: [] as string[],
 }
 
-export function TaskDialog({ mode, task, open, onOpenChange, enableVimMode = false, readOnly = false }: TaskDialogProps) {
+export function TaskDialog({ mode, task, open, onOpenChange, readOnly = false }: TaskDialogProps) {
   const queryClient = useQueryClient()
+  const [settings] = useSettings()
+  const editorRef = useRef<MarkdownEditorRef>(null)
+
+  // Intercept dialog close attempts when editor has focus and is in INSERT mode
+  const handleOpenChange = useCallback((newOpen: boolean) => {
+    // If dialog is trying to close and editor is in VIM INSERT mode, exit INSERT mode instead
+    if (!newOpen && editorRef.current?.hasFocus() && editorRef.current?.isInsertMode()) {
+      editorRef.current.handleVimEscape()
+      return
+    }
+
+    // Otherwise, allow the state change
+    onOpenChange(newOpen)
+  }, [onOpenChange])
 
   // Initialize form data based on mode
   const getInitialFormData = () => {
@@ -191,7 +205,7 @@ export function TaskDialog({ mode, task, open, onOpenChange, enableVimMode = fal
   const pendingButtonText = mode === 'create' ? 'Creating...' : 'Saving...'
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent size="xl" className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{dialogTitle}</DialogTitle>
@@ -217,10 +231,11 @@ export function TaskDialog({ mode, task, open, onOpenChange, enableVimMode = fal
           <div className="space-y-2">
             <Label htmlFor="description">Description</Label>
             <MarkdownEditor
+              ref={editorRef}
               id="description"
               value={formData.description}
               onChange={(value) => setFormData({ ...formData, description: value })}
-              vimMode={enableVimMode}
+              vimMode={settings.vimMode}
               readOnly={readOnly}
             />
           </div>

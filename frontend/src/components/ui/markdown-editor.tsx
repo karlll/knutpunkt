@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, forwardRef, useImperativeHandle } from 'react'
 import { EditorView, basicSetup } from 'codemirror'
 import { markdown } from '@codemirror/lang-markdown'
 import { vim } from '@replit/codemirror-vim'
@@ -14,17 +14,62 @@ interface MarkdownEditorProps {
   id?: string
 }
 
-export function MarkdownEditor({
+export interface MarkdownEditorRef {
+  handleVimEscape: () => void
+  hasFocus: () => boolean
+  isInsertMode: () => boolean
+}
+
+export const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>(({
   value,
   onChange,
   vimMode = false,
   readOnly = false,
   className,
   id,
-}: MarkdownEditorProps) {
+}, ref) => {
   const editorRef = useRef<HTMLDivElement>(null)
   const viewRef = useRef<EditorView | null>(null)
   const onChangeRef = useRef(onChange)
+
+  // Expose methods to parent via ref
+  useImperativeHandle(ref, () => ({
+    handleVimEscape: () => {
+      if (viewRef.current && vimMode) {
+        const view = viewRef.current
+        const anyView = view as any
+
+        try {
+          if (anyView.cm?.state?.vim) {
+            const vimState = anyView.cm.state.vim
+
+            // Exit insert mode if currently in insert mode
+            if (vimState.insertMode) {
+              vimState.insertMode = false
+              vimState.mode = 'normal'
+
+              // Trigger view updates to notify VIM of the state change
+              view.requestMeasure()
+              view.update([])
+              view.focus()
+            }
+          }
+        } catch (error) {
+          console.error('[MarkdownEditor] Error exiting VIM insert mode:', error)
+        }
+      }
+    },
+    hasFocus: () => {
+      return viewRef.current?.hasFocus ?? false
+    },
+    isInsertMode: () => {
+      if (!viewRef.current || !vimMode) {
+        return false
+      }
+      const anyView = viewRef.current as any
+      return anyView.cm?.state?.vim?.insertMode ?? false
+    },
+  }), [vimMode])
 
   // Keep onChange ref up to date
   useEffect(() => {
@@ -107,4 +152,6 @@ export function MarkdownEditor({
       ref={editorRef}
     />
   )
-}
+})
+
+MarkdownEditor.displayName = 'MarkdownEditor'
