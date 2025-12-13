@@ -45,8 +45,8 @@ export const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>
     exitVimInsertMode: () => {
       if (!viewRef.current || !vimMode) return
       const cm = getCM(viewRef.current)
-      if (cm) {
-        Vim.exitInsertMode(cm)
+      if (cm && cm.state.vim) {
+        Vim.exitInsertMode(cm as any)
         viewRef.current.focus()
       }
     },
