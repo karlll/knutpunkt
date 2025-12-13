@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Dialog,
@@ -8,6 +8,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -56,21 +66,24 @@ const DEFAULT_FORM_DATA = {
   categories: [] as string[],
 }
 
+// Helper function to compare arrays
+function arraysEqual(a: string[], b: string[]): boolean {
+  if (a.length !== b.length) return false
+  const sortedA = [...a].sort()
+  const sortedB = [...b].sort()
+  return sortedA.every((val, index) => val === sortedB[index])
+}
+
 export function TaskDialog({ mode, task, open, onOpenChange, readOnly = false }: TaskDialogProps) {
   const queryClient = useQueryClient()
   const [settings] = useSettings()
   const editorRef = useRef<MarkdownEditorRef>(null)
 
-  // VIM Escape handling: use onEscapeKeyDown to intercept before Dialog closes
-  const handleEscapeKeyDown = useCallback((event: KeyboardEvent) => {
-    if (editorRef.current?.isVimInsertMode()) {
-      // In INSERT mode: prevent Dialog from closing and manually exit INSERT mode
-      event.preventDefault()
-      event.stopPropagation() // Stop event since we're handling VIM manually
-      editorRef.current.exitVimInsertMode() // Use VIM's official API
-    }
-    // If not in INSERT mode, Dialog will close normally
-  }, [])
+  // Store initial form data for unsaved changes detection
+  const initialFormDataRef = useRef(DEFAULT_FORM_DATA)
+
+  // State for confirmation dialog
+  const [showConfirmClose, setShowConfirmClose] = useState(false)
 
   // Initialize form data based on mode
   const getInitialFormData = () => {
@@ -95,11 +108,61 @@ export function TaskDialog({ mode, task, open, onOpenChange, readOnly = false }:
   // Reset form data when dialog opens or mode/task changes
   useEffect(() => {
     if (open) {
-      setFormData(getInitialFormData())
+      const initial = getInitialFormData()
+      setFormData(initial)
+      initialFormDataRef.current = initial
       setNewAssignee('')
       setNewCategory('')
+      setShowConfirmClose(false)
     }
   }, [open, mode, task?.id])
+
+  // Check for unsaved changes
+  const hasUnsavedChanges = useMemo(() => {
+    if (readOnly) return false
+
+    const initial = initialFormDataRef.current
+    const current = formData
+
+    return (
+      initial.title !== current.title ||
+      initial.description !== current.description ||
+      initial.status !== current.status ||
+      initial.priority !== current.priority ||
+      !arraysEqual(initial.assignees, current.assignees) ||
+      !arraysEqual(initial.categories, current.categories)
+    )
+  }, [formData, readOnly])
+
+  // Handle close attempt (for Cancel button)
+  const handleCloseAttempt = useCallback(() => {
+    if (hasUnsavedChanges) {
+      setShowConfirmClose(true)
+    } else {
+      onOpenChange(false)
+    }
+  }, [hasUnsavedChanges, onOpenChange])
+
+  // Confirm close (discard changes)
+  const handleConfirmClose = useCallback(() => {
+    setShowConfirmClose(false)
+    onOpenChange(false)
+  }, [onOpenChange])
+
+  // VIM Escape handling: use onEscapeKeyDown to intercept before Dialog closes
+  const handleEscapeKeyDown = useCallback((event: KeyboardEvent) => {
+    if (editorRef.current?.isVimInsertMode()) {
+      // In INSERT mode: prevent Dialog from closing and manually exit INSERT mode
+      event.preventDefault()
+      event.stopPropagation() // Stop event since we're handling VIM manually
+      editorRef.current.exitVimInsertMode() // Use VIM's official API
+    } else if (hasUnsavedChanges) {
+      // If not in VIM INSERT mode but has unsaved changes, show confirmation
+      event.preventDefault()
+      setShowConfirmClose(true)
+    }
+    // If no VIM INSERT mode and no unsaved changes, Dialog will close normally
+  }, [hasUnsavedChanges])
 
   const createTaskMutation = useMutation({
     mutationFn: (data: typeof formData) =>
@@ -204,6 +267,7 @@ export function TaskDialog({ mode, task, open, onOpenChange, readOnly = false }:
   const pendingButtonText = mode === 'create' ? 'Creating...' : 'Saving...'
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         size="xl"
@@ -402,7 +466,7 @@ export function TaskDialog({ mode, task, open, onOpenChange, readOnly = false }:
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => onOpenChange(false)}
+                  onClick={handleCloseAttempt}
                 >
                   Cancel
                 </Button>
@@ -415,5 +479,24 @@ export function TaskDialog({ mode, task, open, onOpenChange, readOnly = false }:
         </form>
       </DialogContent>
     </Dialog>
+
+    {/* Confirmation dialog for unsaved changes */}
+    <AlertDialog open={showConfirmClose} onOpenChange={setShowConfirmClose}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Unsaved Changes</AlertDialogTitle>
+          <AlertDialogDescription>
+            There's unsaved changes. Close anyway?
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={handleConfirmClose}>
+            Close Anyway
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   )
 }

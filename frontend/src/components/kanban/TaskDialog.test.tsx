@@ -298,4 +298,161 @@ describe('TaskDialog', () => {
     // We just verify the component renders without errors
     expect(screen.getByText('View Task')).toBeInTheDocument()
   })
+
+  describe('unsaved changes detection', () => {
+    it('allows closing without confirmation when no changes made', async () => {
+      const user = userEvent.setup()
+      const onOpenChange = vi.fn()
+
+      render(
+        <TaskDialog mode="create" open={true} onOpenChange={onOpenChange} />,
+        { wrapper: createWrapper() }
+      )
+
+      const cancelButton = screen.getByRole('button', { name: /cancel/i })
+      await user.click(cancelButton)
+
+      // Should close directly without showing confirmation
+      expect(onOpenChange).toHaveBeenCalledWith(false)
+      expect(screen.queryByText('Unsaved Changes')).not.toBeInTheDocument()
+    })
+
+    it('shows confirmation when closing with unsaved title changes via Cancel button', async () => {
+      const user = userEvent.setup()
+      const onOpenChange = vi.fn()
+
+      render(
+        <TaskDialog mode="create" open={true} onOpenChange={onOpenChange} />,
+        { wrapper: createWrapper() }
+      )
+
+      // Make a change to the title
+      const titleInput = screen.getByLabelText(/title/i)
+      await user.clear(titleInput)
+      await user.type(titleInput, 'Modified Task Title')
+
+      // Try to cancel
+      const cancelButton = screen.getByRole('button', { name: /cancel/i })
+      await user.click(cancelButton)
+
+      // Should show confirmation dialog
+      await waitFor(() => {
+        expect(screen.getByText('Unsaved Changes')).toBeInTheDocument()
+        expect(screen.getByText("There's unsaved changes. Close anyway?")).toBeInTheDocument()
+      })
+
+      // Should not have closed the main dialog yet
+      expect(onOpenChange).not.toHaveBeenCalledWith(false)
+    })
+
+    it('stays open when clicking Cancel in confirmation dialog', async () => {
+      const user = userEvent.setup()
+      const onOpenChange = vi.fn()
+
+      render(
+        <TaskDialog mode="create" open={true} onOpenChange={onOpenChange} />,
+        { wrapper: createWrapper() }
+      )
+
+      // Make a change
+      const titleInput = screen.getByLabelText(/title/i)
+      await user.clear(titleInput)
+      await user.type(titleInput, 'Modified')
+
+      // Try to cancel
+      const cancelButton = screen.getByRole('button', { name: /cancel/i })
+      await user.click(cancelButton)
+
+      // Confirmation should appear
+      await waitFor(() => {
+        expect(screen.getByText('Unsaved Changes')).toBeInTheDocument()
+      })
+
+      // Click Cancel in confirmation dialog (find all cancel buttons, last one is the confirmation)
+      const cancelButtons = screen.getAllByRole('button', { name: /cancel/i })
+      const confirmCancelButton = cancelButtons[cancelButtons.length - 1]
+      await user.click(confirmCancelButton)
+
+      // Should hide confirmation and keep main dialog open
+      await waitFor(() => {
+        expect(screen.queryByText('Unsaved Changes')).not.toBeInTheDocument()
+      })
+      expect(onOpenChange).not.toHaveBeenCalledWith(false)
+      expect(screen.getByText('Create New Task')).toBeInTheDocument()
+    })
+
+    it('closes when clicking Close Anyway in confirmation dialog', async () => {
+      const user = userEvent.setup()
+      const onOpenChange = vi.fn()
+
+      render(
+        <TaskDialog mode="create" open={true} onOpenChange={onOpenChange} />,
+        { wrapper: createWrapper() }
+      )
+
+      // Make a change
+      const titleInput = screen.getByLabelText(/title/i)
+      await user.clear(titleInput)
+      await user.type(titleInput, 'Modified')
+
+      // Try to cancel
+      const cancelButton = screen.getByRole('button', { name: /cancel/i })
+      await user.click(cancelButton)
+
+      // Confirmation should appear
+      await waitFor(() => {
+        expect(screen.getByText('Unsaved Changes')).toBeInTheDocument()
+      })
+
+      // Click Close Anyway
+      const closeAnywayButton = screen.getByRole('button', { name: /close anyway/i })
+      await user.click(closeAnywayButton)
+
+      // Should close the dialog
+      expect(onOpenChange).toHaveBeenCalledWith(false)
+    })
+
+    it('detects changes in title field', async () => {
+      const user = userEvent.setup()
+      const onOpenChange = vi.fn()
+
+      render(
+        <TaskDialog mode="edit" task={mockTask} open={true} onOpenChange={onOpenChange} />,
+        { wrapper: createWrapper() }
+      )
+
+      // Modify title
+      const titleInput = screen.getByLabelText(/title/i)
+      await user.clear(titleInput)
+      await user.type(titleInput, 'Changed Title')
+
+      // Try to cancel
+      const cancelButton = screen.getByRole('button', { name: /cancel/i })
+      await user.click(cancelButton)
+
+      // Should show confirmation
+      await waitFor(() => {
+        expect(screen.getByText('Unsaved Changes')).toBeInTheDocument()
+      })
+    })
+
+    it('does not show confirmation in read-only mode', async () => {
+      const user = userEvent.setup()
+      const onOpenChange = vi.fn()
+
+      render(
+        <TaskDialog mode="edit" task={mockTask} open={true} onOpenChange={onOpenChange} readOnly={true} />,
+        { wrapper: createWrapper() }
+      )
+
+      // Click close button
+      const closeButtons = screen.getAllByRole('button', { name: /close/i })
+      const footerCloseButton = closeButtons[closeButtons.length - 1]
+      await user.click(footerCloseButton)
+
+      // Should close without confirmation
+      expect(onOpenChange).toHaveBeenCalledWith(false)
+      expect(screen.queryByText('Unsaved Changes')).not.toBeInTheDocument()
+    })
+  })
 })
