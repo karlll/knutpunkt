@@ -110,7 +110,7 @@ private suspend fun DefaultWebSocketServerSession.readPtyOutput(
             }
         }
         
-        logger.debug("PTY output reader finished for session $sessionId (read $bytesRead bytes total)")
+        logger.debug("PTY output reader finished for session $sessionId")
     } catch (e: Exception) {
         logger.error("Error in PTY output reader for session $sessionId: ${e.message}", e)
         throw e
