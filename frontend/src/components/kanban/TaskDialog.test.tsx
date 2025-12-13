@@ -187,16 +187,17 @@ describe('TaskDialog', () => {
     expect(screen.getByText('Description')).toBeInTheDocument()
   })
 
-  it('respects enableVimMode prop', () => {
+  it('uses VIM mode from settings hook', () => {
     const onOpenChange = vi.fn()
 
     render(
-      <TaskDialog mode="create" open={true} onOpenChange={onOpenChange} enableVimMode={true} />,
+      <TaskDialog mode="create" open={true} onOpenChange={onOpenChange} />,
       { wrapper: createWrapper() }
     )
 
     // The MarkdownEditor should be rendered (description label exists)
     expect(screen.getByText('Description')).toBeInTheDocument()
+    // VIM mode is now controlled by useSettings hook, not a prop
   })
 
   it('renders in read-only mode', () => {

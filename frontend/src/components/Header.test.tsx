@@ -78,20 +78,48 @@ describe('Header', () => {
     })
   })
 
-  describe('Theme toggle', () => {
-    it('renders the theme toggle button', async () => {
+  describe('Action buttons', () => {
+    it('renders settings and theme toggle buttons', async () => {
       render(<Header />)
       await waitFor(() => {}) // Let Logo effects settle
-      const themeButton = screen.getByRole('button')
-      expect(themeButton).toBeInTheDocument()
+      const buttons = screen.getAllByRole('button')
+      expect(buttons).toHaveLength(2) // Settings + Theme toggle
     })
 
-    it('theme toggle is positioned on the right', async () => {
+    it('renders settings button with proper title', async () => {
+      render(<Header />)
+      await waitFor(() => {}) // Let Logo effects settle
+      const settingsButton = screen.getByRole('button', { name: /settings/i })
+      expect(settingsButton).toHaveAttribute('title', 'Settings')
+    })
+
+    it('renders theme toggle button', async () => {
+      render(<Header />)
+      await waitFor(() => {}) // Let Logo effects settle
+      const buttons = screen.getAllByRole('button')
+      expect(buttons.length).toBeGreaterThanOrEqual(1)
+    })
+
+    it('action buttons are positioned on the right', async () => {
       const { container } = render(<Header />)
       await waitFor(() => {}) // Let Logo effects settle
       const header = container.querySelector('header')
       const innerContainer = header?.querySelector('div')
       expect(innerContainer).toHaveClass('justify-between')
+    })
+
+    it('opens settings dialog when settings button is clicked', async () => {
+      const user = userEvent.setup()
+      render(<Header />)
+      await waitFor(() => {}) // Let Logo effects settle
+
+      const settingsButton = screen.getByRole('button', { name: /settings/i })
+      await user.click(settingsButton)
+
+      // Dialog should open
+      await waitFor(() => {
+        expect(screen.getByRole('dialog')).toBeInTheDocument()
+      })
     })
   })
 
@@ -172,7 +200,7 @@ describe('Header', () => {
       render(<Header />)
       await waitFor(() => {}) // Let Logo effects settle
       const buttons = screen.getAllByRole('button')
-      expect(buttons).toHaveLength(1) // Only theme toggle
+      expect(buttons).toHaveLength(2) // Settings + Theme toggle
     })
 
     it('renders create button when onCreateTask is provided', async () => {
@@ -180,7 +208,7 @@ describe('Header', () => {
       render(<Header onCreateTask={onCreateTask} />)
       await waitFor(() => {}) // Let Logo effects settle
       const buttons = screen.getAllByRole('button')
-      expect(buttons).toHaveLength(2) // Theme toggle + create button
+      expect(buttons).toHaveLength(3) // Create + Settings + Theme toggle
     })
 
     it('calls onCreateTask when create button is clicked', async () => {
@@ -209,7 +237,7 @@ describe('Header', () => {
       expect(createButton).toHaveAttribute('title', 'Create new task')
     })
 
-    it('positions create button and theme toggle together', async () => {
+    it('positions create button, settings, and theme toggle together', async () => {
       const onCreateTask = vi.fn()
       const { container } = render(<Header onCreateTask={onCreateTask} />)
       await waitFor(() => {}) // Let Logo effects settle

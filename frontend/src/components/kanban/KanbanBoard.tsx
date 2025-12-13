@@ -16,6 +16,7 @@ import { TaskDialog } from './TaskDialog'
 import { Header } from '@/components/Header'
 import { api, type Task, type TaskStatus } from '@/lib/api'
 import { applyDragResult, type DragPosition } from './dndLogic'
+import { useSettings } from '@/hooks/useSettings'
 
 const COLUMNS: { status: TaskStatus; title: string }[] = [
   { status: 'planned', title: 'Planned' },
@@ -75,6 +76,7 @@ export function KanbanBoard() {
   const [originalTask, setOriginalTask] = useState<Task | null>(null)
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const queryClient = useQueryClient()
+  const [settings] = useSettings()
 
   // Fetch all tasks
   const { data: tasks = [], isLoading } = useQuery({
@@ -218,7 +220,7 @@ export function KanbanBoard() {
                 status={column.status}
                 title={column.title}
                 tasks={tasksByStatus[column.status]}
-                maxVisibleTasks={column.status === 'done' ? 5 : undefined}
+                maxVisibleTasks={column.status === 'done' ? settings.maxDoneTasksVisible : undefined}
               />
             ))}
           </div>
