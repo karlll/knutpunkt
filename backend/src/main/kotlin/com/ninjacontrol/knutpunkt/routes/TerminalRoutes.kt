@@ -6,7 +6,6 @@ import io.ktor.server.routing.*
 import io.ktor.server.websocket.*
 import io.ktor.websocket.*
 import kotlinx.coroutines.*
-import kotlinx.coroutines.selects.select
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
@@ -46,50 +45,27 @@ fun Route.terminalRoutes(terminalService: TerminalService) {
                 }
             }
             
-            // Launch coroutine to handle incoming WebSocket messages
-            val inputJob = launch {
-                try {
-                    for (frame in incoming) {
-                        when (frame) {
-                            is Frame.Text -> {
-                                val text = frame.readText()
-                                handleMessage(text, session.ptyProcess.outputStream, terminalService, sessionId)
-                            }
-                            is Frame.Close -> {
-                                logger.info("WebSocket close frame received for session $sessionId")
-                                break
-                            }
-                            else -> {
-                                logger.debug("Ignoring non-text frame for session $sessionId")
-                            }
-                        }
-                    }
-                } catch (e: CancellationException) {
-                    logger.debug("Input handler cancelled for session $sessionId")
-                } catch (e: Exception) {
-                    logger.error("Error handling WebSocket messages for session $sessionId", e)
-                }
-            }
-            
-            // Wait for either job to complete (PTY process exit or WebSocket close)
+            // Handle incoming WebSocket messages in the main coroutine
             try {
-                logger.debug("Waiting for jobs to complete for session $sessionId")
-                // Wait for either direction to finish
-                select<Unit> {
-                    outputJob.onJoin {
-                        logger.debug("Output job completed for session $sessionId")
-                    }
-                    inputJob.onJoin {
-                        logger.debug("Input job completed for session $sessionId")
+                for (frame in incoming) {
+                    when (frame) {
+                        is Frame.Text -> {
+                            val text = frame.readText()
+                            handleMessage(text, session.ptyProcess.outputStream, terminalService, sessionId)
+                        }
+                        is Frame.Close -> {
+                            logger.info("WebSocket close frame received for session $sessionId")
+                            break
+                        }
+                        else -> {
+                            logger.debug("Ignoring non-text frame for session $sessionId")
+                        }
                     }
                 }
             } finally {
-                // Cancel both jobs when one finishes
-                logger.debug("Cleaning up jobs for session $sessionId")
+                // WebSocket closed - cancel output job
+                logger.debug("WebSocket closed, cleaning up for session $sessionId")
                 outputJob.cancel()
-                inputJob.cancel()
-                outputJob.join()
-                inputJob.join()
             }
             
         } catch (e: Exception) {
@@ -113,38 +89,24 @@ private suspend fun DefaultWebSocketServerSession.readPtyOutput(
     
     try {
         logger.debug("Starting PTY output reader for session $sessionId")
-        var bytesRead = 0
         
         while (isActive) {
-            // Check if data is available (non-blocking)
-            val available = withContext(Dispatchers.IO) {
-                inputStream.available()
+            // Use blocking read - will wait for data or stream close
+            val len = withContext(Dispatchers.IO) {
+                inputStream.read(buffer)
             }
             
-            if (available > 0) {
-                // Read available data
-                val len = withContext(Dispatchers.IO) {
-                    inputStream.read(buffer, 0, minOf(available, buffer.size))
-                }
-                
-                if (len > 0) {
-                    bytesRead += len
-                    val output = String(buffer, 0, len, Charsets.UTF_8)
-                    logger.debug("Read $len bytes from PTY (total: $bytesRead)")
-                    
-                    val message = TerminalMessage(type = "output", data = output)
-                    send(Frame.Text(Json.encodeToString(message)))
-                    terminalService.updateActivity(sessionId)
-                } else if (len < 0) {
-                    // End of stream
-                    logger.info("PTY stream ended for session $sessionId")
-                    val exitMessage = TerminalMessage(type = "exit", code = 0)
-                    send(Frame.Text(Json.encodeToString(exitMessage)))
-                    break
-                }
-            } else {
-                // No data available, wait a bit before checking again
-                delay(50)
+            if (len > 0) {
+                val output = String(buffer, 0, len, Charsets.UTF_8)
+                val message = TerminalMessage(type = "output", data = output)
+                send(Frame.Text(Json.encodeToString(message)))
+                terminalService.updateActivity(sessionId)
+            } else if (len < 0) {
+                // End of stream
+                logger.info("PTY stream ended for session $sessionId")
+                val exitMessage = TerminalMessage(type = "exit", code = 0)
+                send(Frame.Text(Json.encodeToString(exitMessage)))
+                break
             }
         }
         

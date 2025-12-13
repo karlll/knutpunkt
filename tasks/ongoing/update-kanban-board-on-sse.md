@@ -3,8 +3,9 @@ id: "7f773944-1e89-4137-abcc-6070b3f33209"
 number: 17
 title: "Update Kanban board on SSE "
 createdAt: "2025-12-05T21:33:44.776318Z"
-updatedAt: "2025-12-05T21:33:44.776318Z"
-assignees: []
+updatedAt: "2025-12-13T16:26:44.869528Z"
+assignees:
+- "Claude Code"
 categories:
 - "frontend"
 priority: "medium"
@@ -19,7 +20,6 @@ The backend will emit SSE's on updates made to the tasks. This is to inform inte
 
 ## Requirements
 
-- Update frontend API client according to latest changes in the OpenAPI spec
 - When receiving an SSE, the kanban board should be updated
   - fetch the tasks
   - update the columns in the kanban board
@@ -27,6 +27,6 @@ The backend will emit SSE's on updates made to the tasks. This is to inform inte
 
 ## Acceptance Criteria
 
-- [ ] Kanban board contnet is refreshed when a task is updated by another client (or updated manually)
+- [ ] Kanban board content is refreshed when a task is updated by another client (or updated manually)
 - [ ] New tests are created
 - [ ] Old and new test are executed and are passing
