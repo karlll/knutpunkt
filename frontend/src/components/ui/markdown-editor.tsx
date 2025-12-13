@@ -1,7 +1,7 @@
 import { useEffect, useRef, forwardRef, useImperativeHandle } from 'react'
 import { EditorView, basicSetup } from 'codemirror'
 import { markdown } from '@codemirror/lang-markdown'
-import { vim } from '@replit/codemirror-vim'
+import { vim, Vim, getCM } from '@replit/codemirror-vim'
 import { oneDark } from '@codemirror/theme-one-dark'
 import { cn } from '@/lib/utils'
 
@@ -15,9 +15,9 @@ interface MarkdownEditorProps {
 }
 
 export interface MarkdownEditorRef {
-  handleVimEscape: () => void
   hasFocus: () => boolean
-  isInsertMode: () => boolean
+  isVimInsertMode: () => boolean
+  exitVimInsertMode: () => void
 }
 
 export const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>(({
@@ -34,40 +34,21 @@ export const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>
 
   // Expose methods to parent via ref
   useImperativeHandle(ref, () => ({
-    handleVimEscape: () => {
-      if (viewRef.current && vimMode) {
-        const view = viewRef.current
-        const anyView = view as any
-
-        try {
-          if (anyView.cm?.state?.vim) {
-            const vimState = anyView.cm.state.vim
-
-            // Exit insert mode if currently in insert mode
-            if (vimState.insertMode) {
-              vimState.insertMode = false
-              vimState.mode = 'normal'
-
-              // Trigger view updates to notify VIM of the state change
-              view.requestMeasure()
-              view.update([])
-              view.focus()
-            }
-          }
-        } catch (error) {
-          console.error('[MarkdownEditor] Error exiting VIM insert mode:', error)
-        }
-      }
-    },
     hasFocus: () => {
       return viewRef.current?.hasFocus ?? false
     },
-    isInsertMode: () => {
-      if (!viewRef.current || !vimMode) {
-        return false
+    isVimInsertMode: () => {
+      if (!viewRef.current || !vimMode) return false
+      const vimState = (viewRef.current as any).cm?.state?.vim
+      return vimState?.insertMode ?? false
+    },
+    exitVimInsertMode: () => {
+      if (!viewRef.current || !vimMode) return
+      const cm = getCM(viewRef.current)
+      if (cm) {
+        Vim.exitInsertMode(cm)
+        viewRef.current.focus()
       }
-      const anyView = viewRef.current as any
-      return anyView.cm?.state?.vim?.insertMode ?? false
     },
   }), [vimMode])
 

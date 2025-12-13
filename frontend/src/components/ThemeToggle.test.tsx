@@ -18,7 +18,8 @@ describe('ThemeToggle', () => {
   it('starts with dark mode enabled', () => {
     render(<ThemeToggle />)
     const button = screen.getByRole('button')
-    expect(button).toHaveTextContent('☀️')
+    // Should show Sun icon in dark mode (to switch to light)
+    expect(button.querySelector('svg')).toBeInTheDocument()
     expect(button).toHaveAttribute('title', 'Switch to light mode')
   })
 
@@ -33,19 +34,16 @@ describe('ThemeToggle', () => {
     const button = screen.getByRole('button')
 
     // Initial state: dark mode
-    //expect(button).toHaveTextContent('☀️')
     expect(document.documentElement.classList.contains('dark')).toBe(true)
 
     // Click to switch to light mode
     await user.click(button)
-    //expect(button).toHaveTextContent('🌙')
     expect(button).toHaveAttribute('title', 'Switch to dark mode')
     expect(document.documentElement.classList.contains('light')).toBe(true)
     expect(document.documentElement.classList.contains('dark')).toBe(false)
 
     // Click again to switch back to dark mode
     await user.click(button)
-    expect(button).toHaveTextContent('☀️')
     expect(button).toHaveAttribute('title', 'Switch to light mode')
     expect(document.documentElement.classList.contains('dark')).toBe(true)
     expect(document.documentElement.classList.contains('light')).toBe(false)

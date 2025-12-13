@@ -61,17 +61,16 @@ export function TaskDialog({ mode, task, open, onOpenChange, readOnly = false }:
   const [settings] = useSettings()
   const editorRef = useRef<MarkdownEditorRef>(null)
 
-  // Intercept dialog close attempts when editor has focus and is in INSERT mode
-  const handleOpenChange = useCallback((newOpen: boolean) => {
-    // If dialog is trying to close and editor is in VIM INSERT mode, exit INSERT mode instead
-    if (!newOpen && editorRef.current?.hasFocus() && editorRef.current?.isInsertMode()) {
-      editorRef.current.handleVimEscape()
-      return
+  // VIM Escape handling: use onEscapeKeyDown to intercept before Dialog closes
+  const handleEscapeKeyDown = useCallback((event: KeyboardEvent) => {
+    if (editorRef.current?.isVimInsertMode()) {
+      // In INSERT mode: prevent Dialog from closing and manually exit INSERT mode
+      event.preventDefault()
+      event.stopPropagation() // Stop event since we're handling VIM manually
+      editorRef.current.exitVimInsertMode() // Use VIM's official API
     }
-
-    // Otherwise, allow the state change
-    onOpenChange(newOpen)
-  }, [onOpenChange])
+    // If not in INSERT mode, Dialog will close normally
+  }, [])
 
   // Initialize form data based on mode
   const getInitialFormData = () => {
@@ -205,8 +204,12 @@ export function TaskDialog({ mode, task, open, onOpenChange, readOnly = false }:
   const pendingButtonText = mode === 'create' ? 'Creating...' : 'Saving...'
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent size="xl" className="max-h-[90vh] overflow-y-auto">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
+        size="xl"
+        className="max-h-[90vh] overflow-y-auto"
+        onEscapeKeyDown={handleEscapeKeyDown}
+      >
         <DialogHeader>
           <DialogTitle>{dialogTitle}</DialogTitle>
           <DialogDescription>

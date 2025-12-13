@@ -3,8 +3,9 @@ id: "577da613-bdf5-425e-a199-b6777e8d8980"
 number: 24
 title: "Settings component"
 createdAt: "2025-12-06T20:29:21.044976Z"
-updatedAt: "2025-12-06T20:29:21.044976Z"
-assignees: []
+updatedAt: "2025-12-13T08:27:14.147855Z"
+assignees:
+- "Claude Code"
 categories: []
 priority: "medium"
 order: 1
