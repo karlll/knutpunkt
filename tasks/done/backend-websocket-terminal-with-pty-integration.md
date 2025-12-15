@@ -3,7 +3,7 @@ id: "733b4ba2-09b2-42ed-977a-26f8700ed244"
 number: 31
 title: "Backend: WebSocket terminal with PTY integration"
 createdAt: "2025-12-12T20:06:59.906255Z"
-updatedAt: "2025-12-12T20:34:01.281919Z"
+updatedAt: "2025-12-15T19:15:17.688319Z"
 assignees:
 - "GitHub Copilot"
 categories:
@@ -11,7 +11,7 @@ categories:
 - "feature"
 - "websocket"
 priority: "medium"
-order: 4
+order: 10
 ---
 
 # Backend: WebSocket terminal with PTY integration

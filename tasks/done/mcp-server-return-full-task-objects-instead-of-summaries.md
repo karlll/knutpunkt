@@ -3,14 +3,14 @@ id: "2377d6d9-bdb5-421b-87aa-442b15f30388"
 number: 25
 title: "MCP Server: Return full task objects instead of summaries"
 createdAt: "2025-12-08T20:35:11.769674Z"
-updatedAt: "2025-12-09T19:13:10.046790Z"
+updatedAt: "2025-12-15T19:15:17.688319Z"
 assignees:
 - "Claude Code"
 categories:
 - "bug"
 - "mcp-server"
 priority: "high"
-order: 3
+order: 9
 ---
 
 # MCP Server: Return full task objects instead of summaries

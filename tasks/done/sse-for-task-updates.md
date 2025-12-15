@@ -3,13 +3,13 @@ id: "02930fde-9cae-4571-b218-fbf4a1e85b5f"
 number: 9
 title: "SSE for task updates"
 createdAt: "2025-12-04T20:29:54.595463Z"
-updatedAt: "2025-12-07T21:14:15.274034Z"
+updatedAt: "2025-12-15T19:15:17.688319Z"
 assignees:
 - "GitHub Copilot"
 categories:
 - "backend"
 priority: "medium"
-order: 8
+order: 16
 ---
 
 # Publish SSE for updates detected by FileWatchService

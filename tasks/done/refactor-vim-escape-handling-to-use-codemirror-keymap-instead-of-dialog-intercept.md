@@ -3,7 +3,7 @@ id: "6705cde8-ab8b-46f1-8f7b-155521c44d21"
 number: 32
 title: "Refactor VIM Escape handling to use CodeMirror keymap instead of Dialog intercept"
 createdAt: "2025-12-12T22:28:38.137233Z"
-updatedAt: "2025-12-13T15:37:47.883160Z"
+updatedAt: "2025-12-15T19:15:17.688319Z"
 assignees:
 - "Claude Code"
 categories:
@@ -11,7 +11,7 @@ categories:
 - "technical-debt"
 - "vim"
 priority: "medium"
-order: 5
+order: 12
 ---
 
 # Refactor VIM Escape handling to use CodeMirror keymap

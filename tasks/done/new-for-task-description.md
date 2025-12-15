@@ -3,13 +3,13 @@ id: "4ae969a3-95cd-4ad6-b98e-d3b4328b35ef"
 number: 12
 title: "New for task description"
 createdAt: "2025-12-05T20:58:25.337987Z"
-updatedAt: "2025-12-07T21:14:15.274034Z"
+updatedAt: "2025-12-15T19:15:17.688319Z"
 assignees:
 - "Claude Code"
 categories:
 - "frontend"
 priority: "low"
-order: 6
+order: 14
 ---
 
 # Add a better template for the task description

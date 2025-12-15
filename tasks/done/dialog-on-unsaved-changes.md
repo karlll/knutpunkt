@@ -3,12 +3,12 @@ id: "4b661697-ac34-4611-8abb-3fac0f6635e8"
 number: 34
 title: "Dialog on unsaved changes"
 createdAt: "2025-12-13T15:58:43.048723Z"
-updatedAt: "2025-12-13T16:10:46.757235Z"
+updatedAt: "2025-12-15T19:15:17.688319Z"
 assignees:
 - "Claude Code"
 categories: []
 priority: "medium"
-order: 1
+order: 4
 ---
 
 # Show dialog before closing with unsaved changes

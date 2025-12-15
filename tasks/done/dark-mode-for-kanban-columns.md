@@ -3,12 +3,12 @@ id: "e375bb64-12aa-4df2-8f3c-0a63dbb2eaea"
 number: 28
 title: "Dark mode for Kanban Columns"
 createdAt: "2025-12-09T19:18:58.826144Z"
-updatedAt: "2025-12-09T19:27:07.593518Z"
+updatedAt: "2025-12-15T19:15:17.688319Z"
 assignees:
 - "Claude Code"
 categories: []
 priority: "medium"
-order: 1
+order: 6
 ---
 
 # Dark Mode harmonized colors for the Kanban columns
