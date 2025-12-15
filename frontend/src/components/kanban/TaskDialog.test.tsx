@@ -1,9 +1,11 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { TaskDialog } from './TaskDialog'
+import { TaskEventsProvider } from '@/contexts/TaskEventsContext'
 import type { Task } from '@/lib/api'
+import * as api from '@/lib/api'
 
 const createWrapper = () => {
   const queryClient = new QueryClient({
@@ -14,7 +16,11 @@ const createWrapper = () => {
   })
 
   return ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    <QueryClientProvider client={queryClient}>
+      <TaskEventsProvider enabled={false}>
+        {children}
+      </TaskEventsProvider>
+    </QueryClientProvider>
   )
 }
 
@@ -453,6 +459,212 @@ describe('TaskDialog', () => {
       // Should close without confirmation
       expect(onOpenChange).toHaveBeenCalledWith(false)
       expect(screen.queryByText('Unsaved Changes')).not.toBeInTheDocument()
+    })
+  })
+
+  describe('form submission', () => {
+    beforeEach(() => {
+      // Mock API calls
+      vi.spyOn(api.api.tasks, 'create').mockResolvedValue({
+        id: 'new-task-id',
+        number: 42,
+        title: 'My New Task',
+        description: 'Task description',
+        status: 'planned',
+        priority: 'medium',
+        order: 1,
+        assignees: [],
+        categories: [],
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-01T00:00:00Z',
+      })
+
+      vi.spyOn(api.api.tasks, 'update').mockResolvedValue({
+        ...mockTask,
+        title: 'Updated Title',
+        updatedAt: '2024-01-02T00:00:00Z',
+      })
+    })
+
+    afterEach(() => {
+      vi.restoreAllMocks()
+    })
+
+    it('creates a task when Create Task button is clicked', async () => {
+      const user = userEvent.setup()
+      const onOpenChange = vi.fn()
+
+      render(
+        <TaskDialog mode="create" open={true} onOpenChange={onOpenChange} />,
+        { wrapper: createWrapper() }
+      )
+
+      // Fill in the form
+      const titleInput = screen.getByLabelText(/title/i)
+      await user.clear(titleInput)
+      await user.type(titleInput, 'My New Task')
+
+      // Click Create Task button
+      const createButton = screen.getByRole('button', { name: /create task/i })
+      await user.click(createButton)
+
+      // Wait for API call
+      await waitFor(() => {
+        expect(api.api.tasks.create).toHaveBeenCalledWith(
+          expect.objectContaining({
+            title: 'My New Task',
+            status: 'planned',
+            priority: 'medium',
+          }),
+          expect.any(String) // clientMutationId
+        )
+      })
+
+      // Dialog should close
+      await waitFor(() => {
+        expect(onOpenChange).toHaveBeenCalledWith(false)
+      })
+    })
+
+    it('updates a task when Save Changes button is clicked', async () => {
+      const user = userEvent.setup()
+      const onOpenChange = vi.fn()
+
+      render(
+        <TaskDialog mode="edit" task={mockTask} open={true} onOpenChange={onOpenChange} />,
+        { wrapper: createWrapper() }
+      )
+
+      // Modify the title
+      const titleInput = screen.getByLabelText(/title/i)
+      await user.clear(titleInput)
+      await user.type(titleInput, 'Updated Title')
+
+      // Click Save Changes button
+      const saveButton = screen.getByRole('button', { name: /save changes/i })
+      await user.click(saveButton)
+
+      // Wait for API call
+      await waitFor(() => {
+        expect(api.api.tasks.update).toHaveBeenCalledWith(
+          mockTask.id,
+          expect.objectContaining({
+            title: 'Updated Title',
+          }),
+          expect.any(String) // clientMutationId
+        )
+      })
+
+      // Dialog should close
+      await waitFor(() => {
+        expect(onOpenChange).toHaveBeenCalledWith(false)
+      })
+    })
+
+    it('disables submit button while mutation is pending', async () => {
+      const user = userEvent.setup()
+      const onOpenChange = vi.fn()
+
+      // Make API call take time
+      vi.spyOn(api.api.tasks, 'create').mockImplementation(
+        () => new Promise(resolve => setTimeout(() => resolve({
+          id: 'new-task-id',
+          number: 42,
+          title: 'My New Task',
+          description: 'Task description',
+          status: 'planned',
+          priority: 'medium',
+          order: 1,
+          assignees: [],
+          categories: [],
+          createdAt: '2024-01-01T00:00:00Z',
+          updatedAt: '2024-01-01T00:00:00Z',
+        }), 100))
+      )
+
+      render(
+        <TaskDialog mode="create" open={true} onOpenChange={onOpenChange} />,
+        { wrapper: createWrapper() }
+      )
+
+      // Fill in form
+      const titleInput = screen.getByLabelText(/title/i)
+      await user.clear(titleInput)
+      await user.type(titleInput, 'My New Task')
+
+      // Click Create Task button
+      const createButton = screen.getByRole('button', { name: /create task/i })
+      await user.click(createButton)
+
+      // Button should show "Creating..." and be disabled
+      await waitFor(() => {
+        const button = screen.getByRole('button', { name: /creating/i })
+        expect(button).toBeDisabled()
+      })
+
+      // Wait for completion
+      await waitFor(() => {
+        expect(onOpenChange).toHaveBeenCalledWith(false)
+      })
+    })
+
+    it('does not show unsaved changes confirmation after successful save', async () => {
+      const user = userEvent.setup()
+      const onOpenChange = vi.fn()
+
+      render(
+        <TaskDialog mode="edit" task={mockTask} open={true} onOpenChange={onOpenChange} />,
+        { wrapper: createWrapper() }
+      )
+
+      // Modify the title
+      const titleInput = screen.getByLabelText(/title/i)
+      await user.clear(titleInput)
+      await user.type(titleInput, 'Updated Title')
+
+      // Click Save Changes button
+      const saveButton = screen.getByRole('button', { name: /save changes/i })
+      await user.click(saveButton)
+
+      // Wait for save to complete
+      await waitFor(() => {
+        expect(api.api.tasks.update).toHaveBeenCalled()
+      })
+
+      // Dialog should close directly without confirmation
+      await waitFor(() => {
+        expect(onOpenChange).toHaveBeenCalledWith(false)
+      })
+
+      // Unsaved changes dialog should NOT appear
+      expect(screen.queryByText('Unsaved Changes')).not.toBeInTheDocument()
+    })
+
+    it('passes clientMutationId to API for deduplication', async () => {
+      const user = userEvent.setup()
+      const onOpenChange = vi.fn()
+
+      render(
+        <TaskDialog mode="create" open={true} onOpenChange={onOpenChange} />,
+        { wrapper: createWrapper() }
+      )
+
+      // Fill in form
+      const titleInput = screen.getByLabelText(/title/i)
+      await user.clear(titleInput)
+      await user.type(titleInput, 'My New Task')
+
+      // Click Create Task button
+      const createButton = screen.getByRole('button', { name: /create task/i })
+      await user.click(createButton)
+
+      // Verify clientMutationId is passed
+      await waitFor(() => {
+        expect(api.api.tasks.create).toHaveBeenCalledWith(
+          expect.any(Object),
+          expect.stringMatching(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i) // UUID format
+        )
+      })
     })
   })
 })

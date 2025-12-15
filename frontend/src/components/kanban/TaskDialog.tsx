@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useTaskEvents } from '@/contexts/TaskEventsContext'
 import {
   Dialog,
   DialogContent,
@@ -78,6 +79,7 @@ export function TaskDialog({ mode, task, open, onOpenChange, readOnly = false }:
   const queryClient = useQueryClient()
   const [settings] = useSettings()
   const editorRef = useRef<MarkdownEditorRef>(null)
+  const { trackMutation } = useTaskEvents()
 
   // Store initial form data for unsaved changes detection
   const initialFormDataRef = useRef(DEFAULT_FORM_DATA)
@@ -149,6 +151,17 @@ export function TaskDialog({ mode, task, open, onOpenChange, readOnly = false }:
     onOpenChange(false)
   }, [onOpenChange])
 
+  // Intercept Dialog's onOpenChange to check for unsaved changes
+  const handleDialogOpenChange = useCallback((newOpen: boolean) => {
+    if (!newOpen && hasUnsavedChanges && !readOnly) {
+      // User is trying to close the dialog with unsaved changes
+      setShowConfirmClose(true)
+    } else {
+      // No unsaved changes, or opening the dialog, or read-only mode
+      onOpenChange(newOpen)
+    }
+  }, [hasUnsavedChanges, readOnly, onOpenChange])
+
   // VIM Escape handling: use onEscapeKeyDown to intercept before Dialog closes
   const handleEscapeKeyDown = useCallback((event: KeyboardEvent) => {
     if (editorRef.current?.isVimInsertMode()) {
@@ -165,8 +178,10 @@ export function TaskDialog({ mode, task, open, onOpenChange, readOnly = false }:
   }, [hasUnsavedChanges])
 
   const createTaskMutation = useMutation({
-    mutationFn: (data: typeof formData) =>
-      api.tasks.create({
+    mutationFn: (data: typeof formData) => {
+      const clientMutationId = crypto.randomUUID()
+      trackMutation(clientMutationId)
+      return api.tasks.create({
         title: data.title,
         description: data.description,
         status: data.status,
@@ -174,7 +189,8 @@ export function TaskDialog({ mode, task, open, onOpenChange, readOnly = false }:
         assignees: data.assignees,
         categories: data.categories,
         order: 1, // Backend will auto-assign proper order
-      }),
+      }, clientMutationId)
+    },
     onMutate: async () => {
       await queryClient.cancelQueries({ queryKey: ['tasks'] })
       const previousTasks = queryClient.getQueryData<Task[]>(['tasks'])
@@ -187,13 +203,16 @@ export function TaskDialog({ mode, task, open, onOpenChange, readOnly = false }:
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] })
-      onOpenChange(false)
+      onOpenChange(false) // Call parent's onOpenChange directly to bypass unsaved changes check
     },
   })
 
   const updateTaskMutation = useMutation({
-    mutationFn: (data: { id: string; updates: typeof formData }) =>
-      api.tasks.update(data.id, data.updates),
+    mutationFn: (data: { id: string; updates: typeof formData }) => {
+      const clientMutationId = crypto.randomUUID()
+      trackMutation(clientMutationId)
+      return api.tasks.update(data.id, data.updates, clientMutationId)
+    },
     onMutate: async () => {
       await queryClient.cancelQueries({ queryKey: ['tasks'] })
       const previousTasks = queryClient.getQueryData<Task[]>(['tasks'])
@@ -206,7 +225,7 @@ export function TaskDialog({ mode, task, open, onOpenChange, readOnly = false }:
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] })
-      onOpenChange(false)
+      onOpenChange(false) // Call parent's onOpenChange directly to bypass unsaved changes check
     },
   })
 
@@ -268,7 +287,7 @@ export function TaskDialog({ mode, task, open, onOpenChange, readOnly = false }:
 
   return (
     <>
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogContent
         size="xl"
         className="max-h-[90vh] overflow-y-auto"
