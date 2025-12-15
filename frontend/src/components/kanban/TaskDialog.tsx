@@ -164,17 +164,17 @@ export function TaskDialog({ mode, task, open, onOpenChange, readOnly = false }:
 
   // VIM Escape handling: use onEscapeKeyDown to intercept before Dialog closes
   const handleEscapeKeyDown = useCallback((event: KeyboardEvent) => {
-    if (editorRef.current?.isVimInsertMode()) {
-      // In INSERT mode: prevent Dialog from closing and manually exit INSERT mode
+    if (editorRef.current?.isInVimEditMode()) {
+      // In any VIM edit mode: prevent Dialog from closing and exit to NORMAL
       event.preventDefault()
       event.stopPropagation() // Stop event since we're handling VIM manually
-      editorRef.current.exitVimInsertMode() // Use VIM's official API
+      editorRef.current.exitVimEditMode() // Exit any VIM mode back to NORMAL
     } else if (hasUnsavedChanges) {
-      // If not in VIM INSERT mode but has unsaved changes, show confirmation
+      // If not in VIM edit mode but has unsaved changes, show confirmation
       event.preventDefault()
       setShowConfirmClose(true)
     }
-    // If no VIM INSERT mode and no unsaved changes, Dialog will close normally
+    // If no VIM edit mode and no unsaved changes, Dialog will close normally
   }, [hasUnsavedChanges])
 
   const createTaskMutation = useMutation({

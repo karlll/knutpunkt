@@ -144,4 +144,43 @@ describe('MarkdownEditor', () => {
     const indicator = getByTestId('vim-mode-indicator')
     expect(indicator.textContent).toContain('NORMAL')
   })
+
+  it('exposes isInVimEditMode method via ref', () => {
+    const onChange = vi.fn()
+    const ref = { current: null } as React.RefObject<any>
+    render(
+      <MarkdownEditor ref={ref} value="# Test" onChange={onChange} vimMode={true} />
+    )
+    expect(ref.current).toBeDefined()
+    expect(typeof ref.current?.isInVimEditMode).toBe('function')
+  })
+
+  it('exposes exitVimEditMode method via ref', () => {
+    const onChange = vi.fn()
+    const ref = { current: null } as React.RefObject<any>
+    render(
+      <MarkdownEditor ref={ref} value="# Test" onChange={onChange} vimMode={true} />
+    )
+    expect(ref.current).toBeDefined()
+    expect(typeof ref.current?.exitVimEditMode).toBe('function')
+  })
+
+  it('isInVimEditMode returns false in NORMAL mode', () => {
+    const onChange = vi.fn()
+    const ref = { current: null } as React.RefObject<any>
+    render(
+      <MarkdownEditor ref={ref} value="# Test" onChange={onChange} vimMode={true} />
+    )
+    // Initially in NORMAL mode
+    expect(ref.current?.isInVimEditMode()).toBe(false)
+  })
+
+  it('isInVimEditMode returns false when VIM mode is disabled', () => {
+    const onChange = vi.fn()
+    const ref = { current: null } as React.RefObject<any>
+    render(
+      <MarkdownEditor ref={ref} value="# Test" onChange={onChange} vimMode={false} />
+    )
+    expect(ref.current?.isInVimEditMode()).toBe(false)
+  })
 })
