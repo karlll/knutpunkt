@@ -30,8 +30,10 @@ describe('MarkdownEditor', () => {
         className="custom-class"
       />
     )
-    const wrapper = container.firstChild as HTMLElement
-    expect(wrapper.className).toContain('custom-class')
+    // The editor div is now nested inside a wrapper, so we need to find it
+    const editorDiv = container.querySelector('[class*="custom-class"]')
+    expect(editorDiv).toBeInTheDocument()
+    expect(editorDiv?.className).toContain('custom-class')
   })
 
   it('accepts id prop', () => {
@@ -90,10 +92,10 @@ describe('MarkdownEditor', () => {
     const { container } = render(
       <MarkdownEditor value="# Test" onChange={onChange} readOnly={true} />
     )
-    const wrapper = container.firstChild as HTMLElement
+    const editorDiv = container.querySelector('[class*="rounded-md"]')
     // Should have read-only styling classes
-    expect(wrapper.className).toContain('bg-muted/50')
-    expect(wrapper.className).toContain('cursor-not-allowed')
+    expect(editorDiv?.className).toContain('bg-muted/50')
+    expect(editorDiv?.className).toContain('cursor-not-allowed')
   })
 
   it('does not apply read-only styling when readOnly is false', () => {
@@ -101,8 +103,45 @@ describe('MarkdownEditor', () => {
     const { container } = render(
       <MarkdownEditor value="# Test" onChange={onChange} readOnly={false} />
     )
-    const wrapper = container.firstChild as HTMLElement
-    expect(wrapper.className).not.toContain('bg-muted/50')
-    expect(wrapper.className).not.toContain('cursor-not-allowed')
+    const editorDiv = container.querySelector('[class*="rounded-md"]')
+    expect(editorDiv?.className).not.toContain('bg-muted/50')
+    expect(editorDiv?.className).not.toContain('cursor-not-allowed')
+  })
+
+  it('shows VIM mode indicator when vimMode is true', () => {
+    const onChange = vi.fn()
+    const { getByTestId } = render(
+      <MarkdownEditor value="# Test" onChange={onChange} vimMode={true} />
+    )
+    const indicator = getByTestId('vim-mode-indicator')
+    expect(indicator).toBeInTheDocument()
+    expect(indicator.textContent).toMatch(/^(NORMAL|INSERT|VISUAL|VISUAL LINE|VISUAL BLOCK|REPLACE)$/)
+  })
+
+  it('does not show VIM mode indicator when vimMode is false', () => {
+    const onChange = vi.fn()
+    const { queryByTestId } = render(
+      <MarkdownEditor value="# Test" onChange={onChange} vimMode={false} />
+    )
+    const indicator = queryByTestId('vim-mode-indicator')
+    expect(indicator).not.toBeInTheDocument()
+  })
+
+  it('does not show VIM mode indicator when vimMode is not specified', () => {
+    const onChange = vi.fn()
+    const { queryByTestId } = render(
+      <MarkdownEditor value="# Test" onChange={onChange} />
+    )
+    const indicator = queryByTestId('vim-mode-indicator')
+    expect(indicator).not.toBeInTheDocument()
+  })
+
+  it('shows NORMAL mode by default when VIM mode is enabled', () => {
+    const onChange = vi.fn()
+    const { getByTestId } = render(
+      <MarkdownEditor value="# Test" onChange={onChange} vimMode={true} />
+    )
+    const indicator = getByTestId('vim-mode-indicator')
+    expect(indicator.textContent).toContain('NORMAL')
   })
 })

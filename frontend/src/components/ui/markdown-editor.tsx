@@ -1,9 +1,12 @@
-import { useEffect, useRef, forwardRef, useImperativeHandle } from 'react'
+import { useEffect, useRef, forwardRef, useImperativeHandle, useState } from 'react'
 import { EditorView, basicSetup } from 'codemirror'
 import { markdown } from '@codemirror/lang-markdown'
 import { vim, Vim, getCM } from '@replit/codemirror-vim'
 import { oneDark } from '@codemirror/theme-one-dark'
 import { cn } from '@/lib/utils'
+import { Badge } from '@/components/ui/badge'
+
+type VimMode = 'NORMAL' | 'INSERT' | 'VISUAL' | 'VISUAL LINE' | 'VISUAL BLOCK' | 'REPLACE'
 
 interface MarkdownEditorProps {
   value: string
@@ -31,6 +34,28 @@ export const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>
   const editorRef = useRef<HTMLDivElement>(null)
   const viewRef = useRef<EditorView | null>(null)
   const onChangeRef = useRef(onChange)
+  const [currentVimMode, setCurrentVimMode] = useState<VimMode>('NORMAL')
+
+  // Helper function to get current VIM mode from editor state
+  const getVimMode = (): VimMode => {
+    if (!viewRef.current || !vimMode) return 'NORMAL'
+
+    const cm = getCM(viewRef.current)
+    if (!cm?.state?.vim) return 'NORMAL'
+
+    const vimState = cm.state.vim
+
+    if (vimState.insertMode) return 'INSERT'
+    if (vimState.visualMode) {
+      if (vimState.visualLine) return 'VISUAL LINE'
+      if (vimState.visualBlock) return 'VISUAL BLOCK'
+      return 'VISUAL'
+    }
+    // Check for replace mode - codemirror-vim uses 'replace' property
+    if ((vimState as any).replace) return 'REPLACE'
+
+    return 'NORMAL'
+  }
 
   // Expose methods to parent via ref
   useImperativeHandle(ref, () => ({
@@ -70,6 +95,11 @@ export const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>
         if (update.docChanged) {
           const newValue = update.state.doc.toString()
           onChangeRef.current(newValue)
+        }
+        // Track VIM mode changes
+        if (vimMode) {
+          const mode = getVimMode()
+          setCurrentVimMode(mode)
         }
       }),
     ]
@@ -117,21 +147,34 @@ export const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>
   }, [value])
 
   return (
-    <div
-      id={id}
-      className={cn(
-        'rounded-md border border-input overflow-hidden',
-        '[&_.cm-editor]:outline-none',
-        '[&_.cm-editor]:h-[300px]',
-        '[&_.cm-scroller]:h-full',
-        '[&_.cm-scroller]:overflow-auto',
-        '[&_.cm-scroller]:font-mono',
-        '[&_.cm-scroller]:text-sm',
-        readOnly && '[&_.cm-editor]:bg-muted/50 [&_.cm-editor]:cursor-not-allowed',
-        className
+    <div className="space-y-1">
+      <div
+        id={id}
+        className={cn(
+          'rounded-md border border-input overflow-hidden',
+          '[&_.cm-editor]:outline-none',
+          '[&_.cm-editor]:h-[300px]',
+          '[&_.cm-scroller]:h-full',
+          '[&_.cm-scroller]:overflow-auto',
+          '[&_.cm-scroller]:font-mono',
+          '[&_.cm-scroller]:text-sm',
+          readOnly && '[&_.cm-editor]:bg-muted/50 [&_.cm-editor]:cursor-not-allowed',
+          className
+        )}
+        ref={editorRef}
+      />
+      {vimMode && (
+        <div className="flex items-center justify-end gap-2 px-1">
+          <Badge
+            variant="outline"
+            className="font-mono text-[10px] px-2 py-0"
+            data-testid="vim-mode-indicator"
+          >
+            {currentVimMode}
+          </Badge>
+        </div>
       )}
-      ref={editorRef}
-    />
+    </div>
   )
 })
 
