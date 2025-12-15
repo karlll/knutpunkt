@@ -17,6 +17,7 @@ import { Header } from '@/components/Header'
 import { api, type Task, type TaskStatus } from '@/lib/api'
 import { applyDragResult, type DragPosition } from './dndLogic'
 import { useSettings } from '@/hooks/useSettings'
+import { useTaskEvents } from '@/contexts/TaskEventsContext'
 
 const COLUMNS: { status: TaskStatus; title: string }[] = [
   { status: 'planned', title: 'Planned' },
@@ -78,6 +79,9 @@ export function KanbanBoard() {
   const queryClient = useQueryClient()
   const [settings] = useSettings()
 
+  // Access trackMutation for deduplication
+  const { trackMutation } = useTaskEvents()
+
   // Fetch all tasks
   const { data: tasks = [], isLoading } = useQuery({
     queryKey: ['tasks'],
@@ -87,8 +91,21 @@ export function KanbanBoard() {
   // Mutation for updating task order (and optionally status)
   // Note: Optimistic updates are handled in handleDragEnd, not here
   const updateTaskOrderMutation = useMutation({
-    mutationFn: ({ id, newOrder, newStatus }: { id: string; newOrder: number; newStatus?: TaskStatus }) =>
-      api.tasks.updateOrder(id, newOrder, newStatus),
+    mutationFn: ({
+      id,
+      newOrder,
+      newStatus,
+      clientMutationId
+    }: {
+      id: string
+      newOrder: number
+      newStatus?: TaskStatus
+      clientMutationId: string
+    }) => {
+      // Track this mutation to skip the SSE event when it arrives
+      trackMutation(clientMutationId)
+      return api.tasks.updateOrder(id, newOrder, newStatus, clientMutationId)
+    },
     onMutate: async () => {
       // Cancel any outgoing refetches to prevent race conditions
       await queryClient.cancelQueries({ queryKey: ['tasks'] })
@@ -188,11 +205,15 @@ export function KanbanBoard() {
     // Apply optimistic update
     queryClient.setQueryData(['tasks'], newTasks)
 
+    // Generate clientMutationId for deduplication
+    const clientMutationId = crypto.randomUUID()
+
     // Persist to backend
     updateTaskOrderMutation.mutate({
       id: activeId,
       newOrder: movedTask.order,
       newStatus: movedTask.status,
+      clientMutationId,
     })
   }
 

@@ -63,20 +63,22 @@ export const api = {
       return handleResponse<Task>(response)
     },
 
-    create: async (task: TaskCreate): Promise<Task> => {
+    create: async (task: TaskCreate, clientMutationId?: string): Promise<Task> => {
+      const body = clientMutationId ? { ...task, clientMutationId } : task
       const response = await fetch(`${API_BASE}/tasks`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(task),
+        body: JSON.stringify(body),
       })
       return handleResponse<Task>(response)
     },
 
-    update: async (id: string, task: TaskUpdate): Promise<Task> => {
+    update: async (id: string, task: TaskUpdate, clientMutationId?: string): Promise<Task> => {
+      const body = clientMutationId ? { ...task, clientMutationId } : task
       const response = await fetch(`${API_BASE}/tasks/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(task),
+        body: JSON.stringify(body),
       })
       return handleResponse<Task>(response)
     },
@@ -100,11 +102,15 @@ export const api = {
     updateOrder: async (
       id: string,
       newOrder: number,
-      newStatus?: TaskStatus
+      newStatus?: TaskStatus,
+      clientMutationId?: string
     ): Promise<{ updated: Task[] }> => {
       const body: TaskOrderUpdate = { newOrder }
       if (newStatus) {
         body.newStatus = newStatus
+      }
+      if (clientMutationId) {
+        body.clientMutationId = clientMutationId
       }
 
       const response = await fetch(`${API_BASE}/tasks/${id}/order`, {

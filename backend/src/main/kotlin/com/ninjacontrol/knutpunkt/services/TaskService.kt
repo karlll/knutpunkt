@@ -287,6 +287,7 @@ class TaskService(
         emitEvent(TaskEvent.TaskCreated(
             taskId = taskId,
             timestamp = now,
+            clientMutationId = taskCreate.clientMutationId,
             task = createdTask
         ))
         
@@ -383,6 +384,7 @@ class TaskService(
         emitEvent(TaskEvent.TaskUpdated(
             taskId = id,
             timestamp = now,
+            clientMutationId = taskUpdate.clientMutationId,
             task = updatedTask,
             changes = changes
         ))
@@ -426,10 +428,11 @@ class TaskService(
         val changes = com.ninjacontrol.knutpunkt.models.TaskChanges(
             statusChanged = true
         )
-        
+
         emitEvent(TaskEvent.TaskUpdated(
             taskId = id,
             timestamp = now,
+            clientMutationId = statusUpdate.clientMutationId,
             task = updatedTask,
             changes = changes
         ))
@@ -475,6 +478,7 @@ class TaskService(
         emitEvent(TaskEvent.TaskDeleted(
             taskId = id,
             timestamp = now,
+            clientMutationId = null, // DELETE has no request body
             task = taskBeforeDeletion
         ))
     }
@@ -609,10 +613,11 @@ class TaskService(
                     statusChanged = true,
                     orderChanged = true
                 )
-                
+
                 emitEvent(TaskEvent.TaskUpdated(
                     taskId = id,
                     timestamp = now,
+                    clientMutationId = orderUpdate.clientMutationId,
                     task = movedTask,
                     changes = changes
                 ))

@@ -65,20 +65,50 @@ class TaskServiceEventTest {
             assignees = listOf(),
             categories = listOf()
         )
-        
+
         val createdTask = taskService.createTask(taskCreate)
-        
+
         // Wait a bit for async event emission
         delay(100)
-        
+
         // Verify event was emitted
         assertEquals(1, mockEventEmitter.events.size, "Should emit exactly one event")
-        
+
         val event = mockEventEmitter.events[0]
         assertIs<TaskEvent.TaskCreated>(event, "Event should be TaskCreated")
         assertEquals(createdTask.id, event.taskId, "Event should have correct task ID")
         assertEquals(createdTask, event.task, "Event should contain the full task")
         assertTrue(event.timestamp.isNotEmpty(), "Event should have timestamp")
+        assertEquals(null, event.clientMutationId, "Event should have null clientMutationId when not provided")
+    }
+
+    @Test
+    fun `createTask with clientMutationId includes it in event`() = runBlocking {
+        val mutationId = "test-mutation-id-123"
+
+        // Create a task with clientMutationId
+        val taskCreate = TaskCreate(
+            title = "Test Task",
+            description = "Test Description",
+            status = TaskStatus.PLANNED,
+            priority = TaskPriority.MEDIUM,
+            assignees = listOf(),
+            categories = listOf(),
+            clientMutationId = mutationId
+        )
+
+        val createdTask = taskService.createTask(taskCreate)
+
+        // Wait a bit for async event emission
+        delay(100)
+
+        // Verify event was emitted with clientMutationId
+        assertEquals(1, mockEventEmitter.events.size, "Should emit exactly one event")
+
+        val event = mockEventEmitter.events[0]
+        assertIs<TaskEvent.TaskCreated>(event, "Event should be TaskCreated")
+        assertEquals(createdTask.id, event.taskId, "Event should have correct task ID")
+        assertEquals(mutationId, event.clientMutationId, "Event should include clientMutationId from request")
     }
     
     @Test

@@ -507,6 +507,11 @@ components:
         - title
         - description
       properties:
+        clientMutationId:
+          type: string
+          format: uuid
+          description: Optional client-generated UUID for deduplicating SSE events. When provided, will be included in the emitted task.created event.
+          example: "123e4567-e89b-12d3-a456-426614174000"
         title:
           type: string
           description: Human-readable task title
@@ -547,6 +552,11 @@ components:
         - title
         - description
       properties:
+        clientMutationId:
+          type: string
+          format: uuid
+          description: Optional client-generated UUID for deduplicating SSE events. When provided, will be included in the emitted task.updated event.
+          example: "123e4567-e89b-12d3-a456-426614174000"
         title:
           type: string
           description: Human-readable task title
@@ -579,6 +589,11 @@ components:
       required:
         - status
       properties:
+        clientMutationId:
+          type: string
+          format: uuid
+          description: Optional client-generated UUID for deduplicating SSE events. When provided, will be included in the emitted task.updated event.
+          example: "123e4567-e89b-12d3-a456-426614174000"
         status:
           $ref: '#/components/schemas/TaskStatus'
 
@@ -587,6 +602,11 @@ components:
       required:
         - newOrder
       properties:
+        clientMutationId:
+          type: string
+          format: uuid
+          description: Optional client-generated UUID for deduplicating SSE events. When provided, will be included in the emitted task.updated event(s).
+          example: "123e4567-e89b-12d3-a456-426614174000"
         newOrder:
           type: integer
           minimum: 1
@@ -663,6 +683,16 @@ components:
             ISO 8601 timestamp when the event occurred.
             Also used as SSE event ID for client reconnection.
           example: "2025-01-15T10:30:00Z"
+        clientMutationId:
+          type: string
+          format: uuid
+          nullable: true
+          description: |
+            Client-generated UUID from the mutation request that caused this event.
+            Present when the event was triggered by an API call that included a clientMutationId.
+            Null for events triggered by external changes (manual file edits, file watch events).
+            Clients can use this to identify and skip events they originated.
+          example: "123e4567-e89b-12d3-a456-426614174000"
         task:
           $ref: '#/components/schemas/Task'
           description: |

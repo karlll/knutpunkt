@@ -74,7 +74,8 @@ data class TaskCreate(
     val assignees: List<String>? = emptyList(),
     val categories: List<String>? = emptyList(),
     val priority: TaskPriority? = TaskPriority.MEDIUM,
-    val order: Int? = null
+    val order: Int? = null,
+    val clientMutationId: String? = null
 )
 
 @Serializable
@@ -85,18 +86,21 @@ data class TaskUpdate(
     val assignees: List<String>? = null,
     val categories: List<String>? = null,
     val priority: TaskPriority? = null,
-    val order: Int? = null
+    val order: Int? = null,
+    val clientMutationId: String? = null
 )
 
 @Serializable
 data class TaskStatusUpdate(
-    val status: TaskStatus
+    val status: TaskStatus,
+    val clientMutationId: String? = null
 )
 
 @Serializable
 data class TaskOrderUpdate(
     val newOrder: Int,
-    val newStatus: TaskStatus? = null
+    val newStatus: TaskStatus? = null,
+    val clientMutationId: String? = null
 )
 
 @Serializable
@@ -118,30 +122,34 @@ sealed class TaskEvent {
     abstract val eventType: String
     abstract val taskId: String
     abstract val timestamp: String
-    
+    abstract val clientMutationId: String?
+
     @Serializable
     data class TaskCreated(
         override val taskId: String,
         override val timestamp: String,
+        override val clientMutationId: String?,
         val task: Task
     ) : TaskEvent() {
         override val eventType: String = "task.created"
     }
-    
+
     @Serializable
     data class TaskUpdated(
         override val taskId: String,
         override val timestamp: String,
+        override val clientMutationId: String?,
         val task: Task,
         val changes: TaskChanges
     ) : TaskEvent() {
         override val eventType: String = "task.updated"
     }
-    
+
     @Serializable
     data class TaskDeleted(
         override val taskId: String,
         override val timestamp: String,
+        override val clientMutationId: String?,
         val task: Task
     ) : TaskEvent() {
         override val eventType: String = "task.deleted"

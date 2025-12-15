@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { KanbanBoard } from '@/components/kanban/KanbanBoard'
+import { TaskEventsProvider } from '@/contexts/TaskEventsContext'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -13,7 +14,9 @@ const queryClient = new QueryClient({
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <KanbanBoard />
+      <TaskEventsProvider>
+        <KanbanBoard />
+      </TaskEventsProvider>
     </QueryClientProvider>
   )
 }

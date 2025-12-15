@@ -245,6 +245,12 @@ export interface components {
         };
         TaskCreate: {
             /**
+             * Format: uuid
+             * @description Optional client-generated UUID for deduplicating SSE events. When provided, will be included in the emitted task.created event.
+             * @example 123e4567-e89b-12d3-a456-426614174000
+             */
+            clientMutationId?: string;
+            /**
              * @description Human-readable task title
              * @example Implement user authentication
              */
@@ -277,6 +283,12 @@ export interface components {
             order: number;
         };
         TaskUpdate: {
+            /**
+             * Format: uuid
+             * @description Optional client-generated UUID for deduplicating SSE events. When provided, will be included in the emitted task.updated event.
+             * @example 123e4567-e89b-12d3-a456-426614174000
+             */
+            clientMutationId?: string;
             /** @description Human-readable task title */
             title: string;
             /** @description Task description in Markdown format */
@@ -291,9 +303,21 @@ export interface components {
             order?: number;
         };
         TaskStatusUpdate: {
+            /**
+             * Format: uuid
+             * @description Optional client-generated UUID for deduplicating SSE events. When provided, will be included in the emitted task.updated event.
+             * @example 123e4567-e89b-12d3-a456-426614174000
+             */
+            clientMutationId?: string;
             status: components["schemas"]["TaskStatus"];
         };
         TaskOrderUpdate: {
+            /**
+             * Format: uuid
+             * @description Optional client-generated UUID for deduplicating SSE events. When provided, will be included in the emitted task.updated event(s).
+             * @example 123e4567-e89b-12d3-a456-426614174000
+             */
+            clientMutationId?: string;
             /** @description Target position (1-based) */
             newOrder: number;
             /** @description Target column (if moving between columns) */
@@ -350,6 +374,15 @@ export interface components {
              * @example 2025-01-15T10:30:00Z
              */
             timestamp: string;
+            /**
+             * Format: uuid
+             * @description Client-generated UUID from the mutation request that caused this event.
+             *     Present when the event was triggered by an API call that included a clientMutationId.
+             *     Null for events triggered by external changes (manual file edits, file watch events).
+             *     Clients can use this to identify and skip events they originated.
+             * @example 123e4567-e89b-12d3-a456-426614174000
+             */
+            clientMutationId?: string | null;
             /**
              * @description Complete task object. For created/updated events, contains current state.
              *     For deleted events, contains the last known state before deletion.

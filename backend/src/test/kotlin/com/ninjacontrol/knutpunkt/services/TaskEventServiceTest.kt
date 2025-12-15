@@ -51,6 +51,7 @@ class TaskEventServiceTest {
         val event = TaskEvent.TaskCreated(
             taskId = task.id,
             timestamp = Instant.now().toString(),
+            clientMutationId = null,
             task = task
         )
         
@@ -92,6 +93,7 @@ class TaskEventServiceTest {
         val event = TaskEvent.TaskUpdated(
             taskId = task.id,
             timestamp = Instant.now().toString(),
+            clientMutationId = null,
             task = task,
             changes = changes
         )
@@ -128,6 +130,7 @@ class TaskEventServiceTest {
         val event = TaskEvent.TaskDeleted(
             taskId = "deleted-task",
             timestamp = Instant.now().toString(),
+            clientMutationId = null,
             task = task
         )
 
@@ -163,6 +166,7 @@ class TaskEventServiceTest {
         val event = TaskEvent.TaskCreated(
             taskId = task.id,
             timestamp = Instant.now().toString(),
+            clientMutationId = null,
             task = task
         )
         

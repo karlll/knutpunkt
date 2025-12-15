@@ -17,26 +17,34 @@ fun Route.eventRoutes(
 ) {
     // High-level task events
     sse("/events/tasks") {
-        logger.info("SSE client connected to task events")
+        logger.info("[1] SSE client connected to task events - INSIDE sse block")
 
         try {
+            logger.info("[2] About to send ping event")
+            // Send initial ping to establish connection
+            send(data = "connected", event = "ping")
+            logger.info("[3] Ping event sent successfully")
+
+            logger.info("[4] Starting to collect from events flow")
             taskEventService.events
                 .catch { e ->
                     logger.error("Error in SSE task event stream: ${e.message}", e)
                 }
                 .collect { taskEvent ->
+                    logger.info("[5] Received event: ${taskEvent.eventType}")
                     val eventData = Json.encodeToString(taskEvent)
                     send(
                         data = eventData,
                         event = taskEvent.eventType,
                         id = taskEvent.timestamp
                     )
-                    logger.debug("Sent SSE event: ${taskEvent.eventType} for task ${taskEvent.taskId}")
+                    logger.info("[6] Sent SSE event: ${taskEvent.eventType} for task ${taskEvent.taskId}")
                 }
         } catch (e: Exception) {
-            logger.error("SSE connection error: ${e.message}", e)
+            logger.error("[ERROR] SSE connection error: ${e.message}", e)
+            throw e
         } finally {
-            logger.info("SSE client disconnected from task events")
+            logger.info("[FINALLY] SSE client disconnected from task events")
         }
     }
 
