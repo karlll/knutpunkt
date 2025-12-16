@@ -66,12 +66,24 @@ class FileEventServiceTest {
     
     @Test
     fun `emits FileModified event when file is modified`() = runBlocking {
+        // Start listening for creation event first
+        val creationJob = async {
+            fileEventService.events.take(1).toList()
+        }
+        
+        delay(500) // Let collector start
+        
         // Create a file first
         val testFile = File(tempTasksDir, "ongoing/existing-task.md")
         testFile.writeText("---\nid: existing\n---\nOriginal")
-        delay(1000) // Wait for file system to settle
         
-        val job = async {
+        // Wait for and consume the creation event
+        withTimeout(3000) { creationJob.await() }
+        
+        delay(500) // Let file system settle
+        
+        // Now listen for modification event
+        val modificationJob = async {
             fileEventService.events.take(1).toList()
         }
         
@@ -80,7 +92,7 @@ class FileEventServiceTest {
         // Modify the file
         testFile.writeText("---\nid: existing\n---\nModified")
         
-        val events = withTimeout(3000) { job.await() }
+        val events = withTimeout(3000) { modificationJob.await() }
         
         assertEquals(1, events.size, "Should emit one event")
         assertIs<com.ninjacontrol.knutpunkt.models.FileEvent.FileModified>(events[0])
@@ -88,12 +100,24 @@ class FileEventServiceTest {
     
     @Test
     fun `emits FileDeleted event when file is deleted`() = runBlocking {
+        // Start listening for creation event first
+        val creationJob = async {
+            fileEventService.events.take(1).toList()
+        }
+        
+        delay(500) // Let collector start
+        
         // Create a file first
         val testFile = File(tempTasksDir, "done/to-delete.md")
         testFile.writeText("---\nid: delete-me\n---\nWill be deleted")
-        delay(1000)
         
-        val job = async {
+        // Wait for and consume the creation event
+        withTimeout(3000) { creationJob.await() }
+        
+        delay(500) // Let file system settle
+        
+        // Now listen for deletion event
+        val deletionJob = async {
             fileEventService.events.take(1).toList()
         }
         
@@ -102,7 +126,7 @@ class FileEventServiceTest {
         // Delete the file
         testFile.delete()
         
-        val events = withTimeout(3000) { job.await() }
+        val events = withTimeout(3000) { deletionJob.await() }
         
         assertEquals(1, events.size, "Should emit one event")
         assertIs<com.ninjacontrol.knutpunkt.models.FileEvent.FileDeleted>(events[0])

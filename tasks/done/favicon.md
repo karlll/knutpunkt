@@ -3,8 +3,9 @@ id: "7272fea4-e755-4779-9bed-9dc79d25fb8f"
 number: 39
 title: "Favicon"
 createdAt: "2025-12-15T20:25:48.026784Z"
-updatedAt: "2025-12-15T20:25:48.026784Z"
-assignees: []
+updatedAt: "2025-12-16T19:48:18.121572Z"
+assignees:
+- "Claude Code"
 categories:
 - "frontend"
 priority: "medium"

@@ -1,0 +1,16 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle for maskable icon support -->
+  <circle cx="256" cy="256" r="256" fill="currentColor" opacity="0.1"/>
+
+  <!-- Bold "K" letterform -->
+  <g fill="currentColor">
+    <!-- Vertical stem of K -->
+    <rect x="140" y="140" width="80" height="232" rx="10"/>
+
+    <!-- Upper diagonal of K -->
+    <path d="M 220 190 L 372 140 L 372 220 L 260 260 Z"/>
+
+    <!-- Lower diagonal of K -->
+    <path d="M 260 252 L 372 292 L 372 372 L 220 322 Z"/>
+  </g>
+</svg>
