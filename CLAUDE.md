@@ -85,6 +85,7 @@ Tasks are stored as Markdown files with YAML front matter.
 ```markdown
 ---
 id: "uuid-v4-string"
+number: 1
 title: "Human readable task title"
 createdAt: "2025-01-15T10:30:00Z"
 updatedAt: "2025-01-15T14:22:00Z"
@@ -94,20 +95,25 @@ assignees:
 categories:
   - "feature"
   - "frontend"
+priotity: "high"
+order: 10
 ---
 
-## Description
+# [Short descriptive title]
 
-Task description goes here in Markdown format.
+## Overview
+
+[A brief overview]
+
+## Requirements
+
+- [requirement 1]
+- [requirement 2]
 
 ## Acceptance Criteria
 
-- [ ] Criterion 1
-- [ ] Criterion 2
-
-## Notes
-
-Any additional notes...
+- [ ] [verifiable criterion 1]
+- [ ] [verifiable criterion 2]
 ```
 
 **Status determination:** The task's status is determined by its directory location:
@@ -121,7 +127,7 @@ Any additional notes...
 
 Location: `api/openapi.yaml`
 
-**Base URL:** `http://localhost:8080/api/v1`
+**Base URL:** `http://127.0.0.1:8080/api/v1`
 
 **Endpoints:**
 
@@ -171,6 +177,7 @@ Location: `api/openapi.yaml`
 - Vitest for testing
 - MSW for API mocking during development
 - StoryBook for component development
+- Zustand for state management
 
 **Key Components:**
 
@@ -194,15 +201,7 @@ src/components/
 
 **State Management:**
 - Use TanStack Query for server state
-- Use React Context or Zustand for UI state (drag operations, dialogs)
-
-**Drag and Drop:**
-- Implement using `@dnd-kit/core` and `@dnd-kit/sortable`
-- When a task is dropped in a different column, call PATCH `/tasks/{id}/status`
-
-**ShadCN Kanban Reference:**
-- Reference implementation: https://www.shadcn.io/components/data/kanban
-- Adapt the component structure to work with our API
+- Use Zustand for state
 
 ---
 
@@ -339,6 +338,7 @@ To prevent duplicate task events when programmatic changes trigger filesystem ev
 - Write tests for critical functionality
 - Use the directory `<project-root>/notes` for development notes and ideas
 - Divide work into small, manageable tasks that are can be committed to git independently
+- Always run tests before committing
 
 ### Code Style
 
@@ -381,7 +381,8 @@ To prevent duplicate task events when programmatic changes trigger filesystem ev
 ### Frontend
 
 ```bash
-cd frontend
+
+cd /Users/karl/Project/knutpunkt/backend
 
 # Install dependencies
 npm install
@@ -405,7 +406,7 @@ npm test
 ### Backend
 
 ```bash
-cd backend
+cd /Users/karl/Project/knutpunkt/backend
 
 # Build
 ./gradlew build
@@ -416,8 +417,15 @@ cd backend
 # Run tests
 ./gradlew test
 
-# Create fat JAR
-./gradlew shadowJar
+# Build fat JAR, including frontend static files
+
+cd /Users/karl/Project/knutpunkt && make dist
+
+# Start backend with custom tasks directory and debug logging
+# Must have built the project first (`make dist`)
+
+APP_LOG_LEVEL=DEBUG ./start.sh /Users/karl/Project/knutpunkt/tasks
+
 ```
 
 ---
@@ -435,7 +443,7 @@ cd backend
 
 ### Frontend (.env)
 ```
-VITE_API_BASE_URL=http://localhost:8080/api/v1
+VITE_API_BASE_URL=http://127.0.0.1:8080/api/v1
 ```
 
 ### Backend (application.conf or environment variables)

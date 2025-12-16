@@ -3,8 +3,9 @@ id: "012c13e7-0129-431a-9d48-fe14912d495b"
 number: 33
 title: "Indicate VIM mode"
 createdAt: "2025-12-13T15:48:07.746557Z"
-updatedAt: "2025-12-13T15:48:07.746557Z"
-assignees: []
+updatedAt: "2025-12-15T19:50:03.550085Z"
+assignees:
+- "Claude Code"
 categories:
 - "frontend"
 priority: "medium"
