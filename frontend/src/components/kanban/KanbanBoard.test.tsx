@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { KanbanBoard } from './KanbanBoard'
 import { api } from '@/lib/api'
 import type { Task } from '@/lib/api'
+import { TaskEventsProvider } from '@/contexts/TaskEventsContext'
 
 // Mock the API
 vi.mock('@/lib/api', () => ({
@@ -71,7 +72,9 @@ function renderWithQueryClient(component: React.ReactElement) {
   const queryClient = createTestQueryClient()
   return render(
     <QueryClientProvider client={queryClient}>
-      {component}
+      <TaskEventsProvider enabled={false}>
+        {component}
+      </TaskEventsProvider>
     </QueryClientProvider>
   )
 }

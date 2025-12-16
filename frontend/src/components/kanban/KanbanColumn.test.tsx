@@ -4,6 +4,7 @@ import { DndContext } from '@dnd-kit/core'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { KanbanColumn } from './KanbanColumn'
 import type { Task } from '@/lib/api'
+import { TaskEventsProvider } from '@/contexts/TaskEventsContext'
 
 const mockTasks: Task[] = [
   {
@@ -47,7 +48,9 @@ const queryClient = new QueryClient({
 function TestWrapper({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
-      <DndContext>{children}</DndContext>
+      <TaskEventsProvider enabled={false}>
+        <DndContext>{children}</DndContext>
+      </TaskEventsProvider>
     </QueryClientProvider>
   )
 }
