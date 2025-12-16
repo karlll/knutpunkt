@@ -1,10 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useSettings } from './useSettings'
+import { useSettingsStore } from '@/stores/settingsStore'
 
 describe('useSettings', () => {
   beforeEach(() => {
     localStorage.clear()
+    // Reset Zustand store to default state
+    useSettingsStore.getState().resetSettings()
   })
 
   afterEach(() => {
@@ -21,17 +24,22 @@ describe('useSettings', () => {
     })
   })
 
-  it('loads settings from localStorage', () => {
-    const storedSettings = {
-      vimMode: true,
-      maxDoneTasksVisible: 10,
-    }
-    localStorage.setItem('knutpunkt-settings', JSON.stringify(storedSettings))
+  it('loads settings from store', () => {
+    // Manually set the store state (simulating what would be loaded from localStorage)
+    useSettingsStore.setState({
+      settings: {
+        vimMode: true,
+        maxDoneTasksVisible: 10,
+      },
+    })
 
     const { result } = renderHook(() => useSettings())
     const [settings] = result.current
 
-    expect(settings).toEqual(storedSettings)
+    expect(settings).toEqual({
+      vimMode: true,
+      maxDoneTasksVisible: 10,
+    })
   })
 
   it('updates settings and saves to localStorage', () => {
@@ -48,7 +56,8 @@ describe('useSettings', () => {
 
     const stored = localStorage.getItem('knutpunkt-settings')
     expect(stored).toBeTruthy()
-    expect(JSON.parse(stored!)).toEqual({
+    const parsed = JSON.parse(stored!)
+    expect(parsed.state.settings).toEqual({
       vimMode: true,
       maxDoneTasksVisible: 5,
     })
@@ -74,16 +83,27 @@ describe('useSettings', () => {
     })
   })
 
-  it('merges stored settings with defaults for new settings', () => {
-    // Simulate old stored settings that don't have all current fields
-    localStorage.setItem('knutpunkt-settings', JSON.stringify({ vimMode: true }))
+  it('allows updating individual settings while keeping others', () => {
+    // Start with some custom settings
+    useSettingsStore.setState({
+      settings: {
+        vimMode: true,
+        maxDoneTasksVisible: 20,
+      },
+    })
 
     const { result } = renderHook(() => useSettings())
-    const [settings] = result.current
 
+    // Update only maxDoneTasksVisible
+    act(() => {
+      const [, updateSettings] = result.current
+      updateSettings({ maxDoneTasksVisible: 5 })
+    })
+
+    const [settings] = result.current
     expect(settings).toEqual({
-      vimMode: true,
-      maxDoneTasksVisible: 5, // Should use default
+      vimMode: true, // Should keep existing value
+      maxDoneTasksVisible: 5, // Should use updated value
     })
   })
 
@@ -115,5 +135,23 @@ describe('useSettings', () => {
       vimMode: true,
       maxDoneTasksVisible: 20,
     })
+  })
+
+  it('shares state between multiple hook instances', () => {
+    const { result: result1 } = renderHook(() => useSettings())
+    const { result: result2 } = renderHook(() => useSettings())
+
+    // Both should start with defaults
+    expect(result1.current[0]).toEqual(result2.current[0])
+
+    // Update from first instance
+    act(() => {
+      const [, updateSettings] = result1.current
+      updateSettings({ vimMode: true })
+    })
+
+    // Both instances should see the update
+    expect(result1.current[0].vimMode).toBe(true)
+    expect(result2.current[0].vimMode).toBe(true)
   })
 })
