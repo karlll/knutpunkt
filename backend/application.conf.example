@@ -1,0 +1,40 @@
+# Example External Configuration File for Knutpunkt
+# Copy this file and customize it for your deployment
+#
+# Usage:
+#   CONFIG_FILE=/path/to/my-config.conf ./start.sh
+#   or
+#   java -Dconfig.file=/path/to/my-config.conf -jar knutpunkt-1.0.0.jar
+
+# Include default configuration (optional)
+include classpath("application.conf")
+
+# Override server settings
+ktor {
+    deployment {
+        port = 9090
+        host = "0.0.0.0"
+    }
+}
+
+# Override application settings
+knutpunkt {
+    tasks {
+        directory = "/var/lib/knutpunkt/tasks"
+        enableCache = true
+    }
+    
+    cors {
+        allowedHosts = [
+            "localhost:3000",
+            "app.example.com"
+        ]
+        allowCredentials = true
+    }
+    
+    logging {
+        level = "INFO"
+        appLevel = "INFO"
+        ktorLevel = "WARN"
+    }
+}

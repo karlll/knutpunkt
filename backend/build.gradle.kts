@@ -47,6 +47,9 @@ dependencies {
     // Logging
     implementation("ch.qos.logback:logback-classic:$logbackVersion")
     
+    // HOCON configuration
+    implementation("com.typesafe:config:1.4.3")
+    
     // Testing
     testImplementation("io.ktor:ktor-server-test-host-jvm:$ktorVersion")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5:1.9.21")
