@@ -33,7 +33,7 @@ knutpunkt {
     }
     
     terminal {
-        enabled = true
+        enabled = false
         idleTimeoutMinutes = 30
     }
     
