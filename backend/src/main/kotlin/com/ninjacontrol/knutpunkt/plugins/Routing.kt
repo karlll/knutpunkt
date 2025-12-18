@@ -34,7 +34,7 @@ fun Application.configureRouting(taskService: TaskService, eventServices: EventS
                 val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
                 val terminalService = TerminalService(tasksDirectory, scope)
                 
-                environment.monitor.subscribe(ApplicationStopping) {
+                monitor.subscribe(ApplicationStopping) {
                     terminalService.close()
                 }
                 

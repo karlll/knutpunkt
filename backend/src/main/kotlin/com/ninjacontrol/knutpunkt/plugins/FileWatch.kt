@@ -41,7 +41,7 @@ fun Application.configureFileWatch(taskService: TaskService, tasksDirectory: Str
     logger.info("Automatic cache invalidation configured")
     
     // Clean up on application shutdown
-    environment.monitor.subscribe(ApplicationStopping) {
+    monitor.subscribe(ApplicationStopping) {
         logger.info("Stopping FileWatchService and EventServices")
         invalidationJob.cancel()
         taskEventService.close()
