@@ -15,4 +15,11 @@
     
     <!-- Application logging - DEBUG shows detailed task operations -->
     <logger name="com.ninjacontrol.knutpunkt" level="${APP_LOG_LEVEL:-DEBUG}"/>
+    
+    <!-- Suppress Netty event loop errors during shutdown -->
+    <!-- These are harmless race conditions when JVM is shutting down -->
+    <logger name="io.netty.util.concurrent.DefaultPromise" level="OFF"/>
+    <logger name="io.netty.util.internal.logging" level="ERROR" additivity="false">
+        <appender-ref ref="STDOUT"/>
+    </logger>
 </configuration>
