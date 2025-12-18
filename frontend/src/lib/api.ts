@@ -6,6 +6,8 @@ type TaskUpdate = components['schemas']['TaskUpdate']
 type TaskStatus = components['schemas']['TaskStatus']
 type TaskPriority = components['schemas']['TaskPriority']
 type TaskOrderUpdate = components['schemas']['TaskOrderUpdate']
+type Setting = components['schemas']['Setting']
+type SettingsResponse = components['schemas']['SettingsResponse']
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1'
 
@@ -121,7 +123,14 @@ export const api = {
       return handleResponse<{ updated: Task[] }>(response)
     },
   },
+
+  settings: {
+    get: async (): Promise<SettingsResponse> => {
+      const response = await fetch(`${API_BASE}/settings`)
+      return handleResponse<SettingsResponse>(response)
+    },
+  },
 }
 
 export { ApiError }
-export type { Task, TaskCreate, TaskUpdate, TaskStatus, TaskPriority }
+export type { Task, TaskCreate, TaskUpdate, TaskStatus, TaskPriority, Setting, SettingsResponse }

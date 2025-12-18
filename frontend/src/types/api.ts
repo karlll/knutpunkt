@@ -81,6 +81,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get backend configuration
+         * @description Returns the current backend configuration as a read-only list of key-value pairs.
+         *
+         *     Useful for clients to adapt their behavior based on backend capabilities
+         *     (e.g., show/hide terminal UI based on terminal.enabled setting).
+         */
+        get: operations["getSettings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/tasks": {
         parameters: {
             query?: never;
@@ -178,6 +201,26 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        Setting: {
+            /**
+             * @description Configuration key
+             * @example terminal.enabled
+             */
+            key: string;
+            /**
+             * @description Configuration value
+             * @example false
+             */
+            value: string;
+            /**
+             * @description Human-readable description of the setting
+             * @example PTY terminal support enabled
+             */
+            description?: string;
+        };
+        SettingsResponse: {
+            settings: components["schemas"]["Setting"][];
+        };
         Task: {
             /**
              * Format: uuid
@@ -550,6 +593,57 @@ export interface operations {
                 };
                 content: {
                     "text/event-stream": components["schemas"]["FileEvent"];
+                };
+            };
+        };
+    };
+    getSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Settings retrieved successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "settings": [
+                     *         {
+                     *           "key": "server.port",
+                     *           "value": "8080",
+                     *           "description": "Server port"
+                     *         },
+                     *         {
+                     *           "key": "tasks.directory",
+                     *           "value": "./tasks",
+                     *           "description": "Tasks storage directory"
+                     *         },
+                     *         {
+                     *           "key": "tasks.cacheEnabled",
+                     *           "value": "true",
+                     *           "description": "Task caching enabled"
+                     *         },
+                     *         {
+                     *           "key": "terminal.enabled",
+                     *           "value": "false",
+                     *           "description": "PTY terminal support enabled"
+                     *         },
+                     *         {
+                     *           "key": "terminal.idleTimeoutMinutes",
+                     *           "value": "30",
+                     *           "description": "Terminal idle timeout in minutes"
+                     *         }
+                     *       ]
+                     *     }
+                     */
+                    "application/json": components["schemas"]["SettingsResponse"];
                 };
             };
         };
