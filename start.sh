@@ -16,6 +16,7 @@
 #   PORT               - Server port [default: 8080]
 #   HOST               - Server host [default: 0.0.0.0]
 #   ENABLE_CACHE       - Enable task caching [default: true]
+#   TERMINAL_ENABLED   - Enable PTY terminal support [default: true]
 #   APP_LOG_LEVEL      - Application log level (DEBUG, INFO, WARN, ERROR) [default: DEBUG]
 #   KTOR_LOG_LEVEL     - Ktor framework log level [default: INFO]
 #   LOG_LEVEL          - Root log level [default: INFO]

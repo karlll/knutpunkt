@@ -32,6 +32,11 @@ knutpunkt {
         allowCredentials = true
     }
     
+    terminal {
+        enabled = true
+        idleTimeoutMinutes = 30
+    }
+    
     logging {
         level = "INFO"
         appLevel = "INFO"
