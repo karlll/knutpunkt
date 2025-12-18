@@ -19,6 +19,8 @@ tags:
     description: Task management operations
   - name: events
     description: Real-time task update events via Server-Sent Events (SSE)
+  - name: settings
+    description: Backend configuration (read-only)
 
 paths:
   /events/tasks:
@@ -125,6 +127,42 @@ paths:
                     event: file.deleted
                     id: 1705318202000
                     data: {"eventType":"file.deleted","path":"/path/to/tasks/done/completed-task.md","timestamp":1705318202000,"directory":"done"}
+
+  /settings:
+    get:
+      summary: Get backend configuration
+      description: |
+        Returns the current backend configuration as a read-only list of key-value pairs.
+        
+        Useful for clients to adapt their behavior based on backend capabilities
+        (e.g., show/hide terminal UI based on terminal.enabled setting).
+      operationId: getSettings
+      tags:
+        - settings
+      responses:
+        '200':
+          description: Settings retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SettingsResponse'
+              example:
+                settings:
+                  - key: "server.port"
+                    value: "8080"
+                    description: "Server port"
+                  - key: "tasks.directory"
+                    value: "./tasks"
+                    description: "Tasks storage directory"
+                  - key: "tasks.cacheEnabled"
+                    value: "true"
+                    description: "Task caching enabled"
+                  - key: "terminal.enabled"
+                    value: "false"
+                    description: "PTY terminal support enabled"
+                  - key: "terminal.idleTimeoutMinutes"
+                    value: "30"
+                    description: "Terminal idle timeout in minutes"
 
   /tasks:
     get:
@@ -433,6 +471,35 @@ paths:
 
 components:
   schemas:
+    Setting:
+      type: object
+      required:
+        - key
+        - value
+      properties:
+        key:
+          type: string
+          description: Configuration key
+          example: "terminal.enabled"
+        value:
+          type: string
+          description: Configuration value
+          example: "false"
+        description:
+          type: string
+          description: Human-readable description of the setting
+          example: "PTY terminal support enabled"
+    
+    SettingsResponse:
+      type: object
+      required:
+        - settings
+      properties:
+        settings:
+          type: array
+          items:
+            $ref: '#/components/schemas/Setting'
+    
     Task:
       type: object
       required:

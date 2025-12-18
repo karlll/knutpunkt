@@ -1,8 +1,10 @@
 package com.ninjacontrol.knutpunkt.plugins
 
 import com.ninjacontrol.knutpunkt.routes.eventRoutes
+import com.ninjacontrol.knutpunkt.routes.settingsRoutes
 import com.ninjacontrol.knutpunkt.routes.taskRoutes
 import com.ninjacontrol.knutpunkt.routes.terminalRoutes
+import com.ninjacontrol.knutpunkt.services.SettingsService
 import com.ninjacontrol.knutpunkt.services.TaskService
 import com.ninjacontrol.knutpunkt.services.TerminalService
 import com.typesafe.config.ConfigFactory
@@ -17,12 +19,16 @@ fun Application.configureRouting(taskService: TaskService, eventServices: EventS
     // Read terminal configuration
     val config = HoconApplicationConfig(ConfigFactory.load())
     val terminalEnabled = config.propertyOrNull("knutpunkt.terminal.enabled")
-        ?.getString()?.toBoolean() ?: true
+        ?.getString()?.toBoolean() ?: false
+    
+    // Create settings service
+    val settingsService = SettingsService()
     
     routing {
         route("/api/v1") {
             taskRoutes(taskService)
             eventRoutes(eventServices.taskEventService, eventServices.fileEventService)
+            settingsRoutes(settingsService)
             
             if (terminalEnabled) {
                 val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
