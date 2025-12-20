@@ -1,6 +1,7 @@
 # IDE
 .idea/
 .vscode/
+.claude/
 *.swp
 *.swo
 *~
@@ -26,6 +27,11 @@ build/*.jar
 # Logs
 *.log
 logs/
+
+# Development
+notes/
+scripts/ws-test/
+tasks/
 
 # Temporary files
 *.tmp
