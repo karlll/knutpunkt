@@ -26,7 +26,7 @@ knutpunkt {
     
     cors {
         allowedHosts = [
-            "localhost:3000",
+            "127.0.0.1:3000",
             "app.example.com"
         ]
         allowCredentials = true

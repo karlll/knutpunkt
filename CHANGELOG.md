@@ -37,5 +37,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - JAR manifest includes build metadata (version, timestamp, git commit)
 - Deployment: Single JAR with embedded static frontend
 
-[Unreleased]: https://github.com/yourusername/knutpunkt/compare/v0.9.0...HEAD
-[0.9.0]: https://github.com/yourusername/knutpunkt/releases/tag/v0.9.0
+[Unreleased]: https://github.com/karlll/knutpunkt/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/karlll/knutpunkt/releases/tag/v0.9.0

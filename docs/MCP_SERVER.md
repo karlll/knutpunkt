@@ -53,7 +53,7 @@ Add the Knutpunkt MCP server to your Claude Code settings file.
         "/absolute/path/to/knutpunkt/mcp-server/build/index.js"
       ],
       "env": {
-        "KNUTPUNKT_API_URL": "http://localhost:8080/api/v1"
+        "KNUTPUNKT_API_URL": "http://127.0.0.1:8080/api/v1"
       }
     }
   }
@@ -64,7 +64,7 @@ Replace `/absolute/path/to/knutpunkt` with the actual path to your Knutpunkt ins
 
 ### Environment Variables
 
-- `KNUTPUNKT_API_URL` - Base URL for the Knutpunkt API (default: `http://localhost:8080/api/v1`)
+- `KNUTPUNKT_API_URL` - Base URL for the Knutpunkt API (default: `http://127.0.0.1:8080/api/v1`)
 
 ### Verify Installation
 
@@ -440,7 +440,7 @@ Claude:
 ./start.sh
 ```
 
-Verify the backend is accessible at `http://localhost:8080/api/v1/tasks`
+Verify the backend is accessible at `http://127.0.0.1:8080/api/v1/tasks`
 
 ### Configuration Issues
 
@@ -463,7 +463,7 @@ If your backend runs on a different port or host:
       "command": "node",
       "args": ["/path/to/mcp-server/build/index.js"],
       "env": {
-        "KNUTPUNKT_API_URL": "http://localhost:3000/api/v1"
+        "KNUTPUNKT_API_URL": "http://127.0.0.1:3000/api/v1"
       }
     }
   }

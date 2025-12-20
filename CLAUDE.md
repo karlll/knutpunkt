@@ -479,7 +479,7 @@ SERVER_PORT=8080
 Ensure the backend CORS plugin allows the frontend origin:
 ```kotlin
 install(CORS) {
-    allowHost("localhost:5173")  // Vite dev server
+    allowHost("127.0.0.1:5173")  // Vite dev server
     allowHeader(HttpHeaders.ContentType)
     allowMethod(HttpMethod.Put)
     allowMethod(HttpMethod.Delete)

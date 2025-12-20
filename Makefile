@@ -38,7 +38,7 @@ dist: build
 
 # Run the application
 run:
-	@echo "Starting Knutpunkt on http://localhost:8080"
+	@echo "Starting Knutpunkt on http://127.0.0.1:8080"
 	cd backend && ./gradlew run --no-daemon
 
 # Clean build artifacts

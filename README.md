@@ -1,6 +1,6 @@
 # Knutpunkt
 
-A Kanban task board with file-based persistence and real-time updates.
+A local Kanban board for humans and AI agents working together.
 
 ## Overview
 
@@ -178,6 +178,18 @@ Base URL: `http://localhost:8080/api/v1`
 - `GET /events/files` - SSE stream of file events
 - `GET /settings` - Backend configuration
 - `GET /version` - Version information
+
+## MCP Server Integration
+
+The MCP (Model Context Protocol) server enables AI assistants like Claude Code to interact with the Knutpunkt task board. It provides tools for creating, listing, claiming, and managing tasks through natural language commands.
+
+**Setup**: See [docs/MCP_SERVER.md](docs/MCP_SERVER.md) for installation, configuration, and usage examples.
+
+## Documentation
+
+- [docs/MCP_SERVER.md](docs/MCP_SERVER.md) - MCP server setup and usage guide
+- [docs/TASK_WRITING_GUIDE.md](docs/TASK_WRITING_GUIDE.md) - Guidelines for writing effective tasks
+- [api/openapi.yaml](api/openapi.yaml) - Complete API specification
 
 ## License
 

@@ -42,7 +42,7 @@ src/main/kotlin/com/ninjacontrol/knutpunkt/
 ./gradlew run
 ```
 
-Server will start on `http://localhost:8080`
+Server will start on `http://127.0.0.1:8080`
 
 ## API Endpoints
 
@@ -59,15 +59,15 @@ All endpoints are prefixed with `/api/v1`:
 
 ```bash
 # List tasks
-curl http://localhost:8080/api/v1/tasks
+curl http://127.0.0.1:8080/api/v1/tasks
 
 # Create a task
-curl -X POST http://localhost:8080/api/v1/tasks \
+curl -X POST http://127.0.0.1:8080/api/v1/tasks \
   -H "Content-Type: application/json" \
   -d '{"title": "My Task", "description": "Task description"}'
 
 # Update task status
-curl -X PATCH http://localhost:8080/api/v1/tasks/{id}/status \
+curl -X PATCH http://127.0.0.1:8080/api/v1/tasks/{id}/status \
   -H "Content-Type: application/json" \
   -d '{"status": "ONGOING"}'
 ```

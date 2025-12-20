@@ -37,7 +37,7 @@ export interface TaskUpdate {
 export class KnutpunktApiClient {
   private client: AxiosInstance;
 
-  constructor(baseURL: string = 'http://localhost:8080/api/v1') {
+  constructor(baseURL: string = 'http://127.0.0.1:8080/api/v1') {
     this.client = axios.create({
       baseURL,
       headers: {
@@ -84,5 +84,5 @@ export class KnutpunktApiClient {
 
 // Export singleton instance
 export const apiClient = new KnutpunktApiClient(
-  process.env.KNUTPUNKT_API_URL || 'http://localhost:8080/api/v1'
+  process.env.KNUTPUNKT_API_URL || 'http://127.0.0.1:8080/api/v1'
 );

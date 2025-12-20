@@ -50,10 +50,10 @@ npm run dev
 Set the backend API URL via environment variable:
 
 ```bash
-export KNUTPUNKT_API_URL=http://localhost:8080/api/v1
+export KNUTPUNKT_API_URL=http://127.0.0.1:8080/api/v1
 ```
 
-Default: `http://localhost:8080/api/v1`
+Default: `http://127.0.0.1:8080/api/v1`
 
 ## Usage with Claude Desktop
 
@@ -66,7 +66,7 @@ Add to your Claude Desktop configuration (`~/Library/Application Support/Claude/
       "command": "node",
       "args": ["/absolute/path/to/knutpunkt/mcp-server/build/index.js"],
       "env": {
-        "KNUTPUNKT_API_URL": "http://localhost:8080/api/v1"
+        "KNUTPUNKT_API_URL": "http://127.0.0.1:8080/api/v1"
       }
     }
   }

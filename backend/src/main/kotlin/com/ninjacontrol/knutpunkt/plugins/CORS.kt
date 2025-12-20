@@ -14,7 +14,7 @@ fun Application.configureCORS() {
     val allowedHosts = try {
         config.property("knutpunkt.cors.allowedHosts").getList()
     } catch (e: Exception) {
-        listOf("localhost:5173", "127.0.0.1:5173")
+        listOf("127.0.0.1:5173")
     }
     
     // Read allow credentials from config

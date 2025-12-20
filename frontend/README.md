@@ -19,7 +19,7 @@ A Kanban task board built with React, TypeScript, and Vite.
 ### Prerequisites
 
 - Node.js 18+ and npm
-- Backend server running on `http://localhost:8080` (or MSW for mocking)
+- Backend server running on `http://127.0.0.1:8080` (or MSW for mocking)
 
 ### Installation
 
@@ -33,7 +33,7 @@ npm install
 # Start dev server (with hot reload)
 npm run dev
 
-# Open browser at http://localhost:5173
+# Open browser at http://127.0.0.1:5173
 ```
 
 ### Building
@@ -180,7 +180,7 @@ Key test files:
 Create a `.env` file in the frontend directory:
 
 ```env
-VITE_API_BASE_URL=http://localhost:8080/api/v1
+VITE_API_BASE_URL=http://127.0.0.1:8080/api/v1
 ```
 
 ## Troubleshooting
