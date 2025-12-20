@@ -16,9 +16,9 @@ Tasks are stored as Markdown files with YAML frontmatter in `tasks/{planned,ongo
 
 ### MCP server interaction, examples 
 
-- User: "List tasks"
-- User: "Claim task #2, read and propose a solution"
-- (After discussion about a feature) User: "Create a new task for implementing the proposed solution"
+- **User:** _"List tasks"_
+- **User:** _"Claim task #2, read and propose a solution"_
+- (After discussion about a feature) **User:** _"Create a new task for implementing the proposed solution"_
 
 ### Task file example
 
