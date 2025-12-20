@@ -201,3 +201,12 @@ sealed class FileEvent {
         override val eventType: String = "file.deleted"
     }
 }
+
+// Application Version Information
+@Serializable
+data class Version(
+    val version: String,
+    val buildTimestamp: String,
+    val gitCommit: String,
+    val builtBy: String
+)

@@ -31,19 +31,37 @@
 
 set -e
 
-JAR_FILE="build/knutpunkt-1.0.0.jar"
+# Auto-detect version from build.gradle.kts or use VERSION env var
+if [ -z "$VERSION" ]; then
+    VERSION=$(grep '^version = ' backend/build.gradle.kts 2>/dev/null | sed 's/version = "\(.*\)"/\1/' || echo "1.0.0")
+fi
+
+JAR_FILE="build/knutpunkt-${VERSION}.jar"
 PORT=8080
 TASKS_ARG="${1:-}"
 TASKS_DIR="${TASKS_ARG:-${TASKS_DIRECTORY:-./tasks}}"
 
-# Check if JAR exists
+# Check if specific version JAR exists, otherwise try to find any JAR
 if [ ! -f "$JAR_FILE" ]; then
-    echo "Error: JAR file not found at $JAR_FILE"
-    echo ""
-    echo "Please build the application first:"
-    echo "  make dist"
-    echo ""
-    exit 1
+    echo "Warning: Expected JAR not found at $JAR_FILE"
+    echo "Searching for alternative JAR files..."
+
+    # Find the most recent JAR file
+    FOUND_JAR=$(ls -t build/knutpunkt-*.jar 2>/dev/null | head -1 || echo "")
+
+    if [ -n "$FOUND_JAR" ] && [ -f "$FOUND_JAR" ]; then
+        JAR_FILE="$FOUND_JAR"
+        DETECTED_VERSION=$(basename "$JAR_FILE" | sed 's/knutpunkt-\(.*\)\.jar/\1/')
+        echo "Found: $JAR_FILE (version $DETECTED_VERSION)"
+        VERSION="$DETECTED_VERSION"
+    else
+        echo "Error: No JAR file found in ./build directory"
+        echo ""
+        echo "Please build the application first:"
+        echo "  make dist"
+        echo ""
+        exit 1
+    fi
 fi
 
 # Build JVM options
@@ -60,7 +78,7 @@ if [ -n "${CONFIG_FILE:-}" ]; then
 fi
 
 # Display startup information
-echo "Starting Knutpunkt..."
+echo "Starting Knutpunkt v$VERSION..."
 echo "JAR: $JAR_FILE"
 echo "Port: ${PORT:-8080} (set PORT to change)"
 echo "Tasks directory: $TASKS_DIR"

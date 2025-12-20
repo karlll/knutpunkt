@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "com.ninjacontrol.knutpunkt"
-version = "1.0.0"
+version = "0.9.0"
 
 repositories {
     mavenCentral()
@@ -76,6 +76,21 @@ tasks.named<Test>("test") {
     testLogging {
         events("passed", "skipped", "failed")
         showStandardStreams = false
+    }
+}
+
+// Add build metadata to JAR manifest
+tasks.withType<Jar> {
+    manifest {
+        attributes(
+            "Implementation-Title" to "Knutpunkt",
+            "Implementation-Version" to version,
+            "Implementation-Vendor" to "NinjaControl",
+            "Build-Timestamp" to java.time.Instant.now().toString(),
+            "Build-Jdk" to "${System.getProperty("java.version")} (${System.getProperty("java.vendor")})",
+            "Git-Commit" to (System.getenv("GITHUB_SHA") ?: "dev"),
+            "Built-By" to (System.getenv("GITHUB_ACTOR") ?: System.getProperty("user.name"))
+        )
     }
 }
 

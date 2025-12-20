@@ -1,4 +1,7 @@
-.PHONY: help build clean run test dist install-deps
+.PHONY: help build clean run test dist install-deps version
+
+# Extract version from build.gradle.kts
+VERSION := $(shell grep '^version = ' backend/build.gradle.kts | sed 's/version = "\(.*\)"/\1/')
 
 # Default target
 help:
@@ -11,19 +14,20 @@ help:
 	@echo "  make clean        - Clean all build artifacts"
 	@echo "  make test         - Run all tests"
 	@echo "  make install-deps - Install frontend dependencies"
+	@echo "  make version      - Show current version"
 	@echo ""
 
 # Build the project (frontend + backend JAR)
 build:
-	@echo "Building Knutpunkt..."
+	@echo "Building Knutpunkt v$(VERSION)..."
 	cd backend && ./gradlew clean shadowJar --no-daemon
 
 # Build and copy to project root build directory
 dist: build
-	@echo "Creating distribution..."
+	@echo "Creating distribution (version $(VERSION))..."
 	@mkdir -p build
-	@cp backend/build/libs/knutpunkt-1.0.0-all.jar build/knutpunkt-1.0.0.jar
-	@echo "✓ JAR copied to: ./build/knutpunkt-1.0.0.jar"
+	@cp backend/build/libs/knutpunkt-$(VERSION)-all.jar build/knutpunkt-$(VERSION).jar
+	@echo "✓ JAR copied to: ./build/knutpunkt-$(VERSION).jar"
 	@ls -lh build/
 
 # Run the application
@@ -52,3 +56,7 @@ install-deps:
 	@echo "Installing frontend dependencies..."
 	cd frontend && npm install
 	@echo "✓ Dependencies installed"
+
+# Show current version
+version:
+	@echo "$(VERSION)"

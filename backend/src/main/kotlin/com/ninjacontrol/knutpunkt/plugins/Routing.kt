@@ -4,6 +4,7 @@ import com.ninjacontrol.knutpunkt.routes.eventRoutes
 import com.ninjacontrol.knutpunkt.routes.settingsRoutes
 import com.ninjacontrol.knutpunkt.routes.taskRoutes
 import com.ninjacontrol.knutpunkt.routes.terminalRoutes
+import com.ninjacontrol.knutpunkt.routes.versionRoutes
 import com.ninjacontrol.knutpunkt.services.SettingsService
 import com.ninjacontrol.knutpunkt.services.TaskService
 import com.ninjacontrol.knutpunkt.services.TerminalService
@@ -29,6 +30,7 @@ fun Application.configureRouting(taskService: TaskService, eventServices: EventS
             taskRoutes(taskService)
             eventRoutes(eventServices.taskEventService, eventServices.fileEventService)
             settingsRoutes(settingsService)
+            versionRoutes()
             
             if (terminalEnabled) {
                 val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())

@@ -1,0 +1,112 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # Trigger on v1.2.3, v2.0.0-beta, etc.
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'frontend/package-lock.json'
+
+      - name: Extract version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Verify version matches build.gradle.kts
+        run: |
+          GRADLE_VERSION=$(grep '^version = ' backend/build.gradle.kts | sed 's/version = "\(.*\)"/\1/')
+          if [ "${{ steps.version.outputs.VERSION }}" != "$GRADLE_VERSION" ]; then
+            echo "Error: Tag version (${{ steps.version.outputs.VERSION }}) doesn't match build.gradle.kts ($GRADLE_VERSION)"
+            exit 1
+          fi
+          echo "✓ Version validation passed: $GRADLE_VERSION"
+
+      - name: Install frontend dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Test frontend
+        run: |
+          cd frontend
+          npm run test
+
+      - name: Build frontend
+        run: |
+          cd frontend
+          npm run build
+
+      - name: Test backend
+        run: |
+          cd backend
+          ./gradlew test --no-daemon
+
+      - name: Build backend JAR
+        run: |
+          cd backend
+          ./gradlew shadowJar --no-daemon
+
+      - name: Prepare release artifact
+        run: |
+          mkdir -p release
+          cp backend/build/libs/knutpunkt-${{ steps.version.outputs.VERSION }}-all.jar \
+             release/knutpunkt-${{ steps.version.outputs.VERSION }}.jar
+
+      - name: Generate checksums
+        run: |
+          cd release
+          sha256sum knutpunkt-${{ steps.version.outputs.VERSION }}.jar > checksums.txt
+          cat checksums.txt
+
+      - name: Extract changelog for this release
+        id: changelog
+        run: |
+          if [ -f CHANGELOG.md ]; then
+            # Extract changelog section for this version
+            sed -n "/## \[${{ steps.version.outputs.VERSION }}\]/,/## \[/p" CHANGELOG.md | \
+            sed '$ d' > release-notes.md
+
+            # If extraction failed or empty, use a default message
+            if [ ! -s release-notes.md ]; then
+              echo "Release version ${{ steps.version.outputs.VERSION }}" > release-notes.md
+              echo "" >> release-notes.md
+              echo "See [CHANGELOG.md](CHANGELOG.md) for details." >> release-notes.md
+            fi
+          else
+            echo "Release version ${{ steps.version.outputs.VERSION }}" > release-notes.md
+          fi
+          cat release-notes.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release/knutpunkt-${{ steps.version.outputs.VERSION }}.jar
+            release/checksums.txt
+          body_path: release-notes.md
+          draft: false
+          prerelease: ${{ contains(steps.version.outputs.VERSION, '-') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
