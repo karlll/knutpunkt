@@ -100,7 +100,7 @@ This creates `build/knutpunkt-<version>.jar` containing the backend server and b
 APP_LOG_LEVEL=DEBUG ./start.sh
 ```
 
-Access the application at http://localhost:8080
+Access the application at http://127.0.0.1:8080
 
 ### Environment Variables
 
@@ -139,7 +139,7 @@ npm run generate-types
 npm run storybook
 ```
 
-The frontend runs on http://localhost:5173 (Vite default).
+The frontend runs on http://127.0.0.1:5173 (Vite default).
 
 ### Backend
 
@@ -159,7 +159,7 @@ cd backend
 ./gradlew shadowJar
 ```
 
-The backend runs on http://localhost:8080.
+The backend runs on http://127.0.0.1:8080.
 
 ### Full Project
 
@@ -216,7 +216,7 @@ knutpunkt/
 
 REST API is documented in `api/openapi.yaml` (OpenAPI 3.0).
 
-Base URL: `http://localhost:8080/api/v1`
+Base URL: `http://127.0.0.1:8080/api/v1`
 
 ### Endpoints
 
