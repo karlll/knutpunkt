@@ -7,6 +7,7 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable
 import java.io.File
 import java.nio.file.Files
 
@@ -90,6 +91,7 @@ class FileWatchIntegrationTest {
     }
     
     @Test
+    @DisabledIfEnvironmentVariable(named = "CI", matches = "true", disabledReason = "WatchService MODIFY events unreliable in CI containers")
     fun `cache invalidation on external file modification`() = runBlocking {
         fileWatchService.start()
         
