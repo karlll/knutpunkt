@@ -6,6 +6,8 @@ A local Kanban board for humans and AI agents working together.
 
 Tasks are stored as Markdown files with YAML frontmatter in `tasks/{planned,ongoing,done}/` directories. The backend provides a REST API and Server-Sent Events for real-time updates. The frontend is a React application with drag-and-drop Kanban board interface.
 
+### Screenshots
+
 ![Kanban board with drag-and-drop task management](docs/images/board-with-columns.png)
 *Three-column Kanban board with task cards showing priorities and categories.*
 
