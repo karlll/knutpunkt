@@ -1,83 +1,184 @@
-# Knutpunkt - Kanban Task Board
+# Knutpunkt
 
-A full-stack Kanban board application for task management with file-based persistence.
+A Kanban task board with file-based persistence and real-time updates.
 
 ## Overview
 
-Knutpunkt is a Kanban board system consisting of three main components:
+Tasks are stored as Markdown files with YAML frontmatter in `tasks/{planned,ongoing,done}/` directories. The backend provides a REST API and Server-Sent Events for real-time updates. The frontend is a React application with drag-and-drop Kanban board interface.
 
-- **Frontend**: React-based browser application with drag-and-drop interface (ShadCN UI)
-- **Backend**: Kotlin/Ktor REST API server
-- **Storage**: File-based persistence using Markdown files with YAML front matter
+## Features
 
-## Architecture
+- Kanban board with three columns (planned, ongoing, done)
+- Drag-and-drop task ordering and status changes
+- Real-time updates via Server-Sent Events
+- File-based storage using Markdown with YAML frontmatter
+- Task filtering and categorization
+- MCP (Model Context Protocol) server for AI assistant integration
 
+## Prerequisites
+
+- Node.js 18+
+- Java 17+
+- Make (optional, for convenience commands)
+
+## Quick Start
+
+### Build
+
+```bash
+# Install frontend dependencies
+cd frontend && npm install && cd ..
+
+# Build both frontend and backend
+make dist
 ```
-┌─────────────────┐         ┌─────────────────┐         ┌─────────────────┐
-│    Frontend     │  HTTP   │     Backend     │  I/O    │   File System   │
-│  React + Vite   │◄───────►│  Kotlin + Ktor  │◄───────►│   tasks/*.md    │
-│    ShadCN UI    │   JSON  │                 │         │                 │
-└─────────────────┘         └─────────────────┘         └─────────────────┘
+
+This creates `build/knutpunkt-<version>.jar` containing the backend server and bundled frontend.
+
+### Run
+
+```bash
+# Start the server (defaults to ./tasks directory)
+./start.sh
+
+# Or specify a custom tasks directory
+./start.sh /path/to/tasks
+
+# With debug logging
+APP_LOG_LEVEL=DEBUG ./start.sh
 ```
 
-## Project Structure
+Access the application at http://localhost:8080
+
+### Environment Variables
+
+- `PORT` - Server port (default: 8080)
+- `HOST` - Server host (default: 0.0.0.0)
+- `TASKS_DIRECTORY` - Tasks storage directory (default: ./tasks)
+- `ENABLE_CACHE` - Enable task caching (default: true)
+- `APP_LOG_LEVEL` - Application log level: DEBUG, INFO, WARN, ERROR (default: DEBUG)
+
+## Development
+
+### Frontend
+
+```bash
+cd frontend
+
+# Development server with API mocks
+npm run dev
+
+# Development server with real backend
+npm run dev:local
+
+# Run tests
+npm test
+
+# Run tests with coverage
+npm run test:coverage
+
+# Type checking
+npm run build  # includes tsc check
+
+# Generate API types from OpenAPI spec
+npm run generate-types
+
+# Storybook
+npm run storybook
+```
+
+The frontend runs on http://localhost:5173 (Vite default).
+
+### Backend
+
+```bash
+cd backend
+
+# Run development server
+./gradlew run
+
+# Run tests
+./gradlew test
+
+# Run tests with coverage
+./gradlew test jacocoTestReport
+
+# Build JAR only
+./gradlew shadowJar
+```
+
+The backend runs on http://localhost:8080.
+
+### Full Project
+
+```bash
+# Build everything
+make build
+
+# Run all tests (frontend + backend)
+make test
+
+# Run with coverage reports
+make test-coverage
+
+# Clean all build artifacts
+make clean
+
+# Show version
+make version
+```
+
+### Project Structure
 
 ```
 knutpunkt/
-├── README.md                # This file
-├── CLAUDE.md                # Detailed development specifications
 ├── api/
-│   └── openapi.yaml         # OpenAPI 3.0 API specification
-├── frontend/                # React frontend (to be implemented)
-├── backend/                 # Kotlin/Ktor backend (to be implemented)
-└── tasks/                   # Task storage (Markdown files)
-    ├── planned/
-    ├── ongoing/
-    └── done/
+│   └── openapi.yaml           # OpenAPI 3.0 API specification
+├── frontend/                  # React/TypeScript frontend
+│   ├── src/
+│   │   ├── components/        # UI components (ShadCN + custom)
+│   │   ├── hooks/            # React hooks
+│   │   ├── lib/              # API client and utilities
+│   │   └── types/            # TypeScript types
+│   ├── public/               # Static assets
+│   └── package.json
+├── backend/                   # Kotlin/Ktor backend
+│   └── src/main/kotlin/com/ninjacontrol/knutpunkt/
+│       ├── Application.kt     # Entry point
+│       ├── models/           # Data models
+│       ├── services/         # Business logic
+│       ├── routes/           # HTTP routes
+│       ├── plugins/          # Ktor plugins
+│       └── utils/            # Utilities
+├── mcp-server/               # MCP server for AI integration
+│   └── src/
+├── tasks/                    # Task storage (file-based)
+│   ├── planned/
+│   ├── ongoing/
+│   └── done/
+├── Makefile                  # Build automation
+└── start.sh                  # Startup script
 ```
 
-## API Specification
+## API
 
-The API contract is defined in `api/openapi.yaml` using OpenAPI 3.0.
+REST API is documented in `api/openapi.yaml` (OpenAPI 3.0).
 
-**Base URL**: `http://localhost:8080/api/v1`
+Base URL: `http://localhost:8080/api/v1`
 
-**Endpoints**:
-- `GET /tasks` - List all tasks (with filtering)
-- `GET /tasks/{id}` - Get a specific task
-- `POST /tasks` - Create a new task
-- `PUT /tasks/{id}` - Update a task
-- `DELETE /tasks/{id}` - Delete a task
-- `PATCH /tasks/{id}/status` - Update task status
+### Endpoints
 
-View the full specification in [api/openapi.yaml](api/openapi.yaml).
-
-## Development Approach
-
-This project follows **API-first development**:
-
-1. Define the API contract (OpenAPI specification) ✓
-2. Implement the backend according to the spec
-3. Implement the frontend using the spec for type generation
-
-## Getting Started
-
-Detailed development instructions, coding guidelines, and component specifications can be found in [CLAUDE.md](CLAUDE.md).
-
-### Prerequisites
-
-- **Frontend**: Node.js 18+, npm
-- **Backend**: Java 17+, Kotlin 1.9+, Gradle 8+
-
-### Quick Start
-
-*(To be added as components are implemented)*
-
-## Documentation
-
-- [CLAUDE.md](CLAUDE.md) - Comprehensive development guide
-- [api/openapi.yaml](api/openapi.yaml) - API specification
+- `GET /tasks` - List tasks (with filtering)
+- `GET /tasks/{id}` - Get task by ID
+- `POST /tasks` - Create task
+- `PUT /tasks/{id}` - Update task
+- `DELETE /tasks/{id}` - Delete task
+- `PATCH /tasks/{id}/order` - Update task order/status
+- `GET /events/tasks` - SSE stream of task events
+- `GET /events/files` - SSE stream of file events
+- `GET /settings` - Backend configuration
+- `GET /version` - Version information
 
 ## License
 
-*(To be determined)*
+MIT
