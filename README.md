@@ -37,7 +37,7 @@ order: 6
 
 ## Overview
 
-The MarkdownEditor has support for VIM mode. If it is active, a small below the MarkdownEditor should show this. Also, the current VIM editing mode of the MarkdownEditor should be printed (all modes available to the codemirro-vim plugin should be supported)
+The MarkdownEditor has support for VIM mode. If it is active, a small label below the MarkdownEditor should show this. Also, the current VIM editing mode of the MarkdownEditor should be printed (all modes available to the codemirror-vim plugin should be supported)
 
 ## Requirements
 
