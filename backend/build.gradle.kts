@@ -1,9 +1,12 @@
+import java.time.Instant
+
 plugins {
     kotlin("jvm") version "2.0.21"
     kotlin("plugin.serialization") version "2.0.21"
     application
     id("org.openapi.generator") version "7.1.0"
     id("com.github.johnrengelman.shadow") version "8.1.1"
+    jacoco
 }
 
 group = "com.ninjacontrol.knutpunkt"
@@ -77,57 +80,56 @@ tasks.named<Test>("test") {
         events("passed", "skipped", "failed")
         showStandardStreams = false
     }
+    finalizedBy(tasks.jacocoTestReport) // Generate coverage report after tests
 }
 
-// Add build metadata to JAR manifest
-tasks.withType<Jar> {
-    manifest {
-        attributes(
-            "Implementation-Title" to "Knutpunkt",
-            "Implementation-Version" to version,
-            "Implementation-Vendor" to "NinjaControl",
-            "Build-Timestamp" to java.time.Instant.now().toString(),
-            "Build-Jdk" to "${System.getProperty("java.version")} (${System.getProperty("java.vendor")})",
-            "Git-Commit" to (System.getenv("GITHUB_SHA") ?: "dev"),
-            "Built-By" to (System.getenv("GITHUB_ACTOR") ?: System.getProperty("user.name"))
-        )
+// Configure Jacoco for code coverage
+jacoco {
+    toolVersion = "0.8.11"
+}
+
+tasks.jacocoTestReport {
+    dependsOn(tasks.test) // Ensure tests run before generating report
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+        csv.required.set(false)
     }
 }
 
-// Task to build frontend
-val buildFrontend by tasks.registering(Exec::class) {
-    description = "Build frontend application"
-    workingDir = file("../frontend")
-    commandLine = if (System.getProperty("os.name").lowercase().contains("windows")) {
-        listOf("cmd", "/c", "npm", "run", "build")
-    } else {
-        listOf("npm", "run", "build")
+// Add build metadata to JAR manifest when jar tasks are executed
+// This runs during configuration but doesn't force jar into test graph
+tasks.matching { it.name == "jar" || it.name == "shadowJar" }.configureEach {
+    if (this is Jar) {
+        manifest {
+            attributes(mapOf(
+                "Implementation-Title" to "Knutpunkt",
+                "Implementation-Version" to version,
+                "Implementation-Vendor" to "NinjaControl",
+                "Build-Timestamp" to Instant.now().toString(),
+                "Build-Jdk" to "${System.getProperty("java.version")} (${System.getProperty("java.vendor")})",
+                "Git-Commit" to (System.getenv("GITHUB_SHA") ?: "dev"),
+                "Built-By" to (System.getenv("GITHUB_ACTOR") ?: System.getProperty("user.name"))
+            ))
+        }
     }
 }
 
-// Task to copy frontend dist to resources
+// Task to copy pre-built frontend to backend resources
+// Frontend must be built separately (e.g., via `make dist` or manually with `npm run build`)
 val copyFrontend by tasks.registering(Copy::class) {
-    description = "Copy built frontend to backend resources"
-    dependsOn(buildFrontend)
-    from("../frontend/dist")
-    into("src/main/resources/static")
+    description = "Copy pre-built frontend to backend static resources"
+    val frontendDistDir = layout.projectDirectory.dir("../frontend/dist")
+    from(frontendDistDir)
+    into(layout.buildDirectory.dir("frontend-dist"))
 }
 
-// Only build frontend when producing a JAR / distribution, not for tests
-if (file("../frontend").exists()) {
-    // Copy frontend before processing resources when building JARs
-    // This ensures the static files are included in the JAR
-    tasks.named("processResources") {
-        mustRunAfter(copyFrontend)
-    }
-    
-    // Ensure frontend is copied into resources only when assembling artifacts
-    tasks.named<Jar>("jar") {
+// Include frontend in JAR tasks if it has been built
+tasks.matching { it.name == "jar" || it.name == "shadowJar" }.configureEach {
+    if (this is Jar) {
         dependsOn(copyFrontend)
+        from(copyFrontend.map { it.destinationDir }) {
+            into("static")
+        }
     }
-    tasks.named<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJar") {
-        dependsOn(copyFrontend)
-    }
-} else {
-    // No frontend directory found; don't wire frontend build into the build lifecycle
 }

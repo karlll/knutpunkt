@@ -11,9 +11,9 @@
     "preview": "vite preview",
     "generate-types": "openapi-typescript ../api/openapi.yaml -o src/types/api.ts",
     "generate-favicons": "node scripts/generate-favicons.mjs",
-    "test": "vitest --project=unit",
+    "test": "tsc --noEmit && vitest --project=unit --run",
     "test:ui": "vitest --project=unit --ui",
-    "test:coverage": "vitest --project=unit --coverage",
+    "test:coverage": "tsc --noEmit && vitest --project=unit --coverage --run",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },

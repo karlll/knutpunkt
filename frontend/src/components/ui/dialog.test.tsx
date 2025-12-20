@@ -31,6 +31,7 @@ describe('Dialog', () => {
       <Dialog open={true}>
         <DialogContent>
           <DialogTitle>Default Size</DialogTitle>
+          <DialogDescription>Test description</DialogDescription>
         </DialogContent>
       </Dialog>
     )
@@ -44,6 +45,7 @@ describe('Dialog', () => {
       <Dialog open={true}>
         <DialogContent size="sm">
           <DialogTitle>Small Dialog</DialogTitle>
+          <DialogDescription>Test description</DialogDescription>
         </DialogContent>
       </Dialog>
     )
@@ -57,6 +59,7 @@ describe('Dialog', () => {
       <Dialog open={true}>
         <DialogContent size="lg">
           <DialogTitle>Large Dialog</DialogTitle>
+          <DialogDescription>Test description</DialogDescription>
         </DialogContent>
       </Dialog>
     )
@@ -70,6 +73,7 @@ describe('Dialog', () => {
       <Dialog open={true}>
         <DialogContent size="xl">
           <DialogTitle>Extra Large Dialog</DialogTitle>
+          <DialogDescription>Test description</DialogDescription>
         </DialogContent>
       </Dialog>
     )
@@ -83,6 +87,7 @@ describe('Dialog', () => {
       <Dialog open={true}>
         <DialogContent size="2xl">
           <DialogTitle>2XL Dialog</DialogTitle>
+          <DialogDescription>Test description</DialogDescription>
         </DialogContent>
       </Dialog>
     )
@@ -96,6 +101,7 @@ describe('Dialog', () => {
       <Dialog open={true}>
         <DialogContent size="full">
           <DialogTitle>Full Dialog</DialogTitle>
+          <DialogDescription>Test description</DialogDescription>
         </DialogContent>
       </Dialog>
     )
@@ -109,6 +115,7 @@ describe('Dialog', () => {
       <Dialog open={true}>
         <DialogContent>
           <DialogTitle>Test</DialogTitle>
+          <DialogDescription>Test description</DialogDescription>
         </DialogContent>
       </Dialog>
     )
@@ -141,6 +148,7 @@ describe('Dialog', () => {
       <Dialog open={true}>
         <DialogContent className="custom-class">
           <DialogTitle>Test</DialogTitle>
+          <DialogDescription>Test description</DialogDescription>
         </DialogContent>
       </Dialog>
     )
@@ -154,6 +162,7 @@ describe('Dialog', () => {
       <Dialog open={true}>
         <DialogContent size="xl" className="custom-height">
           <DialogTitle>Test</DialogTitle>
+          <DialogDescription>Test description</DialogDescription>
         </DialogContent>
       </Dialog>
     )

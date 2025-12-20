@@ -43,3 +43,29 @@ class MockEventSource {
 
 // @ts-expect-error - Mocking browser API
 global.EventSource = MockEventSource
+
+// Mock Range.prototype.getClientRects and getBoundingClientRect for CodeMirror
+// CodeMirror uses these methods which are not fully implemented in jsdom
+if (typeof Range !== 'undefined') {
+  Range.prototype.getClientRects = function() {
+    return {
+      length: 0,
+      item: () => null,
+      [Symbol.iterator]: function*() {},
+    } as DOMRectList
+  }
+
+  Range.prototype.getBoundingClientRect = function() {
+    return {
+      x: 0,
+      y: 0,
+      width: 0,
+      height: 0,
+      top: 0,
+      right: 0,
+      bottom: 0,
+      left: 0,
+      toJSON: () => ({}),
+    } as DOMRect
+  }
+}
