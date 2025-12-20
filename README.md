@@ -14,6 +14,12 @@ Tasks are stored as Markdown files with YAML frontmatter in `tasks/{planned,ongo
 ![Task editor with Markdown support and syntax highlighting](docs/images/edit-task.png)
 *Built-in Markdown editor with syntax highlighting and Vim mode support. Vim mode is configurable.*
 
+### MCP server interaction, examples 
+
+- User: "List tasks"
+- User: "Claim task #2, read and propose a solution"
+- (After discussion about a feature) User: "Create a new task for implementing the proposed solution"
+
 ### Task file example
 
 Example task file. The frontmatter contains metadata used and updated by the application.
