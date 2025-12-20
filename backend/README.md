@@ -96,7 +96,7 @@ All endpoints under `/api/v1`:
 **Other:**
 - `GET /settings` - Backend configuration
 - `GET /version` - Version and build info
-- `WS /terminal/session` - Terminal session (if enabled)
+- `WS /terminal/session` - Terminal session (if enabled, WIP)
 
 ## Testing
 
