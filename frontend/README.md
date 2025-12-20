@@ -1,25 +1,39 @@
 # Knutpunkt Frontend
 
-A Kanban task board built with React, TypeScript, and Vite.
+Kanban task board built with React, TypeScript, and Vite.
 
 ## Tech Stack
 
 - **React 19** - UI framework
-- **TypeScript** - Type safety
+- **TypeScript 5** - Type safety
 - **Vite** - Build tool and dev server
-- **TanStack Query** - Server state management
-- **@dnd-kit** - Drag and drop functionality
-- **ShadCN UI** - Component library
+- **TanStack Query (React Query)** - Server state management
+- **Zustand** - Client state management
+- **@dnd-kit** - Drag and drop
+- **ShadCN UI** - Component library (Radix UI + Tailwind)
 - **Tailwind CSS** - Styling
-- **MSW (Mock Service Worker)** - API mocking for development
+- **CodeMirror** - Markdown editor with Vim mode
 - **Vitest** - Unit testing
+- **Storybook** - Component development
+- **MSW (Mock Service Worker)** - API mocking
+
+## Features
+
+- Drag-and-drop Kanban board with three columns (planned/ongoing/done)
+- Real-time updates via Server-Sent Events (SSE)
+- Markdown editor with Vim mode support
+- Task filtering by status, assignee, category, priority
+- Dark mode with theme persistence
+- Task archiving
+- Backend settings viewer
+- Optimistic UI updates
 
 ## Getting Started
 
 ### Prerequisites
 
 - Node.js 18+ and npm
-- Backend server running on `http://127.0.0.1:8080` (or MSW for mocking)
+- Backend server running on `http://127.0.0.1:8080` (or use MSW for development)
 
 ### Installation
 
@@ -30,8 +44,11 @@ npm install
 ### Development
 
 ```bash
-# Start dev server (with hot reload)
+# With API mocking (no backend required)
 npm run dev
+
+# Without mocking (backend required)
+npm run dev:local
 
 # Open browser at http://127.0.0.1:5173
 ```
@@ -39,7 +56,7 @@ npm run dev
 ### Building
 
 ```bash
-# Type check
+# Build for production (includes type checking)
 npm run build
 
 # Preview production build
@@ -49,92 +66,104 @@ npm run preview
 ### Testing
 
 ```bash
-# Run unit tests
+# Run tests with type checking
 npm test
 
 # Run tests with UI
-npm test:ui
+npm run test:ui
 
 # Run tests with coverage
 npm test:coverage
 ```
 
-## API Mocking with MSW
-
-The app uses [Mock Service Worker (MSW)](https://mswjs.io/) to mock API requests during development. This allows you to develop the frontend independently of the backend.
-
-### How It Works
-
-1. MSW intercepts network requests at the browser level using a Service Worker
-2. Mock handlers in `src/mocks/handlers.ts` define API responses
-3. Mock data is stored in `src/mocks/data.ts`
-
-### Troubleshooting MSW
-
-#### "Service worker not found" or "404 errors when dragging cards"
-
-**Solution:** The MSW service worker file might be missing. Run:
+### Storybook
 
 ```bash
-npx msw init public/ --save
+# Start Storybook
+npm run storybook
+
+# Build Storybook for deployment
+npm run build-storybook
 ```
-
-Then refresh your browser.
-
-#### "MSW stops working when I open Developer Tools"
-
-**Solution:** Browser dev tools can interfere with Service Workers. Check these settings:
-
-1. **Network Tab**
-   - Make sure **"Disable cache"** is **UNCHECKED**
-
-2. **Application Tab** → **Service Workers**
-   - Find `mockServiceWorker.js`
-   - Make sure **"Bypass for network"** is **UNCHECKED**
-   - Status should show: "activated and is running"
-   - If stopped, click "Update" or refresh the page
-
-3. **Workaround:**
-   - Close dev tools
-   - Hard refresh (Cmd+Shift+R / Ctrl+Shift+F5)
-   - Open dev tools AFTER page loads
-
-#### Verify MSW is Working
-
-Check the browser console for:
-```
-[MSW] Mocking enabled.
-```
-
-If you see this, MSW is active and will intercept API calls.
 
 ## Project Structure
 
 ```
 src/
 ├── components/
-│   ├── kanban/           # Kanban board components
+│   ├── kanban/               # Kanban components
 │   │   ├── KanbanBoard.tsx
 │   │   ├── KanbanColumn.tsx
-│   │   └── TaskCard.tsx
-│   └── ui/               # ShadCN UI components
+│   │   ├── TaskCard.tsx
+│   │   ├── TaskDialog.tsx
+│   │   └── ArchiveDialog.tsx
+│   ├── ui/                   # ShadCN UI components
+│   │   ├── button.tsx
+│   │   ├── dialog.tsx
+│   │   ├── markdown-editor.tsx
+│   │   └── ...
+│   ├── BackendSettingsDialog.tsx
+│   ├── Header.tsx
+│   ├── SettingsDialog.tsx
+│   └── ThemeToggle.tsx
+├── contexts/                 # React contexts
+├── hooks/                    # Custom hooks
+│   ├── useSettings.ts
+│   └── useTaskEvents.ts
 ├── lib/
-│   ├── api.ts           # API client
-│   └── utils.ts         # Utility functions
-├── mocks/
-│   ├── browser.ts       # MSW browser setup
-│   ├── handlers.ts      # API mock handlers
-│   └── data.ts          # Mock data store
+│   ├── api.ts               # API client
+│   └── utils.ts             # Utility functions
+├── mocks/                   # MSW setup
+│   ├── browser.ts
+│   ├── handlers.ts
+│   └── data.ts
+├── stores/                  # Zustand stores
+│   ├── settingsStore.ts
+│   └── themeStore.ts
+├── stories/                 # Storybook stories
+├── test/                    # Test utilities
 ├── types/
-│   └── api.ts           # Generated TypeScript types from OpenAPI
+│   └── api.ts              # Generated types from OpenAPI
 ├── App.tsx
 ├── main.tsx
 └── index.css
 ```
 
+## API Mocking with MSW
+
+The app uses [MSW](https://mswjs.io/) to mock API requests during development.
+
+### Enable/Disable Mocking
+
+```bash
+# Enable mocking (default for `npm run dev`)
+VITE_USE_MOCKS=true npm run dev
+
+# Disable mocking (use real backend)
+npm run dev:local
+```
+
+### Troubleshooting MSW
+
+**Service worker not found:**
+```bash
+npx msw init public/ --save
+```
+
+**MSW not working in dev tools:**
+- Network Tab: Uncheck "Disable cache"
+- Application → Service Workers: Uncheck "Bypass for network"
+- Status should show "activated and is running"
+
+**Verify MSW is active:**
+Check browser console for:
+```
+[MSW] Mocking enabled.
+```
+
 ## Generating API Types
 
-The project uses `openapi-typescript` to generate TypeScript types from the OpenAPI specification:
+Generate TypeScript types from OpenAPI specification:
 
 ```bash
 npm run generate-types
@@ -144,70 +173,59 @@ This reads `../api/openapi.yaml` and generates `src/types/api.ts`.
 
 ## Drag and Drop
 
-The Kanban board uses [@dnd-kit](https://dndkit.com/) for drag and drop functionality:
+Uses [@dnd-kit](https://dndkit.com/) for drag and drop:
 
-- **Within Column**: Drag cards up/down to reorder
-- **Between Columns**: Drag cards to different columns to change status
-- **Real-time Feedback**: Visual indicators show where cards will drop
-- **Optimistic Updates**: UI updates immediately, then syncs with server
+- Drag cards within columns to reorder
+- Drag cards between columns to change status
+- Visual feedback shows drop zones
+- Optimistic updates with server sync
 
-## Testing
+## State Management
 
-### Unit Tests
+**Server State:** TanStack Query handles API data, caching, and synchronization
 
-Tests are located next to their components with `.test.tsx` extension:
+**Client State:** Zustand stores manage:
+- Theme preferences (light/dark mode)
+- Backend settings cache
 
-```bash
-# Run all tests
-npm test
-
-# Run specific test file
-npm test -- KanbanBoard.test.tsx
-
-# Run tests in watch mode
-npm test -- --watch
-```
-
-### Test Coverage
-
-Key test files:
-- `src/mocks/data.test.ts` - MSW data layer tests (reordering logic)
-- `src/components/kanban/KanbanBoard.test.tsx` - Board component tests
-- `src/components/kanban/TaskCard.test.tsx` - Card component tests
+**Real-time Updates:** SSE connection updates tasks automatically when changed externally
 
 ## Environment Variables
 
-Create a `.env` file in the frontend directory:
+Create `.env` file:
 
 ```env
 VITE_API_BASE_URL=http://127.0.0.1:8080/api/v1
+VITE_USE_MOCKS=false
 ```
+
+## Keyboard Shortcuts
+
+**Vim Mode in Markdown Editor:**
+- `Esc` - Exit insert mode
+- `i` - Enter insert mode
+- Standard Vim navigation and editing commands
 
 ## Troubleshooting
 
-### Cards disappear when dragging
+**Cards disappear when dragging:**
+- Check browser console for errors
+- Verify MSW is enabled (if using mocks)
+- Check Service Workers in dev tools
 
-1. Check browser console for errors
-2. Verify MSW is enabled (see "Troubleshooting MSW" above)
-3. Check dev tools Network tab → disable "Bypass for network" in Service Workers
+**Hot reload not working:**
+- Check Vite dev server is running
+- Try hard refresh (Cmd+Shift+R / Ctrl+Shift+F5)
 
-### Hot reload not working
-
-1. Check if Vite dev server is running
-2. Check browser console for connection errors
-3. Try hard refresh (Cmd+Shift+R / Ctrl+Shift+F5)
-
-### Type errors after updating OpenAPI spec
-
+**Type errors after API changes:**
 ```bash
 npm run generate-types
 ```
 
-## Learn More
-
-- [React Documentation](https://react.dev)
-- [Vite Documentation](https://vite.dev)
-- [TanStack Query](https://tanstack.com/query/latest)
-- [dnd-kit Documentation](https://dndkit.com/)
-- [ShadCN UI](https://ui.shadcn.com/)
-- [MSW Documentation](https://mswjs.io/)
+**Build fails:**
+```bash
+# Clean and rebuild
+rm -rf node_modules dist
+npm install
+npm run build
+```
