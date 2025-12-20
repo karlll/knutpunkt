@@ -42,3 +42,4 @@ tasks/
 .playwright-mcp/
 frontend/coverage/
 PRE_RELEASE_CHECKLIST.md
+CLAUDE.md
