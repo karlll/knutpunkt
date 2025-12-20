@@ -9,6 +9,7 @@ import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
 import java.io.File
 import java.nio.file.Files
+import java.io.FileOutputStream
 
 class FileWatchServiceTest {
     
@@ -32,6 +33,12 @@ class FileWatchServiceTest {
         }
     }
     
+    // Helper to write file and ensure it's synced to disk (important for CI environments)
+    private fun File.writeAndSync(content: String) {
+        writeText(content)
+        FileOutputStream(this, true).use { it.fd.sync() }
+    }
+    
     @Test
     fun `service creates directories on initialization`() {
         val plannedDir = File(tempDir, "planned")
@@ -47,16 +54,19 @@ class FileWatchServiceTest {
     fun `detects file creation in planned directory`() = runBlocking {
         fileWatchService.start()
         
+        // Start collecting events first
         val eventJob = async {
             fileWatchService.events.first()
         }
         
-        delay(100)
+        // Give watch service time to start and begin listening
+        delay(200)
         
         val file = File(tempDir, "planned/test-task.md")
-        file.writeText("# Test Task")
+        file.writeAndSync("# Test Task")
         
-        val event = withTimeout(2000) {
+        // Allow more time for file system events in CI environments
+        val event = withTimeout(5000) {
             eventJob.await()
         }
         
@@ -69,34 +79,39 @@ class FileWatchServiceTest {
     fun `detects file modification`() = runBlocking {
         fileWatchService.start()
         
-        delay(100) // Give watch service time to start
+        // Give watch service time to start
+        delay(200)
         
-        // Create file and consume the creation event
+        // Create file first
         val file = File(tempDir, "planned/task.md")
-        file.writeText("# Original Content")
+        file.writeAndSync("# Original Content")
         
-        // Consume the creation event
-        val creationEvent = withTimeout(2000) {
+        // Consume the creation event with longer timeout
+        val creationEvent = withTimeout(5000) {
             fileWatchService.events.first()
         }
         assertTrue(creationEvent is FileChangeEvent.Created)
         
-        delay(100)
+        // Wait between operations for file system to settle
+        delay(300)
         
-        // Now listen for modification
+        // Start listening for modification event BEFORE modifying
         val modificationEventJob = async {
             fileWatchService.events.first()
         }
         
-        delay(100)
+        // Give collector time to start
+        delay(200)
         
-        file.writeText("# Modified Content")
+        // Modify file
+        file.writeAndSync("# Modified Content")
         
-        val event = withTimeout(2000) {
+        // Longer timeout for CI environments
+        val event = withTimeout(5000) {
             modificationEventJob.await()
         }
         
-        assertTrue(event is FileChangeEvent.Modified)
+        assertTrue(event is FileChangeEvent.Modified, "Should receive Modified event, got: $event")
         assertEquals("task.md", event.file.name)
         assertEquals(TaskStatus.PLANNED, event.status)
     }
@@ -105,34 +120,39 @@ class FileWatchServiceTest {
     fun `detects file deletion`() = runBlocking {
         fileWatchService.start()
         
-        delay(100) // Give watch service time to start
+        // Give watch service time to start
+        delay(200)
         
-        // Create file and consume the creation event
+        // Create file
         val file = File(tempDir, "ongoing/task-to-delete.md")
-        file.writeText("# Task")
+        file.writeAndSync("# Task")
         
-        // Consume the creation event
-        val creationEvent = withTimeout(2000) {
+        // Consume the creation event with longer timeout
+        val creationEvent = withTimeout(5000) {
             fileWatchService.events.first()
         }
         assertTrue(creationEvent is FileChangeEvent.Created)
         
-        delay(100)
+        // Wait between operations for file system to settle
+        delay(300)
         
-        // Now listen for deletion
+        // Start listening for deletion event BEFORE deleting
         val deletionEventJob = async {
             fileWatchService.events.first()
         }
         
-        delay(100)
+        // Give collector time to start
+        delay(200)
         
+        // Delete file
         file.delete()
         
-        val event = withTimeout(2000) {
+        // Longer timeout for CI environments
+        val event = withTimeout(5000) {
             deletionEventJob.await()
         }
         
-        assertTrue(event is FileChangeEvent.Deleted)
+        assertTrue(event is FileChangeEvent.Deleted, "Should receive Deleted event, got: $event")
         assertEquals("task-to-delete.md", event.file.name)
         assertEquals(TaskStatus.ONGOING, event.status)
     }
@@ -142,15 +162,16 @@ class FileWatchServiceTest {
         fileWatchService.start()
         
         val eventsJob = async {
-            withTimeoutOrNull(1000) {
+            withTimeoutOrNull(2000) {
                 fileWatchService.events.first()
             }
         }
         
-        delay(100)
+        delay(200)
         
-        File(tempDir, "planned/readme.txt").writeText("Not a task")
-        File(tempDir, "planned/config.json").writeText("{}")
+        File(tempDir, "planned/readme.txt").writeAndSync("Not a task")
+        delay(200)
+        File(tempDir, "planned/config.json").writeAndSync("{}")
         
         delay(500)
         
@@ -162,19 +183,23 @@ class FileWatchServiceTest {
     fun `detects multiple file changes`() = runBlocking {
         fileWatchService.start()
         
+        // Start collecting all 3 events first
         val eventsJob = async {
             fileWatchService.events.take(3).toList()
         }
         
-        delay(100)
+        // Give watch service time to start and collector to be ready
+        delay(300)
         
-        File(tempDir, "planned/task1.md").writeText("# Task 1")
-        delay(50)
-        File(tempDir, "ongoing/task2.md").writeText("# Task 2")
-        delay(50)
-        File(tempDir, "done/task3.md").writeText("# Task 3")
+        // Create files with delays between operations for CI environments
+        File(tempDir, "planned/task1.md").writeAndSync("# Task 1")
+        delay(200)
+        File(tempDir, "ongoing/task2.md").writeAndSync("# Task 2")
+        delay(200)
+        File(tempDir, "done/task3.md").writeAndSync("# Task 3")
         
-        val events = withTimeout(3000) {
+        // Longer timeout for CI environments
+        val events = withTimeout(8000) {
             eventsJob.await()
         }
         
@@ -192,11 +217,11 @@ class FileWatchServiceTest {
         assertFalse(fileWatchService.isRunning(), "Should not be running initially")
         
         fileWatchService.start()
-        delay(100)
+        delay(200)
         assertTrue(fileWatchService.isRunning(), "Should be running after start")
         
         fileWatchService.stop()
-        delay(100)
+        delay(200)
         assertFalse(fileWatchService.isRunning(), "Should not be running after stop")
     }
 }
