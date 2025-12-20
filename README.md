@@ -12,7 +12,7 @@ Tasks are stored as Markdown files with YAML frontmatter in `tasks/{planned,ongo
 *Three-column Kanban board with task cards showing priorities and categories.*
 
 ![Task editor with Markdown support and syntax highlighting](docs/images/edit-task.png)
-*Built-in Markdown editor with syntax highlighting and Vim mode support.*
+*Built-in Markdown editor with syntax highlighting and Vim mode support. Vim mode is configurable.*
 
 ### Task file example
 
@@ -55,6 +55,7 @@ The MarkdownEditor has support for VIM mode. If it is active, a small label belo
 
 - Kanban board with three columns (planned, ongoing, done)
 - Drag-and-drop task ordering and status changes
+- Edit tasks with built-in Markdown editor, VIM mode support (configurable).
 - Real-time updates via Server-Sent Events
 - File-based storage using Markdown with YAML frontmatter
 - Task filtering and categorization
