@@ -3,8 +3,10 @@
 A local Kanban board for humans and AI agents working together.
 
 ![Kanban board with drag-and-drop task management](docs/images/board-with-columns.png)
+*Three-column Kanban board with task cards showing priorities and categories.*
 
 ![Task editor with Markdown support and syntax highlighting](docs/images/edit-task.png)
+*Built-in Markdown editor with syntax highlighting and Vim mode support.*
 
 ## Overview
 
