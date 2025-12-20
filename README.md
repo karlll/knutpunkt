@@ -16,6 +16,8 @@ Tasks are stored as Markdown files with YAML frontmatter in `tasks/{planned,ongo
 
 ### Task file example
 
+Example task file. The frontmatter contains metadata used and updated by the application.
+
 ```markdown
 ---
 id: "012c13e7-0129-431a-9d48-fe14912d495b"
