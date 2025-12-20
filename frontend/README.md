@@ -198,34 +198,3 @@ Create `.env` file:
 VITE_API_BASE_URL=http://127.0.0.1:8080/api/v1
 VITE_USE_MOCKS=false
 ```
-
-## Keyboard Shortcuts
-
-**Vim Mode in Markdown Editor:**
-- `Esc` - Exit insert mode
-- `i` - Enter insert mode
-- Standard Vim navigation and editing commands
-
-## Troubleshooting
-
-**Cards disappear when dragging:**
-- Check browser console for errors
-- Verify MSW is enabled (if using mocks)
-- Check Service Workers in dev tools
-
-**Hot reload not working:**
-- Check Vite dev server is running
-- Try hard refresh (Cmd+Shift+R / Ctrl+Shift+F5)
-
-**Type errors after API changes:**
-```bash
-npm run generate-types
-```
-
-**Build fails:**
-```bash
-# Clean and rebuild
-rm -rf node_modules dist
-npm install
-npm run build
-```
