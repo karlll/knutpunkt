@@ -93,24 +93,30 @@ class FileWatchServiceTest {
         assertTrue(creationEvent is FileChangeEvent.Created)
         
         // Wait between operations for file system to settle
-        delay(300)
+        delay(500)
         
-        // Start listening for modification event BEFORE modifying
-        val modificationEventJob = async {
-            fileWatchService.events.first()
+        // Collect events into a list to avoid missing them
+        val eventsCollected = mutableListOf<FileChangeEvent>()
+        val collectorJob = launch {
+            fileWatchService.events.collect { eventsCollected.add(it) }
         }
         
         // Give collector time to start
-        delay(200)
+        delay(300)
         
         // Modify file
         file.writeAndSync("# Modified Content")
         
-        // Longer timeout for CI environments
-        val event = withTimeout(5000) {
-            modificationEventJob.await()
+        // Wait for event with polling
+        withTimeout(5000) {
+            while (eventsCollected.isEmpty()) {
+                delay(100)
+            }
         }
         
+        collectorJob.cancel()
+        
+        val event = eventsCollected.first()
         assertTrue(event is FileChangeEvent.Modified, "Should receive Modified event, got: $event")
         assertEquals("task.md", event.file.name)
         assertEquals(TaskStatus.PLANNED, event.status)
@@ -134,24 +140,30 @@ class FileWatchServiceTest {
         assertTrue(creationEvent is FileChangeEvent.Created)
         
         // Wait between operations for file system to settle
-        delay(300)
+        delay(500)
         
-        // Start listening for deletion event BEFORE deleting
-        val deletionEventJob = async {
-            fileWatchService.events.first()
+        // Collect events into a list to avoid missing them
+        val eventsCollected = mutableListOf<FileChangeEvent>()
+        val collectorJob = launch {
+            fileWatchService.events.collect { eventsCollected.add(it) }
         }
         
         // Give collector time to start
-        delay(200)
+        delay(300)
         
         // Delete file
         file.delete()
         
-        // Longer timeout for CI environments
-        val event = withTimeout(5000) {
-            deletionEventJob.await()
+        // Wait for event with polling
+        withTimeout(5000) {
+            while (eventsCollected.isEmpty()) {
+                delay(100)
+            }
         }
         
+        collectorJob.cancel()
+        
+        val event = eventsCollected.first()
         assertTrue(event is FileChangeEvent.Deleted, "Should receive Deleted event, got: $event")
         assertEquals("task-to-delete.md", event.file.name)
         assertEquals(TaskStatus.ONGOING, event.status)
@@ -183,12 +195,16 @@ class FileWatchServiceTest {
     fun `detects multiple file changes`() = runBlocking {
         fileWatchService.start()
         
-        // Start collecting all 3 events first
-        val eventsJob = async {
-            fileWatchService.events.take(3).toList()
+        // Give watch service time to start
+        delay(300)
+        
+        // Collect events into a list to avoid missing them
+        val eventsCollected = mutableListOf<FileChangeEvent>()
+        val collectorJob = launch {
+            fileWatchService.events.collect { eventsCollected.add(it) }
         }
         
-        // Give watch service time to start and collector to be ready
+        // Give collector time to start
         delay(300)
         
         // Create files with delays between operations for CI environments
@@ -198,14 +214,18 @@ class FileWatchServiceTest {
         delay(200)
         File(tempDir, "done/task3.md").writeAndSync("# Task 3")
         
-        // Longer timeout for CI environments
-        val events = withTimeout(8000) {
-            eventsJob.await()
+        // Wait for all 3 events with polling
+        withTimeout(8000) {
+            while (eventsCollected.size < 3) {
+                delay(100)
+            }
         }
         
-        assertEquals(3, events.size, "Should receive 3 events")
+        collectorJob.cancel()
         
-        val createdEvents = events.filterIsInstance<FileChangeEvent.Created>()
+        assertEquals(3, eventsCollected.size, "Should receive 3 events")
+        
+        val createdEvents = eventsCollected.filterIsInstance<FileChangeEvent.Created>()
         assertEquals(3, createdEvents.size, "All should be Created events")
         
         val statuses = createdEvents.map { it.status }.toSet()
