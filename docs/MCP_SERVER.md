@@ -92,17 +92,20 @@ If configured correctly, Claude will confirm access to the following tools:
 
 List and filter tasks on the Kanban board.
 
+**Important**: If no `status` filter is provided, this tool defaults to showing only `planned` tasks. To see tasks in other states, explicitly specify the status parameter.
+
 **Parameters**:
-- `status` (optional): Filter by status (`planned`, `ongoing`, `done`)
+- `status` (optional): Filter by status (`planned`, `ongoing`, `done`). **Defaults to `planned` if not specified.**
 - `assignee` (optional): Filter by assignee name
 - `category` (optional): Filter by category tag
 - `priority` (optional): Filter by priority (`low`, `medium`, `high`)
 
 **Example**:
 ```
-Show me all ongoing tasks
+Show me all ongoing tasks (explicitly specify status="ongoing")
 List high priority tasks
 What tasks are assigned to Claude Code?
+Show all planned tasks (or just call list_tasks with no status)
 ```
 
 ### get_task
@@ -186,7 +189,7 @@ I'll take task #3
 
 ### finish_task
 
-Mark an ongoing task as done.
+Mark a task as done. Works on tasks in any status (planned or ongoing).
 
 **Parameters**:
 - `taskId` (required): The UUID of the task
@@ -244,16 +247,25 @@ Untag "feature" from task abc123...
 
 ### Listing Tasks
 
-**List all planned tasks**:
+**List all planned tasks** (default behavior):
 ```
 User: What tasks are in the backlog?
-Claude: [Calls list_tasks with status="planned"]
+Claude: [Calls list_tasks with no parameters, which defaults to status="planned"]
+```
+
+**List ongoing or done tasks** (must specify status):
+```
+User: Show me what's currently in progress
+Claude: [Calls list_tasks with status="ongoing"]
+
+User: What have we completed?
+Claude: [Calls list_tasks with status="done"]
 ```
 
 **Filter by assignee**:
 ```
 User: Show me all tasks assigned to Claude Code
-Claude: [Calls list_tasks with assignee="Claude Code"]
+Claude: [Calls list_tasks with assignee="Claude Code", status="planned" by default]
 ```
 
 **Filter by priority**:
@@ -266,6 +278,10 @@ Claude: [Calls list_tasks with priority="high"]
 ```
 User: Show ongoing tasks that are high priority
 Claude: [Calls list_tasks with status="ongoing", priority="high"]
+
+User: Show high priority tasks in the backlog
+Claude: [Calls list_tasks with status="planned", priority="high"]
+  (or simply priority="high" since status defaults to "planned")
 ```
 
 ### Creating Tasks
@@ -311,7 +327,7 @@ Claude: [Calls create_task with:
 User: I'll start working on task #5
 
 Claude: [Steps:
-1. Calls list_tasks to find task #5
+1. Calls list_tasks (defaults to status="planned") to find task #5
 2. Gets the task ID
 3. Calls claim_task with taskId and agentName="Claude Code"
 Result: Task moves from "planned" to "ongoing", Claude Code added as assignee]
@@ -344,9 +360,9 @@ Claude: [Calls finish_task for task #5]
 
 **Triage and organize**:
 ```
-User: List all tasks without assignees
+User: List all planned tasks without assignees
 
-Claude: [Calls list_tasks, filters results for empty assignees]
+Claude: [Calls list_tasks (defaults to status="planned"), filters results for empty assignees]
 Found 3 unassigned tasks:
 #12 - Update documentation
 #14 - Refactor API client
@@ -418,7 +434,7 @@ Claude:
 User: What tasks are currently ongoing?
 
 Claude:
-[Shows ongoing tasks with assignees and progress]
+[Calls list_tasks with status="ongoing" to show in-progress tasks with assignees]
 ```
 
 **Task review**:
@@ -426,7 +442,7 @@ Claude:
 User: Show me all done tasks from this week
 
 Claude:
-[Filters by status and date, presents completed work]
+[Calls list_tasks with status="done", then filters by date to present completed work]
 ```
 
 ## Troubleshooting
