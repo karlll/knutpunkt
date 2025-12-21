@@ -102,6 +102,18 @@ APP_LOG_LEVEL=DEBUG ./start.sh
 
 Access the application at http://127.0.0.1:8080
 
+### Running from JAR
+
+If you have the pre-built JAR file, you can run it directly with Java:
+
+```bash
+# Run with default tasks directory (./tasks)
+java -jar build/knutpunkt-<version>.jar
+
+# Specify custom tasks directory
+java -jar build/knutpunkt-<version>.jar /path/to/tasks
+```
+
 ### Environment Variables
 
 - `PORT` - Server port (default: 8080)
@@ -109,6 +121,34 @@ Access the application at http://127.0.0.1:8080
 - `TASKS_DIRECTORY` - Tasks storage directory (default: ./tasks)
 - `ENABLE_CACHE` - Enable task caching (default: true)
 - `APP_LOG_LEVEL` - Application log level: DEBUG, INFO, WARN, ERROR (default: DEBUG)
+
+### Advanced Configuration
+
+For more control over the application, you can use JVM system properties:
+
+```bash
+# Configure via JVM system properties
+java -Dktor.deployment.port=8080 \
+     -Dktor.deployment.host=0.0.0.0 \
+     -Dknutpunkt.tasks.directory=/path/to/tasks \
+     -Dknutpunkt.tasks.enableCache=true \
+     -Dknutpunkt.logging.appLevel=DEBUG \
+     -jar build/knutpunkt-<version>.jar
+```
+
+**Available JVM system properties:**
+- `-Dktor.deployment.port=<port>` - Server port
+- `-Dktor.deployment.host=<host>` - Server host
+- `-Dknutpunkt.tasks.directory=<path>` - Tasks storage directory
+- `-Dknutpunkt.tasks.enableCache=<boolean>` - Enable task caching
+- `-Dknutpunkt.logging.appLevel=<level>` - Application log level (DEBUG, INFO, WARN, ERROR)
+
+**Configuration precedence** (highest to lowest):
+1. Command line argument (for tasks directory only)
+2. Environment variables
+3. JVM system properties
+4. Configuration file (`application.conf`)
+5. Default values
 
 ## Development
 
