@@ -13,6 +13,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { KanbanColumn } from './KanbanColumn'
 import { TaskCard } from './TaskCard'
 import { TaskDialog } from './TaskDialog'
+import { TerminalDialog } from '@/components/terminal/TerminalDialog'
 import { Header } from '@/components/Header'
 import { api, type Task, type TaskStatus } from '@/lib/api'
 import { applyDragResult, type DragPosition } from './dndLogic'
@@ -77,18 +78,32 @@ export function KanbanBoard() {
   const [activeTask, setActiveTask] = useState<Task | null>(null)
   const [originalTask, setOriginalTask] = useState<Task | null>(null)
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
+  const [terminalDialogOpen, setTerminalDialogOpen] = useState(false)
   const queryClient = useQueryClient()
   const [settings] = useSettings()
 
   // Access trackMutation for deduplication
   const { trackMutation } = useTaskEvents()
 
+  // Fetch backend settings to check if terminal is enabled
+  const { data: backendSettings } = useQuery({
+    queryKey: ['backendSettings'],
+    queryFn: () => api.settings.get(),
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    retry: false, // Don't retry on failure
+  })
+
+  // Check if terminal is enabled
+  const terminalEnabled =
+    backendSettings?.settings.find((s) => s.key === 'terminal.enabled')?.value === 'true'
+
   // Keyboard shortcuts
   useKeyboardShortcuts(
     {
       n: () => setCreateDialogOpen(true),
+      ...(terminalEnabled && { '`': () => setTerminalDialogOpen((prev) => !prev) }),
     },
-    { enabled: !createDialogOpen }
+    { enabled: !createDialogOpen && !terminalDialogOpen }
   )
 
   // Fetch all tasks
@@ -235,8 +250,12 @@ export function KanbanBoard() {
   }
   return (
     <div className="h-screen flex flex-col">
-      <Header onCreateTask={() => setCreateDialogOpen(true)} />
-        <main className="flex-1 overflow-hidden p-6">
+      <Header
+        onCreateTask={() => setCreateDialogOpen(true)}
+        onOpenTerminal={() => setTerminalDialogOpen(true)}
+        terminalEnabled={terminalEnabled}
+      />
+      <main className="flex-1 overflow-hidden p-6">
         <DndContext
           collisionDetection={closestCorners}
           onDragStart={handleDragStart}
@@ -266,6 +285,9 @@ export function KanbanBoard() {
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
       />
+
+      {/* Terminal dialog */}
+      <TerminalDialog open={terminalDialogOpen} onOpenChange={setTerminalDialogOpen} />
     </div>
   )
 }

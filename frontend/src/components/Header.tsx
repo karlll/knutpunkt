@@ -3,16 +3,26 @@ import { ThemeToggle } from './ThemeToggle'
 import { Logo } from './Logo'
 import { SettingsDialog } from './SettingsDialog'
 import { Button } from './ui/button'
-import { Plus, Settings } from 'lucide-react'
+import { Plus, Settings, Terminal } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface HeaderProps extends React.HTMLAttributes<HTMLElement> {
   title?: string
   showLogo?: boolean
   onCreateTask?: () => void
+  onOpenTerminal?: () => void
+  terminalEnabled?: boolean
 }
 
-export function Header({ title = 'Knutpunkt', showLogo = true, onCreateTask, className, ...props }: HeaderProps) {
+export function Header({
+  title = 'Knutpunkt',
+  showLogo = true,
+  onCreateTask,
+  onOpenTerminal,
+  terminalEnabled = false,
+  className,
+  ...props
+}: HeaderProps) {
   const [settingsOpen, setSettingsOpen] = useState(false)
 
   return (
@@ -38,6 +48,16 @@ export function Header({ title = 'Knutpunkt', showLogo = true, onCreateTask, cla
                 title="Create new task"
               >
                 <Plus className="h-4 w-4" />
+              </Button>
+            )}
+            {terminalEnabled && onOpenTerminal && (
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={onOpenTerminal}
+                title="Open Terminal"
+              >
+                <Terminal className="h-4 w-4" />
               </Button>
             )}
             <Button
