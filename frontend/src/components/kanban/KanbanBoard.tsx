@@ -18,6 +18,7 @@ import { api, type Task, type TaskStatus } from '@/lib/api'
 import { applyDragResult, type DragPosition } from './dndLogic'
 import { useSettings } from '@/hooks/useSettings'
 import { useTaskEvents } from '@/contexts/TaskEventsContext'
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 
 const COLUMNS: { status: TaskStatus; title: string }[] = [
   { status: 'planned', title: 'Planned' },
@@ -81,6 +82,14 @@ export function KanbanBoard() {
 
   // Access trackMutation for deduplication
   const { trackMutation } = useTaskEvents()
+
+  // Keyboard shortcuts
+  useKeyboardShortcuts(
+    {
+      n: () => setCreateDialogOpen(true),
+    },
+    { enabled: !createDialogOpen }
+  )
 
   // Fetch all tasks
   const { data: tasks = [], isLoading } = useQuery({

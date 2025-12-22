@@ -5,6 +5,7 @@ import { KanbanBoard } from './KanbanBoard'
 import { api } from '@/lib/api'
 import type { Task } from '@/lib/api'
 import { TaskEventsProvider } from '@/contexts/TaskEventsContext'
+import userEvent from '@testing-library/user-event'
 
 // Mock the API
 vi.mock('@/lib/api', () => ({
@@ -324,6 +325,115 @@ describe('KanbanBoard', () => {
         const columns = container.querySelectorAll('[class*="min-w-[300px]"]')
         expect(columns).toHaveLength(3)
       })
+    })
+  })
+
+  describe('keyboard shortcuts', () => {
+    beforeEach(() => {
+      vi.mocked(api.tasks.list).mockResolvedValue(mockTasks)
+    })
+
+    it('opens create task dialog when pressing "n" key', async () => {
+      const user = userEvent.setup()
+      renderWithQueryClient(<KanbanBoard />)
+
+      await waitFor(() => {
+        expect(screen.getByText('Planned')).toBeInTheDocument()
+      })
+
+      // Dialog should not be visible initially
+      expect(screen.queryByText('Create New Task')).not.toBeInTheDocument()
+
+      // Press 'n' key
+      await user.keyboard('n')
+
+      // Dialog should now be visible
+      await waitFor(() => {
+        expect(screen.getByText('Create New Task')).toBeInTheDocument()
+      })
+    })
+
+    it('opens create task dialog when pressing "N" (uppercase)', async () => {
+      const user = userEvent.setup()
+      renderWithQueryClient(<KanbanBoard />)
+
+      await waitFor(() => {
+        expect(screen.getByText('Planned')).toBeInTheDocument()
+      })
+
+      // Press 'N' key (uppercase)
+      await user.keyboard('N')
+
+      // Dialog should be visible
+      await waitFor(() => {
+        expect(screen.getByText('Create New Task')).toBeInTheDocument()
+      })
+    })
+
+    it('does not open dialog when "n" is pressed while dialog is already open', async () => {
+      const user = userEvent.setup()
+      renderWithQueryClient(<KanbanBoard />)
+
+      await waitFor(() => {
+        expect(screen.getByText('Planned')).toBeInTheDocument()
+      })
+
+      // Open dialog with first 'n' press
+      await user.keyboard('n')
+
+      await waitFor(() => {
+        expect(screen.getByText('Create New Task')).toBeInTheDocument()
+      })
+
+      // Get the dialog count
+      const dialogsBefore = screen.getAllByRole('dialog')
+
+      // Press 'n' again while dialog is open
+      await user.keyboard('n')
+
+      // Should still have the same number of dialogs
+      const dialogsAfter = screen.getAllByRole('dialog')
+      expect(dialogsAfter).toHaveLength(dialogsBefore.length)
+    })
+
+    it('does not trigger shortcut when typing in an input field', async () => {
+      const user = userEvent.setup()
+      renderWithQueryClient(<KanbanBoard />)
+
+      await waitFor(() => {
+        expect(screen.getByText('Planned')).toBeInTheDocument()
+      })
+
+      // Open the create dialog
+      await user.keyboard('n')
+
+      await waitFor(() => {
+        expect(screen.getByText('Create New Task')).toBeInTheDocument()
+      })
+
+      // Find the title input and type 'n'
+      const titleInput = screen.getByLabelText('Title')
+      await user.click(titleInput)
+      await user.clear(titleInput)
+      await user.type(titleInput, 'new task')
+
+      // The text should be in the input (shortcut didn't interfere)
+      expect(titleInput).toHaveValue('new task')
+    })
+
+    it('does not trigger shortcut with modifier keys', async () => {
+      const user = userEvent.setup()
+      renderWithQueryClient(<KanbanBoard />)
+
+      await waitFor(() => {
+        expect(screen.getByText('Planned')).toBeInTheDocument()
+      })
+
+      // Press Ctrl+N (should not trigger)
+      await user.keyboard('{Control>}n{/Control}')
+
+      // Dialog should not be visible
+      expect(screen.queryByText('Create New Task')).not.toBeInTheDocument()
     })
   })
 })
