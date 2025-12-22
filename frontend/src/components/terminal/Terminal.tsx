@@ -3,14 +3,15 @@ import { Terminal as XTerm } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import { WebLinksAddon } from '@xterm/addon-web-links'
 import '@xterm/xterm/css/xterm.css'
-import { useTerminalSession } from '@/hooks/useTerminalSession'
+import { useTerminalSession, type ConnectionStatus } from '@/hooks/useTerminalSession'
 
 interface TerminalProps {
   taskId?: string
   onClose?: () => void
+  onStatusChange?: (status: ConnectionStatus, error?: string) => void
 }
 
-export function Terminal({ taskId, onClose }: TerminalProps) {
+export function Terminal({ taskId, onClose, onStatusChange }: TerminalProps) {
   const terminalRef = useRef<HTMLDivElement>(null)
   const xtermRef = useRef<XTerm | null>(null)
   const fitAddonRef = useRef<FitAddon | null>(null)
@@ -143,6 +144,13 @@ export function Terminal({ taskId, onClose }: TerminalProps) {
         break
     }
   }, [connectionStatus, error])
+
+  // Notify parent of status changes
+  useEffect(() => {
+    if (onStatusChange) {
+      onStatusChange(connectionStatus, error)
+    }
+  }, [connectionStatus, error, onStatusChange])
 
   return (
     <div className="h-full w-full bg-[#1e1e1e] p-4 rounded-md">
