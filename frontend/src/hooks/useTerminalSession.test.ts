@@ -57,8 +57,12 @@ class MockWebSocket {
 
 describe('useTerminalSession', () => {
   let mockWs: MockWebSocket | null = null
+  let consoleErrorSpy: ReturnType<typeof vi.spyOn>
 
   beforeEach(() => {
+    // Suppress console errors for expected error scenarios
+    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
     // Mock global WebSocket with a class
     class MockedWebSocket extends MockWebSocket {
       constructor(url: string) {
@@ -71,6 +75,7 @@ describe('useTerminalSession', () => {
   })
 
   afterEach(() => {
+    consoleErrorSpy.mockRestore()
     vi.unstubAllGlobals()
     mockWs = null
   })

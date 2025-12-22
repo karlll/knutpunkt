@@ -4,6 +4,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -74,6 +75,9 @@ export function TerminalDialog({ open, onOpenChange, taskId }: TerminalDialogPro
       <DialogContent className="max-w-4xl h-[600px] flex flex-col">
         <DialogHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
           <DialogTitle>Terminal</DialogTitle>
+          <DialogDescription className="sr-only">
+            Interactive terminal session with real-time command execution
+          </DialogDescription>
           {getStatusBadge()}
         </DialogHeader>
 
