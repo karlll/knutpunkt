@@ -1,18 +1,48 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useCallback } from 'react'
 import { Terminal as XTerm } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import { WebLinksAddon } from '@xterm/addon-web-links'
 import '@xterm/xterm/css/xterm.css'
+import { useTerminalSession } from '@/hooks/useTerminalSession'
 
 interface TerminalProps {
   taskId?: string
   onClose?: () => void
 }
 
-export function Terminal({ taskId: _taskId, onClose: _onClose }: TerminalProps) {
+export function Terminal({ taskId, onClose }: TerminalProps) {
   const terminalRef = useRef<HTMLDivElement>(null)
   const xtermRef = useRef<XTerm | null>(null)
   const fitAddonRef = useRef<FitAddon | null>(null)
+
+  // Handle terminal output from WebSocket
+  const handleOutput = useCallback((data: string) => {
+    xtermRef.current?.write(data)
+  }, [])
+
+  // Handle terminal errors from WebSocket
+  const handleError = useCallback((error: string) => {
+    xtermRef.current?.writeln(`\r\n\x1b[1;31mError: ${error}\x1b[0m\r\n`)
+  }, [])
+
+  // Handle terminal exit from WebSocket
+  const handleExit = useCallback(
+    (code: number) => {
+      xtermRef.current?.writeln(`\r\n\x1b[1;33mProcess exited with code ${code}\x1b[0m`)
+      if (onClose) {
+        onClose()
+      }
+    },
+    [onClose]
+  )
+
+  // WebSocket connection
+  const { connectionStatus, send, resize, disconnect, error } = useTerminalSession({
+    taskId,
+    onOutput: handleOutput,
+    onError: handleError,
+    onExit: handleExit,
+  })
 
   useEffect(() => {
     if (!terminalRef.current) return
@@ -64,31 +94,55 @@ export function Terminal({ taskId: _taskId, onClose: _onClose }: TerminalProps) 
     xtermRef.current = terminal
     fitAddonRef.current = fitAddon
 
-    // Local echo for testing (will be removed in Step 3)
-    terminal.onData((data) => {
-      terminal.write(data)
+    // Send user input to WebSocket
+    const disposable = terminal.onData((data) => {
+      send(data)
     })
 
-    // Welcome message
-    terminal.writeln('Terminal initialized (local echo mode)')
-    terminal.writeln('Type to test - output will be echoed locally')
-    terminal.writeln('')
-
-    // Handle window resize
-    const handleResize = () => {
+    // Send resize events to WebSocket
+    const handleTerminalResize = () => {
       fitAddon.fit()
+      resize(terminal.cols, terminal.rows)
     }
 
-    window.addEventListener('resize', handleResize)
+    // Handle window resize
+    window.addEventListener('resize', handleTerminalResize)
+
+    // Initial resize after terminal is ready
+    resize(terminal.cols, terminal.rows)
 
     // Cleanup
     return () => {
-      window.removeEventListener('resize', handleResize)
+      disposable.dispose()
+      window.removeEventListener('resize', handleTerminalResize)
+      disconnect()
       terminal.dispose()
       xtermRef.current = null
       fitAddonRef.current = null
     }
-  }, [])
+  }, [send, resize, disconnect])
+
+  // Display connection status
+  useEffect(() => {
+    if (!xtermRef.current) return
+
+    switch (connectionStatus) {
+      case 'connecting':
+        xtermRef.current.writeln('\x1b[1;36mConnecting to terminal...\x1b[0m')
+        break
+      case 'connected':
+        xtermRef.current.writeln('\x1b[1;32mConnected to terminal\x1b[0m\r\n')
+        break
+      case 'disconnected':
+        xtermRef.current.writeln('\r\n\x1b[1;33mDisconnected from terminal\x1b[0m')
+        break
+      case 'error':
+        xtermRef.current.writeln(
+          `\r\n\x1b[1;31mConnection error: ${error || 'Unknown error'}\x1b[0m`
+        )
+        break
+    }
+  }, [connectionStatus, error])
 
   return (
     <div className="h-full w-full bg-[#1e1e1e] p-4 rounded-md">
