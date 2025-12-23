@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import {
   Dialog,
   DialogContent,
@@ -11,6 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Terminal } from './Terminal'
 import type { ConnectionStatus } from '@/hooks/useTerminalSession'
+import { api } from '@/lib/api'
 
 interface TerminalDialogProps {
   open: boolean
@@ -22,6 +24,15 @@ export function TerminalDialog({ open, onOpenChange, taskId }: TerminalDialogPro
   const [terminalKey, setTerminalKey] = useState(0)
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('connecting')
   const [error, setError] = useState<string | undefined>(undefined)
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null)
+
+  // Query for active terminal sessions
+  const { data: sessions } = useQuery({
+    queryKey: ['terminalSessions'],
+    queryFn: () => api.terminal.listSessions(),
+    enabled: open,
+    refetchInterval: open ? 5000 : false, // Refresh every 5 seconds when open
+  })
 
   const handleClose = useCallback(() => {
     onOpenChange(false)
@@ -30,7 +41,18 @@ export function TerminalDialog({ open, onOpenChange, taskId }: TerminalDialogPro
     // Reset status
     setConnectionStatus('connecting')
     setError(undefined)
+    setSelectedSessionId(null)
   }, [onOpenChange])
+
+  const handleNewSession = useCallback(() => {
+    setSelectedSessionId(null)
+    setTerminalKey((prev) => prev + 1)
+  }, [])
+
+  const handleSelectSession = useCallback((sessionId: string) => {
+    setSelectedSessionId(sessionId)
+    setTerminalKey((prev) => prev + 1)
+  }, [])
 
   const handleStatusChange = useCallback((status: ConnectionStatus, errorMsg?: string) => {
     setConnectionStatus(status)
@@ -70,6 +92,9 @@ export function TerminalDialog({ open, onOpenChange, taskId }: TerminalDialogPro
     }
   }
 
+  // Show sessions UI only when there are active sessions and no session is selected
+  const showSessionPicker = sessions && sessions.length > 0 && !selectedSessionId
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl h-[600px] flex flex-col">
@@ -81,18 +106,66 @@ export function TerminalDialog({ open, onOpenChange, taskId }: TerminalDialogPro
           {getStatusBadge()}
         </DialogHeader>
 
-        <div className="flex-1 min-h-0">
-          {open && (
-            <Terminal
-              key={terminalKey}
-              taskId={taskId}
-              onClose={handleClose}
-              onStatusChange={handleStatusChange}
-            />
-          )}
-        </div>
+        {showSessionPicker ? (
+          <div className="flex-1 flex flex-col items-center justify-center gap-4 p-8">
+            <h3 className="text-lg font-semibold">Active Sessions</h3>
+            <p className="text-sm text-muted-foreground text-center">
+              You have {sessions.length} active session{sessions.length > 1 ? 's' : ''}.
+              Reconnect to an existing session or start a new one.
+            </p>
+            <div className="flex flex-col gap-2 w-full max-w-md">
+              {sessions.map((session) => (
+                <Button
+                  key={session.id}
+                  variant="outline"
+                  className="justify-start h-auto p-4"
+                  onClick={() => handleSelectSession(session.id)}
+                >
+                  <div className="flex flex-col items-start gap-1 text-left">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-sm">
+                        {session.id.substring(0, 8)}...
+                      </span>
+                      {session.taskId && (
+                        <Badge variant="secondary" className="text-xs">
+                          Task {session.taskId.substring(0, 8)}
+                        </Badge>
+                      )}
+                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      {session.workingDirectory}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      Last active: {new Date(session.lastActivity).toLocaleTimeString()}
+                    </span>
+                  </div>
+                </Button>
+              ))}
+              <Button onClick={handleNewSession} className="mt-2">
+                New Session
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex-1 min-h-0">
+            {open && (
+              <Terminal
+                key={terminalKey}
+                taskId={taskId}
+                sessionId={selectedSessionId || undefined}
+                onClose={handleClose}
+                onStatusChange={handleStatusChange}
+              />
+            )}
+          </div>
+        )}
 
         <DialogFooter>
+          {selectedSessionId && sessions && sessions.length > 0 && (
+            <Button variant="ghost" onClick={() => setSelectedSessionId(null)}>
+              Back to Sessions
+            </Button>
+          )}
           <Button variant="outline" onClick={handleClose}>
             Close
           </Button>

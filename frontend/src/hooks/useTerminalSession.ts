@@ -11,6 +11,7 @@ export interface TerminalMessage {
 
 export interface UseTerminalSessionOptions {
   taskId?: string
+  sessionId?: string
   onOutput?: (data: string) => void
   onError?: (error: string) => void
   onExit?: (code: number) => void
@@ -29,7 +30,7 @@ const WS_BASE_URL = import.meta.env.VITE_WS_BASE_URL || 'ws://127.0.0.1:8080/api
 export function useTerminalSession(
   options: UseTerminalSessionOptions
 ): UseTerminalSessionResult {
-  const { taskId, onOutput, onError, onExit } = options
+  const { taskId, sessionId, onOutput, onError, onExit } = options
 
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('connecting')
   const [error, setError] = useState<string | undefined>(undefined)
@@ -66,10 +67,19 @@ export function useTerminalSession(
 
   // Connect to WebSocket
   useEffect(() => {
-    // Build WebSocket URL
-    const url = taskId
-      ? `${WS_BASE_URL}/terminal/session?taskId=${taskId}`
-      : `${WS_BASE_URL}/terminal/session`
+    // Build WebSocket URL with sessionId or taskId
+    let url = `${WS_BASE_URL}/terminal/session`
+    const params = new URLSearchParams()
+
+    if (sessionId) {
+      params.set('sessionId', sessionId)
+    } else if (taskId) {
+      params.set('taskId', taskId)
+    }
+
+    if (params.toString()) {
+      url += `?${params.toString()}`
+    }
 
     setConnectionStatus('connecting')
     setError(undefined)
@@ -141,7 +151,7 @@ export function useTerminalSession(
         reconnectTimeoutRef.current = null
       }
     }
-  }, [taskId, onOutput, onError, onExit])
+  }, [taskId, sessionId, onOutput, onError, onExit])
 
   return {
     connectionStatus,

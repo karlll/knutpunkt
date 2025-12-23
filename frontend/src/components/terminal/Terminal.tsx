@@ -7,11 +7,12 @@ import { useTerminalSession, type ConnectionStatus } from '@/hooks/useTerminalSe
 
 interface TerminalProps {
   taskId?: string
+  sessionId?: string
   onClose?: () => void
   onStatusChange?: (status: ConnectionStatus, error?: string) => void
 }
 
-export function Terminal({ taskId, onClose, onStatusChange }: TerminalProps) {
+export function Terminal({ taskId, sessionId, onClose, onStatusChange }: TerminalProps) {
   const terminalRef = useRef<HTMLDivElement>(null)
   const xtermRef = useRef<XTerm | null>(null)
   const fitAddonRef = useRef<FitAddon | null>(null)
@@ -40,6 +41,7 @@ export function Terminal({ taskId, onClose, onStatusChange }: TerminalProps) {
   // WebSocket connection
   const { connectionStatus, send, resize, disconnect, error } = useTerminalSession({
     taskId,
+    sessionId,
     onOutput: handleOutput,
     onError: handleError,
     onExit: handleExit,
