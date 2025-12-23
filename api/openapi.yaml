@@ -21,6 +21,8 @@ tags:
     description: Real-time task update events via Server-Sent Events (SSE)
   - name: settings
     description: Backend configuration (read-only)
+  - name: terminal
+    description: Terminal session management (requires terminal.enabled=true)
 
 paths:
   /events/tasks:
@@ -163,6 +165,51 @@ paths:
                   - key: "terminal.idleTimeoutMinutes"
                     value: "30"
                     description: "Terminal idle timeout in minutes"
+                  - key: "terminal.outputBufferSize"
+                    value: "100"
+                    description: "Terminal output buffer size (lines)"
+
+  /terminal/sessions:
+    get:
+      summary: List active terminal sessions
+      description: |
+        Returns a list of all currently active terminal sessions.
+
+        Sessions persist when WebSocket disconnects and are cleaned up after
+        the idle timeout (default 30 minutes). Clients can use this endpoint
+        to discover existing sessions and reconnect to them.
+
+        **Note:** Terminal support must be enabled (terminal.enabled=true) for
+        this endpoint to be available.
+      operationId: listTerminalSessions
+      tags:
+        - terminal
+      responses:
+        '200':
+          description: List of active terminal sessions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SessionInfo'
+              example:
+                - id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                  createdAt: "2025-01-15T10:30:00Z"
+                  lastActivity: "2025-01-15T10:35:00Z"
+                  taskId: "550e8400-e29b-41d4-a716-446655440000"
+                  workingDirectory: "/Users/user/project"
+                - id: "b2c3d4e5-f6a7-8901-bcde-f12345678901"
+                  createdAt: "2025-01-15T10:20:00Z"
+                  lastActivity: "2025-01-15T10:34:00Z"
+                  taskId: null
+                  workingDirectory: "/Users/user/project"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   /tasks:
     get:
@@ -471,6 +518,40 @@ paths:
 
 components:
   schemas:
+    SessionInfo:
+      type: object
+      required:
+        - id
+        - createdAt
+        - lastActivity
+        - workingDirectory
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the terminal session
+          example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+        createdAt:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp of session creation
+          example: "2025-01-15T10:30:00Z"
+        lastActivity:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp of last activity
+          example: "2025-01-15T10:35:00Z"
+        taskId:
+          type: string
+          format: uuid
+          nullable: true
+          description: Task ID associated with this session (if any)
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        workingDirectory:
+          type: string
+          description: Current working directory of the terminal session
+          example: "/Users/user/project"
+
     Setting:
       type: object
       required:

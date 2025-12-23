@@ -104,6 +104,33 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/terminal/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List active terminal sessions
+         * @description Returns a list of all currently active terminal sessions.
+         *
+         *     Sessions persist when WebSocket disconnects and are cleaned up after
+         *     the idle timeout (default 30 minutes). Clients can use this endpoint
+         *     to discover existing sessions and reconnect to them.
+         *
+         *     **Note:** Terminal support must be enabled (terminal.enabled=true) for
+         *     this endpoint to be available.
+         */
+        get: operations["listTerminalSessions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/tasks": {
         parameters: {
             query?: never;
@@ -201,6 +228,37 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        SessionInfo: {
+            /**
+             * Format: uuid
+             * @description Unique identifier for the terminal session
+             * @example a1b2c3d4-e5f6-7890-abcd-ef1234567890
+             */
+            id: string;
+            /**
+             * Format: date-time
+             * @description ISO 8601 timestamp of session creation
+             * @example 2025-01-15T10:30:00Z
+             */
+            createdAt: string;
+            /**
+             * Format: date-time
+             * @description ISO 8601 timestamp of last activity
+             * @example 2025-01-15T10:35:00Z
+             */
+            lastActivity: string;
+            /**
+             * Format: uuid
+             * @description Task ID associated with this session (if any)
+             * @example 550e8400-e29b-41d4-a716-446655440000
+             */
+            taskId?: string | null;
+            /**
+             * @description Current working directory of the terminal session
+             * @example /Users/user/project
+             */
+            workingDirectory: string;
+        };
         Setting: {
             /**
              * @description Configuration key
@@ -639,11 +697,63 @@ export interface operations {
                      *           "key": "terminal.idleTimeoutMinutes",
                      *           "value": "30",
                      *           "description": "Terminal idle timeout in minutes"
+                     *         },
+                     *         {
+                     *           "key": "terminal.outputBufferSize",
+                     *           "value": "100",
+                     *           "description": "Terminal output buffer size (lines)"
                      *         }
                      *       ]
                      *     }
                      */
                     "application/json": components["schemas"]["SettingsResponse"];
+                };
+            };
+        };
+    };
+    listTerminalSessions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of active terminal sessions */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example [
+                     *       {
+                     *         "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                     *         "createdAt": "2025-01-15T10:30:00Z",
+                     *         "lastActivity": "2025-01-15T10:35:00Z",
+                     *         "taskId": "550e8400-e29b-41d4-a716-446655440000",
+                     *         "workingDirectory": "/Users/user/project"
+                     *       },
+                     *       {
+                     *         "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+                     *         "createdAt": "2025-01-15T10:20:00Z",
+                     *         "lastActivity": "2025-01-15T10:34:00Z",
+                     *         "taskId": null,
+                     *         "workingDirectory": "/Users/user/project"
+                     *       }
+                     *     ]
+                     */
+                    "application/json": components["schemas"]["SessionInfo"][];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };

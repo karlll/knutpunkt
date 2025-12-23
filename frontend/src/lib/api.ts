@@ -8,6 +8,7 @@ type TaskPriority = components['schemas']['TaskPriority']
 type TaskOrderUpdate = components['schemas']['TaskOrderUpdate']
 type Setting = components['schemas']['Setting']
 type SettingsResponse = components['schemas']['SettingsResponse']
+type SessionInfo = components['schemas']['SessionInfo']
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8080/api/v1'
 
@@ -130,7 +131,23 @@ export const api = {
       return handleResponse<SettingsResponse>(response)
     },
   },
+
+  terminal: {
+    listSessions: async (): Promise<SessionInfo[]> => {
+      const response = await fetch(`${API_BASE}/terminal/sessions`)
+      return handleResponse<SessionInfo[]>(response)
+    },
+  },
 }
 
 export { ApiError }
-export type { Task, TaskCreate, TaskUpdate, TaskStatus, TaskPriority, Setting, SettingsResponse }
+export type {
+  Task,
+  TaskCreate,
+  TaskUpdate,
+  TaskStatus,
+  TaskPriority,
+  Setting,
+  SettingsResponse,
+  SessionInfo,
+}
