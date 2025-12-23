@@ -72,9 +72,9 @@ fun Route.terminalRoutes(terminalService: TerminalService) {
             logger.error("Error in terminal WebSocket handler", e)
             sendErrorMessage("Terminal session error: ${e.message}")
         } finally {
+            // Session persists after WebSocket disconnect - only log the closure
             if (sessionId != null) {
-                terminalService.terminateSession(sessionId)
-                logger.info("Terminal session cleaned up: $sessionId")
+                logger.info("WebSocket closed for session $sessionId (session continues running)")
             }
         }
     }
@@ -86,18 +86,29 @@ private suspend fun DefaultWebSocketServerSession.readPtyOutput(
     terminalService: TerminalService
 ) {
     val buffer = ByteArray(8192)
-    
+
     try {
         logger.debug("Starting PTY output reader for session $sessionId")
-        
+
         while (isActive) {
             // Use blocking read - will wait for data or stream close
             val len = withContext(Dispatchers.IO) {
                 inputStream.read(buffer)
             }
-            
+
             if (len > 0) {
                 val output = String(buffer, 0, len, Charsets.UTF_8)
+
+                // Store output in session buffer
+                val session = terminalService.getSession(sessionId)
+                session?.let {
+                    it.outputBuffer.addLast(output)
+                    // Trim buffer if it exceeds max size
+                    while (it.outputBuffer.size > it.maxBufferSize) {
+                        it.outputBuffer.removeFirst()
+                    }
+                }
+
                 val message = TerminalMessage(type = "output", data = output)
                 send(Frame.Text(Json.encodeToString(message)))
                 terminalService.updateActivity(sessionId)
@@ -109,7 +120,7 @@ private suspend fun DefaultWebSocketServerSession.readPtyOutput(
                 break
             }
         }
-        
+
         logger.debug("PTY output reader finished for session $sessionId")
     } catch (e: Exception) {
         logger.error("Error in PTY output reader for session $sessionId: ${e.message}", e)

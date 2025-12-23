@@ -3,6 +3,7 @@ package com.ninjacontrol.knutpunkt.models
 import com.pty4j.PtyProcess
 import kotlinx.serialization.Serializable
 import java.time.Instant
+import java.util.concurrent.ConcurrentLinkedDeque
 
 @Serializable
 data class TerminalMessage(
@@ -14,10 +15,22 @@ data class TerminalMessage(
     val message: String? = null
 )
 
+@Serializable
+data class SessionInfo(
+    val id: String,
+    val createdAt: String, // ISO-8601
+    val lastActivity: String, // ISO-8601
+    val taskId: String?,
+    val workingDirectory: String
+)
+
 data class TerminalSession(
     val id: String,
     val ptyProcess: PtyProcess,
     val createdAt: Instant,
     var lastActivity: Instant,
-    val workingDirectory: String
+    val workingDirectory: String,
+    val taskId: String? = null,
+    val outputBuffer: ConcurrentLinkedDeque<String> = ConcurrentLinkedDeque(),
+    val maxBufferSize: Int
 )

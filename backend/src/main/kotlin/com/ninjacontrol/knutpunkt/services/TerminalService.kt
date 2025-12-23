@@ -1,21 +1,24 @@
 package com.ninjacontrol.knutpunkt.services
 
+import com.ninjacontrol.knutpunkt.models.SessionInfo
 import com.ninjacontrol.knutpunkt.models.TerminalSession
 import com.pty4j.PtyProcessBuilder
 import kotlinx.coroutines.*
 import org.slf4j.LoggerFactory
 import java.io.File
 import java.time.Instant
+import java.time.format.DateTimeFormatter
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
 class TerminalService(
     private val tasksDirectory: String,
-    private val scope: CoroutineScope
+    private val scope: CoroutineScope,
+    private val idleTimeoutMinutes: Long = 30L,
+    private val outputBufferSize: Int = 100
 ) {
     private val logger = LoggerFactory.getLogger(TerminalService::class.java)
     private val sessions = ConcurrentHashMap<String, TerminalSession>()
-    private val idleTimeoutMinutes = 30L
     
     init {
         startTimeoutCleanup()
@@ -46,13 +49,27 @@ class TerminalService(
             ptyProcess = pty,
             createdAt = Instant.now(),
             lastActivity = Instant.now(),
-            workingDirectory = workingDir.absolutePath
+            workingDirectory = workingDir.absolutePath,
+            taskId = taskId,
+            maxBufferSize = outputBufferSize
         )
-        
+
         sessions[sessionId] = session
         logger.info("Terminal session created: $sessionId")
-        
+
         return session
+    }
+
+    fun listSessions(): List<SessionInfo> {
+        return sessions.values.map { session ->
+            SessionInfo(
+                id = session.id,
+                createdAt = session.createdAt.toString(),
+                lastActivity = session.lastActivity.toString(),
+                taskId = session.taskId,
+                workingDirectory = session.workingDirectory
+            )
+        }
     }
     
     fun getSession(sessionId: String): TerminalSession? {

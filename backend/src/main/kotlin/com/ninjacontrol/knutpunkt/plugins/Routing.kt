@@ -21,27 +21,36 @@ fun Application.configureRouting(taskService: TaskService, eventServices: EventS
     val config = HoconApplicationConfig(ConfigFactory.load())
     val terminalEnabled = config.propertyOrNull("knutpunkt.terminal.enabled")
         ?.getString()?.toBoolean() ?: false
-    
+    val idleTimeoutMinutes = config.propertyOrNull("knutpunkt.terminal.idleTimeoutMinutes")
+        ?.getString()?.toLongOrNull() ?: 30L
+    val outputBufferSize = config.propertyOrNull("knutpunkt.terminal.outputBufferSize")
+        ?.getString()?.toIntOrNull() ?: 100
+
     // Create settings service
     val settingsService = SettingsService()
-    
+
     routing {
         route("/api/v1") {
             taskRoutes(taskService)
             eventRoutes(eventServices.taskEventService, eventServices.fileEventService)
             settingsRoutes(settingsService)
             versionRoutes()
-            
+
             if (terminalEnabled) {
                 val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
-                val terminalService = TerminalService(tasksDirectory, scope)
-                
+                val terminalService = TerminalService(
+                    tasksDirectory = tasksDirectory,
+                    scope = scope,
+                    idleTimeoutMinutes = idleTimeoutMinutes,
+                    outputBufferSize = outputBufferSize
+                )
+
                 monitor.subscribe(ApplicationStopping) {
                     terminalService.close()
                 }
-                
+
                 terminalRoutes(terminalService)
-                log.info("Terminal support enabled")
+                log.info("Terminal support enabled (idleTimeout=${idleTimeoutMinutes}min, bufferSize=${outputBufferSize})")
             } else {
                 log.info("Terminal support disabled")
             }
