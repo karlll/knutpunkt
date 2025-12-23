@@ -17,12 +17,36 @@ private val logger = LoggerFactory.getLogger("TerminalRoutes")
 fun Route.terminalRoutes(terminalService: TerminalService) {
     webSocket("/terminal/session") {
         val taskId = call.request.queryParameters["taskId"]
+        val existingSessionId = call.request.queryParameters["sessionId"]
         var sessionId: String? = null
-        
+
         try {
-            val session = terminalService.createSession(taskId)
+            // Either reconnect to existing session or create new one
+            val session = if (existingSessionId != null) {
+                val existing = terminalService.getSession(existingSessionId)
+                if (existing == null) {
+                    sendErrorMessage("Session not found: $existingSessionId")
+                    logger.warn("Attempt to reconnect to non-existent session: $existingSessionId")
+                    return@webSocket
+                }
+                logger.info("Reconnecting to existing terminal session: $existingSessionId")
+                existing
+            } else {
+                terminalService.createSession(taskId).also {
+                    logger.info("Created new terminal session: ${it.id}")
+                }
+            }
             sessionId = session.id
-            
+
+            // Replay buffered output for reconnected sessions
+            if (existingSessionId != null) {
+                logger.debug("Replaying ${session.outputBuffer.size} buffered outputs for session $sessionId")
+                session.outputBuffer.forEach { output ->
+                    val message = TerminalMessage(type = "output", data = output)
+                    send(Frame.Text(Json.encodeToString(message)))
+                }
+            }
+
             logger.info("WebSocket connected for terminal session: $sessionId")
             logger.debug("Launching PTY I/O handlers for session $sessionId")
             
