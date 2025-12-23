@@ -2,6 +2,8 @@ package com.ninjacontrol.knutpunkt.routes
 
 import com.ninjacontrol.knutpunkt.models.TerminalMessage
 import com.ninjacontrol.knutpunkt.services.TerminalService
+import io.ktor.http.*
+import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.websocket.*
 import io.ktor.websocket.*
@@ -15,6 +17,12 @@ import java.io.OutputStream
 private val logger = LoggerFactory.getLogger("TerminalRoutes")
 
 fun Route.terminalRoutes(terminalService: TerminalService) {
+    // List active terminal sessions
+    get("/terminal/sessions") {
+        val sessions = terminalService.listSessions()
+        call.respond(HttpStatusCode.OK, sessions)
+    }
+
     webSocket("/terminal/session") {
         val taskId = call.request.queryParameters["taskId"]
         val existingSessionId = call.request.queryParameters["sessionId"]
