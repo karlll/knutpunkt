@@ -1,20 +1,23 @@
 import { useState, useMemo } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Button } from '@/components/ui/button'
+import { X } from 'lucide-react'
 
 export interface Tab {
   id: string
   label: string
   content: React.ReactNode
-  closable?: boolean // For future use
+  closable?: boolean
 }
 
 export interface TabViewProps {
   tabs: Tab[]
   defaultActiveTab?: string
   onTabChange?: (tabId: string) => void
+  onTabClose?: (tabId: string) => void
 }
 
-export function TabView({ tabs, defaultActiveTab, onTabChange }: TabViewProps) {
+export function TabView({ tabs, defaultActiveTab, onTabChange, onTabClose }: TabViewProps) {
   const firstTabId = tabs[0]?.id
   const [activeTab, setActiveTab] = useState(defaultActiveTab || firstTabId)
 
@@ -23,6 +26,21 @@ export function TabView({ tabs, defaultActiveTab, onTabChange }: TabViewProps) {
   const handleTabChange = (tabId: string) => {
     setActiveTab(tabId)
     onTabChange?.(tabId)
+  }
+
+  const handleTabClose = (tabId: string, event: React.MouseEvent) => {
+    event.stopPropagation() // Prevent tab activation when clicking close button
+
+    // If closing the active tab, switch to another tab first
+    if (tabId === activeTab) {
+      const currentIndex = tabs.findIndex((tab) => tab.id === tabId)
+      const nextTab = tabs[currentIndex + 1] || tabs[currentIndex - 1]
+      if (nextTab) {
+        setActiveTab(nextTab.id)
+      }
+    }
+
+    onTabClose?.(tabId)
   }
 
   // Ensure activeTab is valid
@@ -51,9 +69,20 @@ export function TabView({ tabs, defaultActiveTab, onTabChange }: TabViewProps) {
           <TabsTrigger
             key={tab.id}
             value={tab.id}
-            className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
+            className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none relative pr-8"
           >
-            {tab.label}
+            <span>{tab.label}</span>
+            {tab.closable && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute right-0 h-6 w-6 p-0 hover:bg-muted"
+                onClick={(e) => handleTabClose(tab.id, e)}
+                aria-label={`Close ${tab.label}`}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            )}
           </TabsTrigger>
         ))}
       </TabsList>
