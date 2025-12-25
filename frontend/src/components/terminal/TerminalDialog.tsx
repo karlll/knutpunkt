@@ -109,7 +109,7 @@ export function TerminalDialog({ open, onOpenChange, taskId }: TerminalDialogPro
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl h-[600px] flex flex-col">
-        <DialogHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+        <DialogHeader className="flex flex-row items-center justify-between space-y-0 pb-4 pr-12">
           <DialogTitle>Terminal</DialogTitle>
           <DialogDescription className="sr-only">
             Interactive terminal session with real-time command execution
@@ -128,14 +128,15 @@ export function TerminalDialog({ open, onOpenChange, taskId }: TerminalDialogPro
             </Button>
           </div>
         ) : showSessionPicker ? (
-          <div className="flex-1 flex flex-col items-center justify-center gap-4 p-8">
+          <div className="flex-1 flex flex-col items-center justify-center gap-4 p-8 overflow-hidden">
             <h3 className="text-lg font-semibold">Active Sessions</h3>
             <p className="text-sm text-muted-foreground text-center">
               You have {sessions.length} active session{sessions.length > 1 ? 's' : ''}.
               Reconnect to an existing session or start a new one.
             </p>
-            <div className="flex flex-col gap-2 w-full max-w-md">
-              {sessions.map((session) => (
+            <div className="flex flex-col gap-4 w-full max-w-md overflow-y-auto">
+              <div className="flex flex-col gap-2 max-h-[300px] overflow-y-auto pr-2">
+                {sessions.map((session) => (
                 <Button
                   key={session.id}
                   variant="outline"
@@ -161,14 +162,15 @@ export function TerminalDialog({ open, onOpenChange, taskId }: TerminalDialogPro
                     </span>
                   </div>
                 </Button>
-              ))}
-              <Button onClick={handleNewSession} className="mt-2">
+                ))}
+              </div>
+              <Button onClick={handleNewSession}>
                 New Session
               </Button>
             </div>
           </div>
         ) : showTerminal ? (
-          <div className="flex-1 min-h-0">
+          <div className="flex-1 min-h-0 relative">
             {open && (
               <Terminal
                 key={terminalKey}
@@ -177,6 +179,14 @@ export function TerminalDialog({ open, onOpenChange, taskId }: TerminalDialogPro
                 onClose={handleClose}
                 onStatusChange={handleStatusChange}
               />
+            )}
+            {isCreatingNewSession && connectionStatus === 'connecting' && (
+              <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+                <div className="flex flex-col items-center gap-2">
+                  <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+                  <p className="text-sm text-muted-foreground">Creating session...</p>
+                </div>
+              </div>
             )}
           </div>
         ) : null}
