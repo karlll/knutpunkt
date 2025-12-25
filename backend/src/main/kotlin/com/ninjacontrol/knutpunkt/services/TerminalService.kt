@@ -10,6 +10,7 @@ import java.time.Instant
 import java.time.format.DateTimeFormatter
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicInteger
 
 class TerminalService(
     private val tasksDirectory: String,
@@ -19,6 +20,7 @@ class TerminalService(
 ) {
     private val logger = LoggerFactory.getLogger(TerminalService::class.java)
     private val sessions = ConcurrentHashMap<String, TerminalSession>()
+    private val sessionCounter = AtomicInteger(0)
     
     init {
         startTimeoutCleanup()
@@ -44,8 +46,12 @@ class TerminalService(
         }
         
         val sessionId = UUID.randomUUID().toString()
+        val sessionNumber = sessionCounter.incrementAndGet()
+        val sessionName = "Terminal session $sessionNumber"
+
         val session = TerminalSession(
             id = sessionId,
+            name = sessionName,
             ptyProcess = pty,
             createdAt = Instant.now(),
             lastActivity = Instant.now(),
@@ -64,6 +70,7 @@ class TerminalService(
         return sessions.values.map { session ->
             SessionInfo(
                 id = session.id,
+                name = session.name,
                 createdAt = session.createdAt.toString(),
                 lastActivity = session.lastActivity.toString(),
                 taskId = session.taskId,

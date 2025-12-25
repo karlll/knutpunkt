@@ -236,6 +236,11 @@ export interface components {
              */
             id: string;
             /**
+             * @description Human-readable name for the terminal session
+             * @example Terminal session 1
+             */
+            name: string;
+            /**
              * Format: date-time
              * @description ISO 8601 timestamp of session creation
              * @example 2025-01-15T10:30:00Z

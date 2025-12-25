@@ -18,6 +18,7 @@ data class TerminalMessage(
 @Serializable
 data class SessionInfo(
     val id: String,
+    val name: String,
     val createdAt: String, // ISO-8601
     val lastActivity: String, // ISO-8601
     val taskId: String?,
@@ -26,6 +27,7 @@ data class SessionInfo(
 
 data class TerminalSession(
     val id: String,
+    var name: String,
     val ptyProcess: PtyProcess,
     val createdAt: Instant,
     var lastActivity: Instant,

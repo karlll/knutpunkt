@@ -522,6 +522,7 @@ components:
       type: object
       required:
         - id
+        - name
         - createdAt
         - lastActivity
         - workingDirectory
@@ -531,6 +532,10 @@ components:
           format: uuid
           description: Unique identifier for the terminal session
           example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+        name:
+          type: string
+          description: Human-readable name for the terminal session
+          example: "Terminal session 1"
         createdAt:
           type: string
           format: date-time
