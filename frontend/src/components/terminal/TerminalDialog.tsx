@@ -23,6 +23,7 @@ export function TerminalDialog({ open, onOpenChange, taskId }: TerminalDialogPro
   const [terminalKey, setTerminalKey] = useState(0)
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null)
   const [isCreatingNewSession, setIsCreatingNewSession] = useState(false)
+  const [sessionCountBeforeCreate, setSessionCountBeforeCreate] = useState<number | null>(null)
 
   // Query for active terminal sessions
   const { data: sessions } = useQuery({
@@ -39,26 +40,36 @@ export function TerminalDialog({ open, onOpenChange, taskId }: TerminalDialogPro
     // Reset state
     setSelectedSessionId(null)
     setIsCreatingNewSession(false)
+    setSessionCountBeforeCreate(null)
   }, [onOpenChange])
 
   const handleNewSession = useCallback(() => {
+    // Store current session count before creating new session
+    setSessionCountBeforeCreate(sessions?.length ?? 0)
     setIsCreatingNewSession(true)
     setSelectedSessionId(null)
     setTerminalKey((prev) => prev + 1)
-  }, [])
+  }, [sessions])
 
   const handleSelectSession = useCallback((sessionId: string) => {
     setIsCreatingNewSession(false)
+    setSessionCountBeforeCreate(null)
     setSelectedSessionId(sessionId)
     setTerminalKey((prev) => prev + 1)
   }, [])
 
-  // Reset creating state when sessions appear (after creating a new session)
+  // Reset creating state when session count increases (new session created)
   useEffect(() => {
-    if (isCreatingNewSession && sessions && sessions.length > 0) {
+    if (
+      isCreatingNewSession &&
+      sessionCountBeforeCreate !== null &&
+      sessions &&
+      sessions.length > sessionCountBeforeCreate
+    ) {
       setIsCreatingNewSession(false)
+      setSessionCountBeforeCreate(null)
     }
-  }, [isCreatingNewSession, sessions])
+  }, [isCreatingNewSession, sessionCountBeforeCreate, sessions])
 
   // Determine which view to show
   const hasNoSessions = !sessions || sessions.length === 0
