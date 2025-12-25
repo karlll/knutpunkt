@@ -21,9 +21,10 @@ import {
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { Trash2, Pencil } from 'lucide-react'
+import { Trash2, Pencil, Pin } from 'lucide-react'
 import { Terminal } from './Terminal'
 import { api } from '@/lib/api'
+import { useTerminalStore } from '@/stores/terminalStore'
 
 interface TerminalDialogProps {
   open: boolean
@@ -33,6 +34,7 @@ interface TerminalDialogProps {
 
 export function TerminalDialog({ open, onOpenChange, taskId }: TerminalDialogProps) {
   const queryClient = useQueryClient()
+  const { togglePin, isPinned } = useTerminalStore()
   const [terminalKey, setTerminalKey] = useState(0)
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null)
   const [isCreatingNewSession, setIsCreatingNewSession] = useState(false)
@@ -164,52 +166,69 @@ export function TerminalDialog({ open, onOpenChange, taskId }: TerminalDialogPro
             </p>
             <div className="flex flex-col gap-4 w-full max-w-md overflow-y-auto">
               <div className="flex flex-col gap-2 max-h-[300px] overflow-y-auto pr-2">
-                {sessions.map((session) => (
-                  <div key={session.id} className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      className="justify-start h-auto p-4 flex-1"
-                      onClick={() => handleSelectSession(session.id)}
-                    >
-                      <div className="flex flex-col items-start gap-1 text-left">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-sm">
-                            {session.name}
+                {sessions.map((session) => {
+                  const pinned = isPinned(session.id)
+                  return (
+                    <div key={session.id} className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        className="justify-start h-auto p-4 flex-1"
+                        onClick={() => handleSelectSession(session.id)}
+                      >
+                        <div className="flex flex-col items-start gap-1 text-left">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-sm">
+                              {session.name}
+                            </span>
+                            {pinned && (
+                              <Badge variant="default" className="text-xs">
+                                Pinned
+                              </Badge>
+                            )}
+                            {session.taskId && (
+                              <Badge variant="secondary" className="text-xs">
+                                Task {session.taskId.substring(0, 8)}
+                              </Badge>
+                            )}
+                          </div>
+                          <span className="text-xs text-muted-foreground">
+                            {session.workingDirectory}
                           </span>
-                          {session.taskId && (
-                            <Badge variant="secondary" className="text-xs">
-                              Task {session.taskId.substring(0, 8)}
-                            </Badge>
-                          )}
+                          <span className="text-xs text-muted-foreground">
+                            Last active: {new Date(session.lastActivity).toLocaleTimeString()}
+                          </span>
                         </div>
-                        <span className="text-xs text-muted-foreground">
-                          {session.workingDirectory}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          Last active: {new Date(session.lastActivity).toLocaleTimeString()}
-                        </span>
-                      </div>
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-10 w-10"
-                      onClick={() => handleRenameSession(session.id, session.name)}
-                      aria-label={`Rename ${session.name}`}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-10 w-10 text-destructive hover:text-destructive hover:bg-destructive/10"
-                      onClick={() => handleDeleteSession(session.id)}
-                      aria-label={`Delete ${session.name}`}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className={`h-10 w-10 ${pinned ? 'text-primary' : ''}`}
+                        onClick={() => togglePin(session.id)}
+                        aria-label={pinned ? `Unpin ${session.name}` : `Pin ${session.name}`}
+                      >
+                        <Pin className={`h-4 w-4 ${pinned ? 'fill-current' : ''}`} />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-10 w-10"
+                        onClick={() => handleRenameSession(session.id, session.name)}
+                        aria-label={`Rename ${session.name}`}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-10 w-10 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => handleDeleteSession(session.id)}
+                        aria-label={`Delete ${session.name}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )
+                })}
               </div>
               <Button onClick={handleNewSession}>
                 New Session
