@@ -25,6 +25,7 @@ export function TerminalDialog({ open, onOpenChange, taskId }: TerminalDialogPro
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('connecting')
   const [error, setError] = useState<string | undefined>(undefined)
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null)
+  const [isCreatingNewSession, setIsCreatingNewSession] = useState(false)
 
   // Query for active terminal sessions
   const { data: sessions } = useQuery({
@@ -42,14 +43,17 @@ export function TerminalDialog({ open, onOpenChange, taskId }: TerminalDialogPro
     setConnectionStatus('connecting')
     setError(undefined)
     setSelectedSessionId(null)
+    setIsCreatingNewSession(false)
   }, [onOpenChange])
 
   const handleNewSession = useCallback(() => {
+    setIsCreatingNewSession(true)
     setSelectedSessionId(null)
     setTerminalKey((prev) => prev + 1)
   }, [])
 
   const handleSelectSession = useCallback((sessionId: string) => {
+    setIsCreatingNewSession(false)
     setSelectedSessionId(sessionId)
     setTerminalKey((prev) => prev + 1)
   }, [])
@@ -57,6 +61,10 @@ export function TerminalDialog({ open, onOpenChange, taskId }: TerminalDialogPro
   const handleStatusChange = useCallback((status: ConnectionStatus, errorMsg?: string) => {
     setConnectionStatus(status)
     setError(errorMsg)
+    // Reset creating state when connection is established
+    if (status === 'connected') {
+      setIsCreatingNewSession(false)
+    }
   }, [])
 
   const getStatusBadge = () => {
@@ -92,8 +100,11 @@ export function TerminalDialog({ open, onOpenChange, taskId }: TerminalDialogPro
     }
   }
 
-  // Show sessions UI only when there are active sessions and no session is selected
-  const showSessionPicker = sessions && sessions.length > 0 && !selectedSessionId
+  // Determine which view to show
+  const hasNoSessions = !sessions || sessions.length === 0
+  const showEmptyState = hasNoSessions && !isCreatingNewSession
+  const showSessionPicker = sessions && sessions.length > 0 && !selectedSessionId && !isCreatingNewSession
+  const showTerminal = !showEmptyState && !showSessionPicker
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -106,7 +117,17 @@ export function TerminalDialog({ open, onOpenChange, taskId }: TerminalDialogPro
           {getStatusBadge()}
         </DialogHeader>
 
-        {showSessionPicker ? (
+        {showEmptyState ? (
+          <div className="flex-1 flex flex-col items-center justify-center gap-4 p-8">
+            <h3 className="text-lg font-semibold">No Active Sessions</h3>
+            <p className="text-sm text-muted-foreground text-center max-w-md">
+              You don't have any active terminal sessions. Create a new session to get started.
+            </p>
+            <Button onClick={handleNewSession} className="mt-2">
+              Create Session
+            </Button>
+          </div>
+        ) : showSessionPicker ? (
           <div className="flex-1 flex flex-col items-center justify-center gap-4 p-8">
             <h3 className="text-lg font-semibold">Active Sessions</h3>
             <p className="text-sm text-muted-foreground text-center">
@@ -146,7 +167,7 @@ export function TerminalDialog({ open, onOpenChange, taskId }: TerminalDialogPro
               </Button>
             </div>
           </div>
-        ) : (
+        ) : showTerminal ? (
           <div className="flex-1 min-h-0">
             {open && (
               <Terminal
@@ -158,7 +179,7 @@ export function TerminalDialog({ open, onOpenChange, taskId }: TerminalDialogPro
               />
             )}
           </div>
-        )}
+        ) : null}
 
         <DialogFooter>
           {selectedSessionId && sessions && sessions.length > 0 && (
