@@ -20,7 +20,8 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Trash2 } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { Trash2, Pencil } from 'lucide-react'
 import { Terminal } from './Terminal'
 import { api } from '@/lib/api'
 
@@ -37,6 +38,8 @@ export function TerminalDialog({ open, onOpenChange, taskId }: TerminalDialogPro
   const [isCreatingNewSession, setIsCreatingNewSession] = useState(false)
   const [sessionCountBeforeCreate, setSessionCountBeforeCreate] = useState<number | null>(null)
   const [sessionToDelete, setSessionToDelete] = useState<string | null>(null)
+  const [sessionToRename, setSessionToRename] = useState<{ id: string; currentName: string } | null>(null)
+  const [newSessionName, setNewSessionName] = useState('')
 
   // Query for active terminal sessions
   const { data: sessions } = useQuery({
@@ -53,6 +56,17 @@ export function TerminalDialog({ open, onOpenChange, taskId }: TerminalDialogPro
       // Invalidate and refetch sessions list
       queryClient.invalidateQueries({ queryKey: ['terminalSessions'] })
       setSessionToDelete(null)
+    },
+  })
+
+  // Mutation for renaming sessions
+  const renameSessionMutation = useMutation({
+    mutationFn: ({ id, name }: { id: string; name: string }) => api.terminal.renameSession(id, name),
+    onSuccess: () => {
+      // Invalidate and refetch sessions list
+      queryClient.invalidateQueries({ queryKey: ['terminalSessions'] })
+      setSessionToRename(null)
+      setNewSessionName('')
     },
   })
 
@@ -90,6 +104,17 @@ export function TerminalDialog({ open, onOpenChange, taskId }: TerminalDialogPro
       deleteSessionMutation.mutate(sessionToDelete)
     }
   }, [sessionToDelete, deleteSessionMutation])
+
+  const handleRenameSession = useCallback((sessionId: string, currentName: string) => {
+    setSessionToRename({ id: sessionId, currentName })
+    setNewSessionName(currentName)
+  }, [])
+
+  const handleConfirmRename = useCallback(() => {
+    if (sessionToRename && newSessionName.trim()) {
+      renameSessionMutation.mutate({ id: sessionToRename.id, name: newSessionName.trim() })
+    }
+  }, [sessionToRename, newSessionName, renameSessionMutation])
 
   // Reset creating state when session count increases (new session created)
   useEffect(() => {
@@ -168,6 +193,15 @@ export function TerminalDialog({ open, onOpenChange, taskId }: TerminalDialogPro
                     <Button
                       variant="ghost"
                       size="icon"
+                      className="h-10 w-10"
+                      onClick={() => handleRenameSession(session.id, session.name)}
+                      aria-label={`Rename ${session.name}`}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       className="h-10 w-10 text-destructive hover:text-destructive hover:bg-destructive/10"
                       onClick={() => handleDeleteSession(session.id)}
                       aria-label={`Delete ${session.name}`}
@@ -234,6 +268,47 @@ export function TerminalDialog({ open, onOpenChange, taskId }: TerminalDialogPro
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={sessionToRename !== null} onOpenChange={(open) => !open && setSessionToRename(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rename Terminal Session</DialogTitle>
+            <DialogDescription>
+              Enter a new name for this terminal session.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Input
+              value={newSessionName}
+              onChange={(e) => setNewSessionName(e.target.value)}
+              placeholder="Session name"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && newSessionName.trim()) {
+                  handleConfirmRename()
+                }
+              }}
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setSessionToRename(null)
+                setNewSessionName('')
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleConfirmRename}
+              disabled={!newSessionName.trim() || renameSessionMutation.isPending}
+            >
+              Rename
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   )
 }

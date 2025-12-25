@@ -144,6 +144,15 @@ export const api = {
       })
       return handleResponse<void>(response)
     },
+
+    renameSession: async (id: string, name: string): Promise<{ id: string; name: string }> => {
+      const response = await fetch(`${API_BASE}/terminal/sessions/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      })
+      return handleResponse<{ id: string; name: string }>(response)
+    },
   },
 }
 
