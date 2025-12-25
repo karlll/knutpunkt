@@ -1,17 +1,10 @@
 import type { Meta, StoryObj } from '@storybook/react'
 import { useState } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { TaskEventsProvider } from '@/contexts/TaskEventsContext'
 import { TaskDialog } from './TaskDialog'
 import { Button } from '@/components/ui/button'
 import type { Task } from '@/lib/api'
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: false,
-    },
-  },
-})
 
 const meta = {
   title: 'Kanban/TaskDialog',
@@ -21,13 +14,24 @@ const meta = {
   },
   tags: ['autodocs'],
   decorators: [
-    (Story) => (
-      <QueryClientProvider client={queryClient}>
-        <div className="w-full">
-          <Story />
-        </div>
-      </QueryClientProvider>
-    ),
+    (Story) => {
+      const queryClient = new QueryClient({
+        defaultOptions: {
+          queries: {
+            retry: false,
+          },
+        },
+      })
+      return (
+        <QueryClientProvider client={queryClient}>
+          <TaskEventsProvider>
+            <div className="w-full">
+              <Story />
+            </div>
+          </TaskEventsProvider>
+        </QueryClientProvider>
+      )
+    },
   ],
 } satisfies Meta<typeof TaskDialog>
 

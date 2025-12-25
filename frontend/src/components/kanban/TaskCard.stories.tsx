@@ -1,16 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/react'
 import { DndContext } from '@dnd-kit/core'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { TaskEventsProvider } from '@/contexts/TaskEventsContext'
 import { TaskCard } from './TaskCard'
 import type { Task } from '@/lib/api'
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: false,
-    },
-  },
-})
 
 const meta = {
   title: 'Kanban/TaskCard',
@@ -20,15 +13,26 @@ const meta = {
   },
   tags: ['autodocs'],
   decorators: [
-    (Story) => (
-      <QueryClientProvider client={queryClient}>
-        <DndContext>
-          <div className="w-[350px]">
-            <Story />
-          </div>
-        </DndContext>
-      </QueryClientProvider>
-    ),
+    (Story) => {
+      const queryClient = new QueryClient({
+        defaultOptions: {
+          queries: {
+            retry: false,
+          },
+        },
+      })
+      return (
+        <QueryClientProvider client={queryClient}>
+          <TaskEventsProvider>
+            <DndContext>
+              <div className="w-[350px]">
+                <Story />
+              </div>
+            </DndContext>
+          </TaskEventsProvider>
+        </QueryClientProvider>
+      )
+    },
   ],
 } satisfies Meta<typeof TaskCard>
 

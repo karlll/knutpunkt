@@ -1,29 +1,52 @@
 import type { Meta, StoryObj } from '@storybook/react'
 import { useState } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { http, HttpResponse } from 'msw'
 import { BackendSettingsDialog } from './BackendSettingsDialog'
 import { Button } from '@/components/ui/button'
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: false,
-    },
-  },
-})
 
 const meta = {
   title: 'Components/BackendSettingsDialog',
   component: BackendSettingsDialog,
   parameters: {
     layout: 'centered',
+    msw: {
+      handlers: [
+        http.get('http://127.0.0.1:8080/api/v1/settings', () => {
+          return HttpResponse.json({
+            server: {
+              port: 8080,
+              host: '127.0.0.1',
+            },
+            tasks: {
+              directory: '/Users/user/tasks',
+              enableCaching: true,
+            },
+            terminal: {
+              enabled: true,
+              idleTimeoutMinutes: 30,
+              outputBufferSize: 100,
+            },
+          })
+        }),
+      ],
+    },
   },
   decorators: [
-    (Story) => (
-      <QueryClientProvider client={queryClient}>
-        <Story />
-      </QueryClientProvider>
-    ),
+    (Story) => {
+      const queryClient = new QueryClient({
+        defaultOptions: {
+          queries: {
+            retry: false,
+          },
+        },
+      })
+      return (
+        <QueryClientProvider client={queryClient}>
+          <Story />
+        </QueryClientProvider>
+      )
+    },
   ],
   tags: ['autodocs'],
 } satisfies Meta<typeof BackendSettingsDialog>
