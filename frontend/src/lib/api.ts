@@ -137,6 +137,13 @@ export const api = {
       const response = await fetch(`${API_BASE}/terminal/sessions`)
       return handleResponse<SessionInfo[]>(response)
     },
+
+    deleteSession: async (id: string): Promise<void> => {
+      const response = await fetch(`${API_BASE}/terminal/sessions/${id}`, {
+        method: 'DELETE',
+      })
+      return handleResponse<void>(response)
+    },
   },
 }
 
