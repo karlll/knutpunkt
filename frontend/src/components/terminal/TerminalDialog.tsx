@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   Dialog,
@@ -11,7 +11,6 @@ import {
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Terminal } from './Terminal'
-import type { ConnectionStatus } from '@/hooks/useTerminalSession'
 import { api } from '@/lib/api'
 
 interface TerminalDialogProps {
@@ -22,8 +21,6 @@ interface TerminalDialogProps {
 
 export function TerminalDialog({ open, onOpenChange, taskId }: TerminalDialogProps) {
   const [terminalKey, setTerminalKey] = useState(0)
-  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('connecting')
-  const [error, setError] = useState<string | undefined>(undefined)
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null)
   const [isCreatingNewSession, setIsCreatingNewSession] = useState(false)
 
@@ -39,9 +36,7 @@ export function TerminalDialog({ open, onOpenChange, taskId }: TerminalDialogPro
     onOpenChange(false)
     // Force remount of Terminal on next open for clean state
     setTerminalKey((prev) => prev + 1)
-    // Reset status
-    setConnectionStatus('connecting')
-    setError(undefined)
+    // Reset state
     setSelectedSessionId(null)
     setIsCreatingNewSession(false)
   }, [onOpenChange])
@@ -58,47 +53,12 @@ export function TerminalDialog({ open, onOpenChange, taskId }: TerminalDialogPro
     setTerminalKey((prev) => prev + 1)
   }, [])
 
-  const handleStatusChange = useCallback((status: ConnectionStatus, errorMsg?: string) => {
-    setConnectionStatus(status)
-    setError(errorMsg)
-    // Reset creating state when connection is established
-    if (status === 'connected') {
+  // Reset creating state when sessions appear (after creating a new session)
+  useEffect(() => {
+    if (isCreatingNewSession && sessions && sessions.length > 0) {
       setIsCreatingNewSession(false)
     }
-  }, [])
-
-  const getStatusBadge = () => {
-    switch (connectionStatus) {
-      case 'connecting':
-        return (
-          <Badge variant="outline" className="gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-yellow-500 animate-pulse" />
-            Connecting...
-          </Badge>
-        )
-      case 'connected':
-        return (
-          <Badge variant="outline" className="gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-green-500" />
-            Connected
-          </Badge>
-        )
-      case 'disconnected':
-        return (
-          <Badge variant="outline" className="gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-gray-500" />
-            Disconnected
-          </Badge>
-        )
-      case 'error':
-        return (
-          <Badge variant="destructive" className="gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-white" />
-            Error{error ? `: ${error}` : ''}
-          </Badge>
-        )
-    }
-  }
+  }, [isCreatingNewSession, sessions])
 
   // Determine which view to show
   const hasNoSessions = !sessions || sessions.length === 0
@@ -109,12 +69,11 @@ export function TerminalDialog({ open, onOpenChange, taskId }: TerminalDialogPro
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl h-[600px] flex flex-col">
-        <DialogHeader className="flex flex-row items-center justify-between space-y-0 pb-4 pr-12">
+        <DialogHeader>
           <DialogTitle>Terminal</DialogTitle>
           <DialogDescription className="sr-only">
             Interactive terminal session with real-time command execution
           </DialogDescription>
-          {getStatusBadge()}
         </DialogHeader>
 
         {showEmptyState ? (
@@ -177,10 +136,9 @@ export function TerminalDialog({ open, onOpenChange, taskId }: TerminalDialogPro
                 taskId={taskId}
                 sessionId={selectedSessionId || undefined}
                 onClose={handleClose}
-                onStatusChange={handleStatusChange}
               />
             )}
-            {isCreatingNewSession && connectionStatus === 'connecting' && (
+            {isCreatingNewSession && (
               <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm">
                 <div className="flex flex-col items-center gap-2">
                   <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
