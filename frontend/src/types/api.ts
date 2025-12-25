@@ -131,6 +131,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/terminal/sessions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete (terminate) a terminal session
+         * @description Terminates a terminal session and removes it from the active sessions list.
+         *     The PTY process will be destroyed and all associated resources will be cleaned up.
+         */
+        delete: operations["deleteTerminalSession"];
+        options?: never;
+        head?: never;
+        /**
+         * Rename a terminal session
+         * @description Updates the display name of a terminal session
+         */
+        patch: operations["renameTerminalSession"];
+        trace?: never;
+    };
     "/tasks": {
         parameters: {
             query?: never;
@@ -759,6 +784,112 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    deleteTerminalSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The unique identifier of the terminal session */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Session successfully terminated */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example Session ID is required */
+                        error?: string;
+                    };
+                };
+            };
+            /** @description Session not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example Session not found */
+                        error?: string;
+                    };
+                };
+            };
+        };
+    };
+    renameTerminalSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The unique identifier of the terminal session */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /**
+                     * @description New name for the session
+                     * @example My Custom Terminal
+                     */
+                    name: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Session successfully renamed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id?: string;
+                        name?: string;
+                    };
+                };
+            };
+            /** @description Bad request (invalid or empty name) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example Session name cannot be empty */
+                        error?: string;
+                    };
+                };
+            };
+            /** @description Session not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example Session not found */
+                        error?: string;
+                    };
                 };
             };
         };

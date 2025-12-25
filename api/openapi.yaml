@@ -211,6 +211,112 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
+  /terminal/sessions/{id}:
+    delete:
+      summary: Delete (terminate) a terminal session
+      description: |
+        Terminates a terminal session and removes it from the active sessions list.
+        The PTY process will be destroyed and all associated resources will be cleaned up.
+      operationId: deleteTerminalSession
+      tags:
+        - terminal
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The unique identifier of the terminal session
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Session successfully terminated
+        '404':
+          description: Session not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Session not found"
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Session ID is required"
+
+    patch:
+      summary: Rename a terminal session
+      description: Updates the display name of a terminal session
+      operationId: renameTerminalSession
+      tags:
+        - terminal
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The unique identifier of the terminal session
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                  description: New name for the session
+                  example: "My Custom Terminal"
+                  minLength: 1
+      responses:
+        '200':
+          description: Session successfully renamed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  name:
+                    type: string
+                example:
+                  id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                  name: "My Custom Terminal"
+        '404':
+          description: Session not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Session not found"
+        '400':
+          description: Bad request (invalid or empty name)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Session name cannot be empty"
+
   /tasks:
     get:
       summary: List all tasks

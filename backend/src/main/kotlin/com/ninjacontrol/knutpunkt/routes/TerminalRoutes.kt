@@ -3,16 +3,23 @@ package com.ninjacontrol.knutpunkt.routes
 import com.ninjacontrol.knutpunkt.models.TerminalMessage
 import com.ninjacontrol.knutpunkt.services.TerminalService
 import io.ktor.http.*
+import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.websocket.*
 import io.ktor.websocket.*
 import kotlinx.coroutines.*
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
 import java.io.InputStream
 import java.io.OutputStream
+
+@Serializable
+data class RenameSessionRequest(
+    val name: String
+)
 
 private val logger = LoggerFactory.getLogger("TerminalRoutes")
 
@@ -21,6 +28,52 @@ fun Route.terminalRoutes(terminalService: TerminalService) {
     get("/terminal/sessions") {
         val sessions = terminalService.listSessions()
         call.respond(HttpStatusCode.OK, sessions)
+    }
+
+    // Delete (terminate) a terminal session
+    delete("/terminal/sessions/{id}") {
+        val sessionId = call.parameters["id"] ?: return@delete call.respond(
+            HttpStatusCode.BadRequest,
+            mapOf("error" to "Session ID is required")
+        )
+
+        val session = terminalService.getSession(sessionId)
+        if (session == null) {
+            call.respond(HttpStatusCode.NotFound, mapOf("error" to "Session not found"))
+        } else {
+            terminalService.terminateSession(sessionId)
+            call.respond(HttpStatusCode.NoContent)
+        }
+    }
+
+    // Rename a terminal session
+    patch("/terminal/sessions/{id}") {
+        val sessionId = call.parameters["id"] ?: return@patch call.respond(
+            HttpStatusCode.BadRequest,
+            mapOf("error" to "Session ID is required")
+        )
+
+        val request = call.receive<RenameSessionRequest>()
+
+        if (request.name.isBlank()) {
+            return@patch call.respond(
+                HttpStatusCode.BadRequest,
+                mapOf("error" to "Session name cannot be empty")
+            )
+        }
+
+        val renamed = terminalService.renameSession(sessionId, request.name)
+        if (renamed) {
+            val session = terminalService.getSession(sessionId)
+            call.respond(HttpStatusCode.OK, session?.let {
+                mapOf(
+                    "id" to it.id,
+                    "name" to it.name
+                )
+            } ?: mapOf("error" to "Session not found after rename"))
+        } else {
+            call.respond(HttpStatusCode.NotFound, mapOf("error" to "Session not found"))
+        }
     }
 
     webSocket("/terminal/session") {

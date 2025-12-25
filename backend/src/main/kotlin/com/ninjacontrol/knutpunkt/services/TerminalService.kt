@@ -99,6 +99,14 @@ class TerminalService(
     fun updateActivity(sessionId: String) {
         sessions[sessionId]?.lastActivity = Instant.now()
     }
+
+    fun renameSession(sessionId: String, newName: String): Boolean {
+        return sessions[sessionId]?.let { session ->
+            session.name = newName
+            logger.info("Terminal session renamed: $sessionId -> $newName")
+            true
+        } ?: false
+    }
     
     private fun determineWorkingDirectory(taskId: String?): File {
         val tasksDir = File(tasksDirectory).absoluteFile
