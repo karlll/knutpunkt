@@ -170,19 +170,21 @@ private suspend fun DefaultWebSocketServerSession.readPtyOutput(
     sessionId: String,
     terminalService: TerminalService
 ) {
-    val buffer = ByteArray(8192)
+    val reader = inputStream.bufferedReader(Charsets.UTF_8)
+    val buffer = CharArray(8192)
 
     try {
         logger.debug("Starting PTY output reader for session $sessionId")
 
         while (isActive) {
             // Use blocking read - will wait for data or stream close
+            // BufferedReader properly handles UTF-8 boundaries and won't split multi-byte characters
             val len = withContext(Dispatchers.IO) {
-                inputStream.read(buffer)
+                reader.read(buffer)
             }
 
             if (len > 0) {
-                val output = String(buffer, 0, len, Charsets.UTF_8)
+                val output = String(buffer, 0, len)
 
                 // Store output in session buffer
                 val session = terminalService.getSession(sessionId)
@@ -211,6 +213,8 @@ private suspend fun DefaultWebSocketServerSession.readPtyOutput(
         logger.error("Error in PTY output reader for session $sessionId: ${e.message}", e)
         throw e
     }
+    // Note: Don't close the reader here - it would close the underlying PTY stream
+    // The PTY process manages its own streams and sessions persist after WebSocket disconnect
 }
 
 private suspend fun DefaultWebSocketServerSession.handleMessage(

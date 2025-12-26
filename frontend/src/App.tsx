@@ -22,6 +22,7 @@ function AppContent() {
   const { pinnedSessions, unpinSession } = useTerminalStore()
   const [terminalDialogOpen, setTerminalDialogOpen] = useState(false)
   const [createTaskDialogOpen, setCreateTaskDialogOpen] = useState(false)
+  const [activeTab, setActiveTab] = useState('kanban')
 
   // Fetch backend settings to check if terminal is enabled
   const { data: backendSettings } = useQuery({
@@ -71,8 +72,8 @@ function AppContent() {
             id: session.id,
             label: session.name,
             content: (
-              <div className="flex-1 min-h-0 p-4">
-                <Terminal sessionId={session.id} />
+              <div className="flex-1 flex flex-col overflow-hidden p-4">
+                <Terminal key={session.id} sessionId={session.id} />
               </div>
             ),
             closable: true,
@@ -94,6 +95,11 @@ function AppContent() {
     [handleCloseTerminalTab]
   )
 
+  const handleSwitchToTab = useCallback((tabId: string) => {
+    setActiveTab(tabId)
+    setTerminalDialogOpen(false)
+  }, [])
+
   return (
     <div className="h-screen flex flex-col">
       <Header
@@ -101,8 +107,17 @@ function AppContent() {
         onOpenTerminal={() => setTerminalDialogOpen(true)}
         terminalEnabled={terminalEnabled}
       />
-      <TabView tabs={tabs} defaultActiveTab="kanban" onTabClose={handleTabClose} />
-      <TerminalDialog open={terminalDialogOpen} onOpenChange={setTerminalDialogOpen} />
+      <TabView
+        tabs={tabs}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        onTabClose={handleTabClose}
+      />
+      <TerminalDialog
+        open={terminalDialogOpen}
+        onOpenChange={setTerminalDialogOpen}
+        onSwitchToTab={handleSwitchToTab}
+      />
     </div>
   )
 }

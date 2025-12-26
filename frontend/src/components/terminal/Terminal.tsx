@@ -54,7 +54,7 @@ export function Terminal({ taskId, sessionId, onClose, onStatusChange }: Termina
     const terminal = new XTerm({
       cursorBlink: true,
       fontSize: 14,
-      fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+      fontFamily: '"Inconsolata Nerd Font", Menlo, Monaco, "Courier New", monospace',
       theme: {
         background: '#1e1e1e',
         foreground: '#d4d4d4',
@@ -80,6 +80,7 @@ export function Terminal({ taskId, sessionId, onClose, onStatusChange }: Termina
       },
       convertEol: true,
       scrollback: 1000,
+      scrollOnUserInput: true,
     })
 
     // Load addons
@@ -104,20 +105,37 @@ export function Terminal({ taskId, sessionId, onClose, onStatusChange }: Termina
 
     // Send resize events to WebSocket
     const handleTerminalResize = () => {
-      fitAddon.fit()
-      resize(terminal.cols, terminal.rows)
+      // Only fit if container has dimensions (avoid fitting when hidden/inactive)
+      if (terminalRef.current) {
+        const { clientWidth, clientHeight } = terminalRef.current
+        if (clientWidth > 0 && clientHeight > 0) {
+          fitAddon.fit()
+          resize(terminal.cols, terminal.rows)
+        }
+      }
     }
 
-    // Handle window resize
-    window.addEventListener('resize', handleTerminalResize)
+    // Use ResizeObserver to detect container size changes (CSS layout changes, tab switches, etc.)
+    // Debounce to avoid rapid refits during animations/transitions
+    let resizeTimeout: NodeJS.Timeout
+    const resizeObserver = new ResizeObserver(() => {
+      clearTimeout(resizeTimeout)
+      resizeTimeout = setTimeout(handleTerminalResize, 100)
+    })
+
+    // Observe the terminal container for size changes
+    if (terminalRef.current) {
+      resizeObserver.observe(terminalRef.current)
+    }
 
     // Initial resize after terminal is ready
     resize(terminal.cols, terminal.rows)
 
     // Cleanup
     return () => {
+      clearTimeout(resizeTimeout)
       disposable.dispose()
-      window.removeEventListener('resize', handleTerminalResize)
+      resizeObserver.disconnect()
       disconnect()
       terminal.dispose()
       xtermRef.current = null
@@ -155,7 +173,7 @@ export function Terminal({ taskId, sessionId, onClose, onStatusChange }: Termina
   }, [connectionStatus, error, onStatusChange])
 
   return (
-    <div className="h-full w-full bg-[#1e1e1e] p-4 rounded-md">
+    <div className="flex-1 bg-[#1e1e1e] p-4 rounded-md overflow-hidden">
       <div ref={terminalRef} className="h-full w-full" />
     </div>
   )

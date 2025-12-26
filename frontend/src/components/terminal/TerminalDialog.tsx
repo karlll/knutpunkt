@@ -30,9 +30,10 @@ interface TerminalDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   taskId?: string
+  onSwitchToTab?: (tabId: string) => void
 }
 
-export function TerminalDialog({ open, onOpenChange, taskId }: TerminalDialogProps) {
+export function TerminalDialog({ open, onOpenChange, taskId, onSwitchToTab }: TerminalDialogProps) {
   const queryClient = useQueryClient()
   const { togglePin, isPinned } = useTerminalStore()
   const [terminalKey, setTerminalKey] = useState(0)
@@ -91,11 +92,18 @@ export function TerminalDialog({ open, onOpenChange, taskId }: TerminalDialogPro
   }, [sessions])
 
   const handleSelectSession = useCallback((sessionId: string) => {
-    setIsCreatingNewSession(false)
-    setSessionCountBeforeCreate(null)
-    setSelectedSessionId(sessionId)
-    setTerminalKey((prev) => prev + 1)
-  }, [])
+    // Check if this session is pinned as a tab
+    if (isPinned(sessionId) && onSwitchToTab) {
+      // Session is pinned - switch to that tab instead of opening in modal
+      onSwitchToTab(sessionId)
+    } else {
+      // Session not pinned - show in modal (current behavior)
+      setIsCreatingNewSession(false)
+      setSessionCountBeforeCreate(null)
+      setSelectedSessionId(sessionId)
+      setTerminalKey((prev) => prev + 1)
+    }
+  }, [isPinned, onSwitchToTab])
 
   const handleDeleteSession = useCallback((sessionId: string) => {
     setSessionToDelete(sessionId)

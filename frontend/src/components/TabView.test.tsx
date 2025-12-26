@@ -195,4 +195,66 @@ describe('TabView', () => {
       expect(tab1).toHaveAttribute('data-state', 'active')
     })
   })
+
+  describe('controlled mode', () => {
+    it('uses controlled activeTab prop when provided', () => {
+      render(<TabView tabs={multipleTabs} activeTab="tab2" />)
+
+      // Second tab should be active
+      const tab2 = screen.getByRole('tab', { name: 'Tab 2' })
+      expect(tab2).toHaveAttribute('data-state', 'active')
+      expect(screen.getByText('Content 2')).toBeVisible()
+    })
+
+    it('calls onTabChange when switching tabs in controlled mode', async () => {
+      const user = userEvent.setup()
+      const onTabChange = vi.fn()
+      render(<TabView tabs={multipleTabs} activeTab="tab1" onTabChange={onTabChange} />)
+
+      // Click tab 2
+      await user.click(screen.getByRole('tab', { name: 'Tab 2' }))
+
+      expect(onTabChange).toHaveBeenCalledWith('tab2')
+    })
+
+    it('does not change tab internally when controlled', async () => {
+      const user = userEvent.setup()
+      const onTabChange = vi.fn()
+      render(<TabView tabs={multipleTabs} activeTab="tab1" onTabChange={onTabChange} />)
+
+      // Click tab 2
+      await user.click(screen.getByRole('tab', { name: 'Tab 2' }))
+
+      // Tab 1 should still be active because parent didn't update activeTab
+      const tab1 = screen.getByRole('tab', { name: 'Tab 1' })
+      expect(tab1).toHaveAttribute('data-state', 'active')
+      expect(screen.getByText('Content 1')).toBeVisible()
+    })
+
+    it('updates when activeTab prop changes', () => {
+      const { rerender } = render(<TabView tabs={multipleTabs} activeTab="tab1" />)
+
+      // Initially tab 1 is active
+      expect(screen.getByText('Content 1')).toBeVisible()
+
+      // Change activeTab prop
+      rerender(<TabView tabs={multipleTabs} activeTab="tab3" />)
+
+      // Tab 3 should now be active
+      expect(screen.getByText('Content 3')).toBeVisible()
+    })
+
+    it('works with uncontrolled defaultActiveTab', () => {
+      const { rerender } = render(<TabView tabs={multipleTabs} defaultActiveTab="tab2" />)
+
+      // Tab 2 should be active initially
+      const tab2 = screen.getByRole('tab', { name: 'Tab 2' })
+      expect(tab2).toHaveAttribute('data-state', 'active')
+      expect(screen.getByText('Content 2')).toBeVisible()
+
+      // Changing to controlled mode should work
+      rerender(<TabView tabs={multipleTabs} activeTab="tab3" />)
+      expect(screen.getByText('Content 3')).toBeVisible()
+    })
+  })
 })

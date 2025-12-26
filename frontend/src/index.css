@@ -3,6 +3,15 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Nerd Font for terminal */
+@font-face {
+  font-family: 'Inconsolata Nerd Font';
+  src: url('/fonts/InconsolataNerdFontMono-Regular.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
     /* Catppuccin Latte - Light Mode */
     --background: #eff1f5; /* base */

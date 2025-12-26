@@ -5,10 +5,22 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { TerminalDialog } from './TerminalDialog'
 
 // Mock the API
+interface MockSession {
+  id: string
+  name: string
+  workingDirectory: string
+  lastActivity: string
+  taskId?: string
+}
+
+const { mockListSessions } = vi.hoisted(() => ({
+  mockListSessions: vi.fn<() => Promise<MockSession[]>>(() => Promise.resolve([])),
+}))
+
 vi.mock('@/lib/api', () => ({
   api: {
     terminal: {
-      listSessions: vi.fn(() => Promise.resolve([])),
+      listSessions: mockListSessions,
     },
   },
 }))
@@ -37,6 +49,20 @@ vi.mock('./Terminal', () => ({
   },
 }))
 
+// Mock the terminal store
+const mockIsPinned = vi.fn<(id: string) => boolean>(() => false)
+const mockTogglePin = vi.fn()
+const mockUnpinSession = vi.fn()
+
+vi.mock('@/stores/terminalStore', () => ({
+  useTerminalStore: () => ({
+    isPinned: mockIsPinned,
+    togglePin: mockTogglePin,
+    unpinSession: mockUnpinSession,
+    pinnedSessions: new Set(),
+  }),
+}))
+
 // Helper to render with QueryClient
 function renderWithQueryClient(ui: React.ReactElement) {
   const queryClient = new QueryClient({
@@ -55,6 +81,8 @@ describe('TerminalDialog', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    // Reset to empty sessions by default
+    mockListSessions.mockResolvedValue([])
   })
 
   describe('rendering', () => {
@@ -252,6 +280,124 @@ describe('TerminalDialog', () => {
       await waitFor(() => {
         const dialog = screen.getByRole('dialog')
         expect(dialog).toHaveClass('flex', 'flex-col')
+      })
+    })
+  })
+
+  describe('pinned session behavior', () => {
+    beforeEach(() => {
+      // Mock sessions data for these tests
+      mockListSessions.mockResolvedValue([
+        {
+          id: 'session1',
+          name: 'Session 1',
+          workingDirectory: '/home/user',
+          lastActivity: new Date().toISOString(),
+        },
+        {
+          id: 'session2',
+          name: 'Session 2',
+          workingDirectory: '/home/user/project',
+          lastActivity: new Date().toISOString(),
+        },
+      ])
+    })
+
+    it('calls onSwitchToTab when clicking a pinned session', async () => {
+      const user = userEvent.setup()
+      const onSwitchToTab = vi.fn()
+
+      // Mock isPinned to return true for session1
+      mockIsPinned.mockImplementation((id) => id === 'session1')
+
+      renderWithQueryClient(
+        <TerminalDialog open={true} onOpenChange={mockOnOpenChange} onSwitchToTab={onSwitchToTab} />
+      )
+
+      await waitFor(() => {
+        expect(screen.getByText('Active Sessions')).toBeInTheDocument()
+      })
+
+      // Click on the pinned session - find the main session button (not the pin/unpin button)
+      const sessionButtons = screen.getAllByRole('button')
+      const session1Button = sessionButtons.find(btn =>
+        btn.textContent?.includes('Session 1') &&
+        btn.textContent?.includes('/home/user')
+      )
+      await user.click(session1Button!)
+
+      // Should call onSwitchToTab with the session ID
+      expect(onSwitchToTab).toHaveBeenCalledWith('session1')
+    })
+
+    it('does not call onSwitchToTab when clicking a non-pinned session', async () => {
+      const user = userEvent.setup()
+      const onSwitchToTab = vi.fn()
+
+      // Mock isPinned to return false for all sessions
+      mockIsPinned.mockReturnValue(false)
+
+      renderWithQueryClient(
+        <TerminalDialog open={true} onOpenChange={mockOnOpenChange} onSwitchToTab={onSwitchToTab} />
+      )
+
+      await waitFor(() => {
+        expect(screen.getByText('Active Sessions')).toBeInTheDocument()
+      })
+
+      // Click on the non-pinned session - find the main session button (not the pin/unpin button)
+      const sessionButtons = screen.getAllByRole('button')
+      const session1Button = sessionButtons.find(btn =>
+        btn.textContent?.includes('Session 1') &&
+        btn.textContent?.includes('/home/user')
+      )
+      await user.click(session1Button!)
+
+      // Should not call onSwitchToTab
+      expect(onSwitchToTab).not.toHaveBeenCalled()
+
+      // Should show the terminal instead
+      await waitFor(() => {
+        expect(screen.getByText('Interactive terminal session with real-time command execution')).toBeInTheDocument()
+      })
+    })
+
+    it('does not call onSwitchToTab when onSwitchToTab is not provided', async () => {
+      const user = userEvent.setup()
+
+      // Mock isPinned to return true for session1
+      mockIsPinned.mockImplementation((id) => id === 'session1')
+
+      renderWithQueryClient(
+        <TerminalDialog open={true} onOpenChange={mockOnOpenChange} />
+      )
+
+      await waitFor(() => {
+        expect(screen.getByText('Active Sessions')).toBeInTheDocument()
+      })
+
+      // Click on the pinned session - find the main session button (not the pin/unpin button)
+      const sessionButtons = screen.getAllByRole('button')
+      const session1Button = sessionButtons.find(btn =>
+        btn.textContent?.includes('Session 1') &&
+        btn.textContent?.includes('/home/user')
+      )
+      await user.click(session1Button!)
+
+      // Should show the terminal (fallback behavior)
+      await waitFor(() => {
+        expect(screen.getByText('Interactive terminal session with real-time command execution')).toBeInTheDocument()
+      })
+    })
+
+    it('shows Pinned badge for pinned sessions', async () => {
+      // Mock isPinned to return true for session1
+      mockIsPinned.mockImplementation((id) => id === 'session1')
+
+      renderWithQueryClient(<TerminalDialog open={true} onOpenChange={mockOnOpenChange} />)
+
+      await waitFor(() => {
+        expect(screen.getByText('Pinned')).toBeInTheDocument()
       })
     })
   })

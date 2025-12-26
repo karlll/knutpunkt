@@ -12,19 +12,26 @@ export interface Tab {
 
 export interface TabViewProps {
   tabs: Tab[]
+  activeTab?: string // For controlled mode
   defaultActiveTab?: string
   onTabChange?: (tabId: string) => void
   onTabClose?: (tabId: string) => void
 }
 
-export function TabView({ tabs, defaultActiveTab, onTabChange, onTabClose }: TabViewProps) {
+export function TabView({ tabs, activeTab: controlledActiveTab, defaultActiveTab, onTabChange, onTabClose }: TabViewProps) {
   const firstTabId = tabs[0]?.id
-  const [activeTab, setActiveTab] = useState(defaultActiveTab || firstTabId)
+  const [internalActiveTab, setInternalActiveTab] = useState(defaultActiveTab || firstTabId)
+
+  // Use controlled value if provided, otherwise use internal state
+  const activeTab = controlledActiveTab ?? internalActiveTab
 
   const showTabBar = tabs.length > 1
 
   const handleTabChange = (tabId: string) => {
-    setActiveTab(tabId)
+    // Update internal state if not controlled
+    if (controlledActiveTab === undefined) {
+      setInternalActiveTab(tabId)
+    }
     onTabChange?.(tabId)
   }
 
@@ -36,7 +43,12 @@ export function TabView({ tabs, defaultActiveTab, onTabChange, onTabClose }: Tab
       const currentIndex = tabs.findIndex((tab) => tab.id === tabId)
       const nextTab = tabs[currentIndex + 1] || tabs[currentIndex - 1]
       if (nextTab) {
-        setActiveTab(nextTab.id)
+        // Update internal state if not controlled
+        if (controlledActiveTab === undefined) {
+          setInternalActiveTab(nextTab.id)
+        }
+        // Always call the callback so parent can update controlled state
+        onTabChange?.(nextTab.id)
       }
     }
 
