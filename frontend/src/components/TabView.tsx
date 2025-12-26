@@ -54,7 +54,7 @@ export function TabView({ tabs, defaultActiveTab, onTabChange, onTabClose }: Tab
 
   // Single tab - render directly without tab bar
   if (!showTabBar) {
-    return <div className="flex-1 flex flex-col h-screen">{tabs[0].content}</div>
+    return <div className="flex-1 flex flex-col overflow-hidden">{tabs[0].content}</div>
   }
 
   // Multiple tabs - render with tab bar
@@ -62,7 +62,7 @@ export function TabView({ tabs, defaultActiveTab, onTabChange, onTabClose }: Tab
     <Tabs
       value={validActiveTab}
       onValueChange={handleTabChange}
-      className="flex-1 flex flex-col h-screen"
+      className="flex-1 flex flex-col overflow-hidden"
     >
       <TabsList className="w-full rounded-none border-b bg-background h-12 justify-start px-4">
         {tabs.map((tab) => (
@@ -91,7 +91,7 @@ export function TabView({ tabs, defaultActiveTab, onTabChange, onTabClose }: Tab
         <TabsContent
           key={tab.id}
           value={tab.id}
-          className="flex-1 mt-0 data-[state=inactive]:hidden"
+          className="flex-1 flex flex-col mt-0 data-[state=inactive]:hidden overflow-hidden"
           forceMount
         >
           {tab.content}

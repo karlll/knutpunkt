@@ -169,14 +169,14 @@ describe('TabView', () => {
       const { container } = render(<TabView tabs={singleTab} />)
 
       const wrapper = container.firstChild as HTMLElement
-      expect(wrapper).toHaveClass('flex-1', 'flex', 'flex-col', 'h-screen')
+      expect(wrapper).toHaveClass('flex-1', 'flex', 'flex-col', 'overflow-hidden')
     })
 
     it('applies correct classes for multiple tabs layout', () => {
       const { container } = render(<TabView tabs={multipleTabs} />)
 
       const wrapper = container.firstChild as HTMLElement
-      expect(wrapper).toHaveClass('flex-1', 'flex', 'flex-col', 'h-screen')
+      expect(wrapper).toHaveClass('flex-1', 'flex', 'flex-col', 'overflow-hidden')
     })
   })
 

@@ -13,8 +13,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { KanbanColumn } from './KanbanColumn'
 import { TaskCard } from './TaskCard'
 import { TaskDialog } from './TaskDialog'
-import { TerminalDialog } from '@/components/terminal/TerminalDialog'
-import { Header } from '@/components/Header'
 import { api, type Task, type TaskStatus } from '@/lib/api'
 import { applyDragResult, type DragPosition } from './dndLogic'
 import { useSettings } from '@/hooks/useSettings'
@@ -74,36 +72,26 @@ function getPositionFromEvent(
   }
 }
 
-export function KanbanBoard() {
+interface KanbanBoardProps {
+  createDialogOpen?: boolean
+  onCreateDialogChange?: (open: boolean) => void
+}
+
+export function KanbanBoard({ createDialogOpen = false, onCreateDialogChange }: KanbanBoardProps) {
   const [activeTask, setActiveTask] = useState<Task | null>(null)
   const [originalTask, setOriginalTask] = useState<Task | null>(null)
-  const [createDialogOpen, setCreateDialogOpen] = useState(false)
-  const [terminalDialogOpen, setTerminalDialogOpen] = useState(false)
   const queryClient = useQueryClient()
   const [settings] = useSettings()
 
   // Access trackMutation for deduplication
   const { trackMutation } = useTaskEvents()
 
-  // Fetch backend settings to check if terminal is enabled
-  const { data: backendSettings } = useQuery({
-    queryKey: ['backendSettings'],
-    queryFn: () => api.settings.get(),
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-    retry: false, // Don't retry on failure
-  })
-
-  // Check if terminal is enabled
-  const terminalEnabled =
-    backendSettings?.settings.find((s) => s.key === 'terminal.enabled')?.value === 'true'
-
   // Keyboard shortcuts
   useKeyboardShortcuts(
     {
-      n: () => setCreateDialogOpen(true),
-      ...(terminalEnabled && { '`': () => setTerminalDialogOpen((prev) => !prev) }),
+      n: () => onCreateDialogChange?.(true),
     },
-    { enabled: !createDialogOpen && !terminalDialogOpen }
+    { enabled: !createDialogOpen }
   )
 
   // Fetch all tasks
@@ -243,18 +231,13 @@ export function KanbanBoard() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div className="flex items-center justify-center flex-1">
         <div className="text-lg text-muted-foreground">Loading tasks...</div>
       </div>
     )
   }
   return (
-    <div className="h-screen flex flex-col">
-      <Header
-        onCreateTask={() => setCreateDialogOpen(true)}
-        onOpenTerminal={() => setTerminalDialogOpen(true)}
-        terminalEnabled={terminalEnabled}
-      />
+    <div className="flex-1 flex flex-col overflow-hidden">
       <main className="flex-1 overflow-hidden p-6">
         <DndContext
           collisionDetection={closestCorners}
@@ -283,11 +266,8 @@ export function KanbanBoard() {
       <TaskDialog
         mode="create"
         open={createDialogOpen}
-        onOpenChange={setCreateDialogOpen}
+        onOpenChange={onCreateDialogChange || (() => {})}
       />
-
-      {/* Terminal dialog */}
-      <TerminalDialog open={terminalDialogOpen} onOpenChange={setTerminalDialogOpen} />
     </div>
   )
 }

@@ -113,7 +113,7 @@ describe('KanbanBoard', () => {
       const { container } = renderWithQueryClient(<KanbanBoard />)
       const loadingContainer = container.querySelector('.flex.items-center.justify-center')
       expect(loadingContainer).toBeInTheDocument()
-      expect(loadingContainer).toHaveClass('h-screen')
+      expect(loadingContainer).toHaveClass('flex-1')
     })
   })
 
@@ -170,11 +170,11 @@ describe('KanbanBoard', () => {
       vi.mocked(api.tasks.list).mockResolvedValue(mockTasks)
     })
 
-    it('has full screen height', async () => {
+    it('uses flex layout to fill available space', async () => {
       const { container } = renderWithQueryClient(<KanbanBoard />)
 
       await waitFor(() => {
-        const board = container.querySelector('.h-screen')
+        const board = container.querySelector('.flex-1.flex.flex-col')
         expect(board).toBeInTheDocument()
       })
     })
@@ -317,8 +317,8 @@ describe('KanbanBoard', () => {
       const { container } = renderWithQueryClient(<KanbanBoard />)
 
       await waitFor(() => {
-        // Should have main wrapper
-        expect(container.querySelector('.h-screen.flex.flex-col')).toBeInTheDocument()
+        // Should have main wrapper with flex-1
+        expect(container.querySelector('.flex-1.flex.flex-col')).toBeInTheDocument()
         // Should have main section
         expect(container.querySelector('main')).toBeInTheDocument()
         // Should have three columns
@@ -335,27 +335,24 @@ describe('KanbanBoard', () => {
 
     it('opens create task dialog when pressing "n" key', async () => {
       const user = userEvent.setup()
-      renderWithQueryClient(<KanbanBoard />)
+      const onCreateDialogChange = vi.fn()
+      renderWithQueryClient(<KanbanBoard onCreateDialogChange={onCreateDialogChange} />)
 
       await waitFor(() => {
         expect(screen.getByText('Planned')).toBeInTheDocument()
       })
 
-      // Dialog should not be visible initially
-      expect(screen.queryByText('Create New Task')).not.toBeInTheDocument()
-
       // Press 'n' key
       await user.keyboard('n')
 
-      // Dialog should now be visible
-      await waitFor(() => {
-        expect(screen.getByText('Create New Task')).toBeInTheDocument()
-      })
+      // onCreateDialogChange should be called with true
+      expect(onCreateDialogChange).toHaveBeenCalledWith(true)
     })
 
     it('opens create task dialog when pressing "N" (uppercase)', async () => {
       const user = userEvent.setup()
-      renderWithQueryClient(<KanbanBoard />)
+      const onCreateDialogChange = vi.fn()
+      renderWithQueryClient(<KanbanBoard onCreateDialogChange={onCreateDialogChange} />)
 
       await waitFor(() => {
         expect(screen.getByText('Planned')).toBeInTheDocument()
@@ -364,48 +361,40 @@ describe('KanbanBoard', () => {
       // Press 'N' key (uppercase)
       await user.keyboard('N')
 
-      // Dialog should be visible
-      await waitFor(() => {
-        expect(screen.getByText('Create New Task')).toBeInTheDocument()
-      })
+      // onCreateDialogChange should be called with true
+      expect(onCreateDialogChange).toHaveBeenCalledWith(true)
     })
 
     it('does not open dialog when "n" is pressed while dialog is already open', async () => {
       const user = userEvent.setup()
-      renderWithQueryClient(<KanbanBoard />)
+      const onCreateDialogChange = vi.fn()
+      renderWithQueryClient(<KanbanBoard createDialogOpen={true} onCreateDialogChange={onCreateDialogChange} />)
 
       await waitFor(() => {
         expect(screen.getByText('Planned')).toBeInTheDocument()
       })
-
-      // Open dialog with first 'n' press
-      await user.keyboard('n')
 
       await waitFor(() => {
         expect(screen.getByText('Create New Task')).toBeInTheDocument()
       })
 
-      // Get the dialog count
-      const dialogsBefore = screen.getAllByRole('dialog')
-
-      // Press 'n' again while dialog is open
+      // Press 'n' while dialog is already open
       await user.keyboard('n')
 
-      // Should still have the same number of dialogs
-      const dialogsAfter = screen.getAllByRole('dialog')
-      expect(dialogsAfter).toHaveLength(dialogsBefore.length)
+      // onCreateDialogChange should not be called because shortcuts are disabled when dialog is open
+      expect(onCreateDialogChange).not.toHaveBeenCalled()
     })
 
     it('does not trigger shortcut when typing in an input field', async () => {
       const user = userEvent.setup()
-      renderWithQueryClient(<KanbanBoard />)
+      const onCreateDialogChange = vi.fn()
+      renderWithQueryClient(
+        <KanbanBoard createDialogOpen={true} onCreateDialogChange={onCreateDialogChange} />
+      )
 
       await waitFor(() => {
         expect(screen.getByText('Planned')).toBeInTheDocument()
       })
-
-      // Open the create dialog
-      await user.keyboard('n')
 
       await waitFor(() => {
         expect(screen.getByText('Create New Task')).toBeInTheDocument()
@@ -419,11 +408,15 @@ describe('KanbanBoard', () => {
 
       // The text should be in the input (shortcut didn't interfere)
       expect(titleInput).toHaveValue('new task')
+
+      // onCreateDialogChange should not be called because we're typing in an input
+      expect(onCreateDialogChange).not.toHaveBeenCalled()
     })
 
     it('does not trigger shortcut with modifier keys', async () => {
       const user = userEvent.setup()
-      renderWithQueryClient(<KanbanBoard />)
+      const onCreateDialogChange = vi.fn()
+      renderWithQueryClient(<KanbanBoard onCreateDialogChange={onCreateDialogChange} />)
 
       await waitFor(() => {
         expect(screen.getByText('Planned')).toBeInTheDocument()
@@ -432,8 +425,8 @@ describe('KanbanBoard', () => {
       // Press Ctrl+N (should not trigger)
       await user.keyboard('{Control>}n{/Control}')
 
-      // Dialog should not be visible
-      expect(screen.queryByText('Create New Task')).not.toBeInTheDocument()
+      // onCreateDialogChange should not be called with modifier keys
+      expect(onCreateDialogChange).not.toHaveBeenCalled()
     })
   })
 })
