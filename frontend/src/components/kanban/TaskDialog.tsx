@@ -86,6 +86,7 @@ export function TaskDialog({ mode, task, open, onOpenChange, readOnly = false }:
 
   // State for confirmation dialog
   const [showConfirmClose, setShowConfirmClose] = useState(false)
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false)
 
   // Initialize form data based on mode
   const getInitialFormData = () => {
@@ -116,6 +117,7 @@ export function TaskDialog({ mode, task, open, onOpenChange, readOnly = false }:
       setNewAssignee('')
       setNewCategory('')
       setShowConfirmClose(false)
+      setShowConfirmDelete(false)
     }
   }, [open, mode, task?.id])
 
@@ -229,6 +231,26 @@ export function TaskDialog({ mode, task, open, onOpenChange, readOnly = false }:
     },
   })
 
+  const deleteTaskMutation = useMutation({
+    mutationFn: (id: string) => {
+      return api.tasks.delete(id)
+    },
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: ['tasks'] })
+      const previousTasks = queryClient.getQueryData<Task[]>(['tasks'])
+      return { previousTasks }
+    },
+    onError: (_err, _variables, context) => {
+      if (context?.previousTasks) {
+        queryClient.setQueryData(['tasks'], context.previousTasks)
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] })
+      onOpenChange(false)
+    },
+  })
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (mode === 'create') {
@@ -238,6 +260,12 @@ export function TaskDialog({ mode, task, open, onOpenChange, readOnly = false }:
         id: task.id,
         updates: formData,
       })
+    }
+  }
+
+  const handleDelete = () => {
+    if (task) {
+      deleteTaskMutation.mutate(task.id)
     }
   }
 
@@ -472,7 +500,7 @@ export function TaskDialog({ mode, task, open, onOpenChange, readOnly = false }:
             </CollapsibleContent>
           </Collapsible>
 
-          <DialogFooter>
+          <DialogFooter className="flex justify-between">
             {readOnly ? (
               <Button
                 type="button"
@@ -482,16 +510,32 @@ export function TaskDialog({ mode, task, open, onOpenChange, readOnly = false }:
               </Button>
             ) : (
               <>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleCloseAttempt}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={isPending}>
-                  {isPending ? pendingButtonText : submitButtonText}
-                </Button>
+                {/* Left side: Delete button (only in edit mode) */}
+                {mode === 'edit' && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowConfirmDelete(true)}
+                    disabled={deleteTaskMutation.isPending}
+                    className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                  >
+                    Delete
+                  </Button>
+                )}
+
+                {/* Right side: Cancel and Save buttons */}
+                <div className="flex gap-2 ml-auto">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleCloseAttempt}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={isPending}>
+                    {isPending ? pendingButtonText : submitButtonText}
+                  </Button>
+                </div>
               </>
             )}
           </DialogFooter>
@@ -512,6 +556,30 @@ export function TaskDialog({ mode, task, open, onOpenChange, readOnly = false }:
           <AlertDialogCancel>Cancel</AlertDialogCancel>
           <AlertDialogAction onClick={handleConfirmClose}>
             Close Anyway
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+
+    {/* Confirmation dialog for task deletion */}
+    <AlertDialog open={showConfirmDelete} onOpenChange={setShowConfirmDelete}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete Task</AlertDialogTitle>
+          <AlertDialogDescription>
+            Are you sure you want to delete "{task?.title}"? This action cannot be undone.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={deleteTaskMutation.isPending}>
+            Cancel
+          </AlertDialogCancel>
+          <AlertDialogAction
+            onClick={handleDelete}
+            disabled={deleteTaskMutation.isPending}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
+            {deleteTaskMutation.isPending ? 'Deleting...' : 'Delete'}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
