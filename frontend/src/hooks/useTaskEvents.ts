@@ -117,6 +117,16 @@ export function useTaskEvents(options: UseTaskEventsOptions = {}) {
       }
     })
 
+    // Handle heartbeat events (for keepalive - no action needed)
+    eventSource.addEventListener('heartbeat', () => {
+      console.debug('[SSE] Heartbeat received')
+    })
+
+    // Handle ping event (connection established)
+    eventSource.addEventListener('ping', () => {
+      console.log('[SSE] Ping received - connection active')
+    })
+
     eventSource.onerror = (error) => {
       console.error('[SSE] Connection error:', error)
       eventSource.close()

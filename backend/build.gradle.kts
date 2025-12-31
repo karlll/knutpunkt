@@ -16,7 +16,7 @@ repositories {
     mavenCentral()
 }
 
-val ktorVersion = "3.0.3"
+val ktorVersion = "3.1.0"
 val kotlinxSerializationVersion = "1.6.2"
 val kamlVersion = "0.55.0"
 val commonmarkVersion = "0.21.0"

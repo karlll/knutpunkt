@@ -17,8 +17,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 
 fun Application.configureRouting(taskService: TaskService, eventServices: EventServices, tasksDirectory: String) {
-    // Read terminal configuration
+    // Read configuration
     val config = HoconApplicationConfig(ConfigFactory.load())
+
+    // Terminal configuration
     val terminalEnabled = config.propertyOrNull("knutpunkt.terminal.enabled")
         ?.getString()?.toBoolean() ?: false
     val idleTimeoutMinutes = config.propertyOrNull("knutpunkt.terminal.idleTimeoutMinutes")
@@ -26,13 +28,17 @@ fun Application.configureRouting(taskService: TaskService, eventServices: EventS
     val outputBufferSize = config.propertyOrNull("knutpunkt.terminal.outputBufferSize")
         ?.getString()?.toIntOrNull() ?: 100
 
+    // SSE configuration
+    val keepaliveIntervalSeconds = config.propertyOrNull("knutpunkt.sse.keepaliveIntervalSeconds")
+        ?.getString()?.toLongOrNull() ?: 15L
+
     // Create settings service
     val settingsService = SettingsService()
 
     routing {
         route("/api/v1") {
             taskRoutes(taskService)
-            eventRoutes(eventServices.taskEventService, eventServices.fileEventService)
+            eventRoutes(eventServices.taskEventService, eventServices.fileEventService, keepaliveIntervalSeconds)
             settingsRoutes(settingsService)
             versionRoutes()
 
