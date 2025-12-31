@@ -307,7 +307,7 @@ class TaskService(
                 logger.warn("Task update failed: task id={} not found", id)
             }
         
-        val (oldFrontMatter, _) = MarkdownParser.parseTaskFile(oldFile)
+        val (oldFrontMatter, oldDescription) = MarkdownParser.parseTaskFile(oldFile)
         val newStatus = taskUpdate.status ?: currentStatus
         val now = Instant.now().toString()
         
@@ -372,12 +372,16 @@ class TaskService(
         // Calculate what changed
         val changes = com.ninjacontrol.knutpunkt.models.TaskChanges(
             titleChanged = titleChanged,
-            descriptionChanged = true, // We don't track old description, assume changed
+            descriptionChanged = taskUpdate.description != oldDescription,
             statusChanged = statusChanged,
-            priorityChanged = taskUpdate.priority != null,
-            assigneesChanged = taskUpdate.assignees != null,
-            categoriesChanged = taskUpdate.categories != null,
-            orderChanged = taskUpdate.order != null
+            priorityChanged = taskUpdate.priority != null &&
+                             taskUpdate.priority.toString().lowercase() != oldFrontMatter.priority,
+            assigneesChanged = taskUpdate.assignees != null &&
+                              taskUpdate.assignees != oldFrontMatter.assignees,
+            categoriesChanged = taskUpdate.categories != null &&
+                               taskUpdate.categories != oldFrontMatter.categories,
+            orderChanged = taskUpdate.order != null &&
+                          taskUpdate.order != oldFrontMatter.order
         )
         
         // Emit event AFTER successful update

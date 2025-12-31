@@ -359,4 +359,185 @@ class TaskServiceEventTest {
         assertEquals(TaskStatus.DONE, (mockEventEmitter.events[3] as TaskEvent.TaskUpdated).task.status)
         assertEquals(TaskStatus.DONE, (mockEventEmitter.events[4] as TaskEvent.TaskDeleted).task.status)
     }
+
+    @Test
+    fun `updateTask change detection - only description changed`() = runBlocking {
+        // Create a task
+        val taskCreate = TaskCreate(
+            title = "Test Task",
+            description = "Original Description",
+            status = TaskStatus.PLANNED,
+            priority = TaskPriority.MEDIUM,
+            assignees = listOf("alice"),
+            categories = listOf("feature")
+        )
+
+        val createdTask = taskService.createTask(taskCreate)
+        delay(100)
+        mockEventEmitter.clear()
+
+        // Update only description
+        val taskUpdate = TaskUpdate(
+            title = "Test Task",  // Same
+            description = "Updated Description",  // Changed
+            status = TaskStatus.PLANNED,  // Same
+            priority = TaskPriority.MEDIUM,  // Same
+            assignees = listOf("alice"),  // Same
+            categories = listOf("feature")  // Same
+        )
+
+        taskService.updateTask(createdTask.id, taskUpdate)
+        delay(100)
+
+        val event = mockEventEmitter.events[0] as TaskEvent.TaskUpdated
+        assertTrue(event.changes.descriptionChanged, "Description should be marked as changed")
+        assertTrue(!event.changes.titleChanged, "Title should NOT be marked as changed")
+        assertTrue(!event.changes.statusChanged, "Status should NOT be marked as changed")
+        assertTrue(!event.changes.priorityChanged, "Priority should NOT be marked as changed")
+        assertTrue(!event.changes.assigneesChanged, "Assignees should NOT be marked as changed")
+        assertTrue(!event.changes.categoriesChanged, "Categories should NOT be marked as changed")
+    }
+
+    @Test
+    fun `updateTask change detection - multiple fields changed`() = runBlocking {
+        // Create a task
+        val taskCreate = TaskCreate(
+            title = "Original Title",
+            description = "Original Description",
+            status = TaskStatus.PLANNED,
+            priority = TaskPriority.LOW,
+            assignees = listOf("alice"),
+            categories = listOf("feature")
+        )
+
+        val createdTask = taskService.createTask(taskCreate)
+        delay(100)
+        mockEventEmitter.clear()
+
+        // Update multiple fields
+        val taskUpdate = TaskUpdate(
+            title = "Updated Title",  // Changed
+            description = "Updated Description",  // Changed
+            status = TaskStatus.ONGOING,  // Changed
+            priority = TaskPriority.HIGH,  // Changed
+            assignees = listOf("alice", "bob"),  // Changed
+            categories = listOf("feature", "bug")  // Changed
+        )
+
+        taskService.updateTask(createdTask.id, taskUpdate)
+        delay(100)
+
+        val event = mockEventEmitter.events[0] as TaskEvent.TaskUpdated
+        assertTrue(event.changes.titleChanged, "Title should be marked as changed")
+        assertTrue(event.changes.descriptionChanged, "Description should be marked as changed")
+        assertTrue(event.changes.statusChanged, "Status should be marked as changed")
+        assertTrue(event.changes.priorityChanged, "Priority should be marked as changed")
+        assertTrue(event.changes.assigneesChanged, "Assignees should be marked as changed")
+        assertTrue(event.changes.categoriesChanged, "Categories should be marked as changed")
+    }
+
+    @Test
+    fun `updateTask change detection - no fields changed`() = runBlocking {
+        // Create a task
+        val taskCreate = TaskCreate(
+            title = "Test Task",
+            description = "Test Description",
+            status = TaskStatus.PLANNED,
+            priority = TaskPriority.MEDIUM,
+            assignees = listOf("alice"),
+            categories = listOf("feature")
+        )
+
+        val createdTask = taskService.createTask(taskCreate)
+        delay(100)
+        mockEventEmitter.clear()
+
+        // Update with same values
+        val taskUpdate = TaskUpdate(
+            title = "Test Task",  // Same
+            description = "Test Description",  // Same
+            status = TaskStatus.PLANNED,  // Same
+            priority = TaskPriority.MEDIUM,  // Same
+            assignees = listOf("alice"),  // Same
+            categories = listOf("feature")  // Same
+        )
+
+        taskService.updateTask(createdTask.id, taskUpdate)
+        delay(100)
+
+        val event = mockEventEmitter.events[0] as TaskEvent.TaskUpdated
+        assertTrue(!event.changes.titleChanged, "Title should NOT be marked as changed")
+        assertTrue(!event.changes.descriptionChanged, "Description should NOT be marked as changed")
+        assertTrue(!event.changes.statusChanged, "Status should NOT be marked as changed")
+        assertTrue(!event.changes.priorityChanged, "Priority should NOT be marked as changed")
+        assertTrue(!event.changes.assigneesChanged, "Assignees should NOT be marked as changed")
+        assertTrue(!event.changes.categoriesChanged, "Categories should NOT be marked as changed")
+    }
+
+    @Test
+    fun `updateTask change detection - priority changed from null default`() = runBlocking {
+        // Create a task without explicit priority (defaults to MEDIUM)
+        val taskCreate = TaskCreate(
+            title = "Test Task",
+            description = "Test Description",
+            status = TaskStatus.PLANNED,
+            priority = null,  // Defaults to MEDIUM
+            assignees = listOf(),
+            categories = listOf()
+        )
+
+        val createdTask = taskService.createTask(taskCreate)
+        delay(100)
+        mockEventEmitter.clear()
+
+        // Update with explicit priority HIGH
+        val taskUpdate = TaskUpdate(
+            title = "Test Task",
+            description = "Test Description",
+            status = TaskStatus.PLANNED,
+            priority = TaskPriority.HIGH,  // Changed from default MEDIUM
+            assignees = listOf(),
+            categories = listOf()
+        )
+
+        taskService.updateTask(createdTask.id, taskUpdate)
+        delay(100)
+
+        val event = mockEventEmitter.events[0] as TaskEvent.TaskUpdated
+        assertTrue(event.changes.priorityChanged, "Priority should be marked as changed")
+    }
+
+    @Test
+    fun `updateTask change detection - empty lists vs null`() = runBlocking {
+        // Create a task with null assignees/categories (defaults to empty)
+        val taskCreate = TaskCreate(
+            title = "Test Task",
+            description = "Test Description",
+            status = TaskStatus.PLANNED,
+            priority = TaskPriority.MEDIUM,
+            assignees = null,  // Defaults to empty list
+            categories = null  // Defaults to empty list
+        )
+
+        val createdTask = taskService.createTask(taskCreate)
+        delay(100)
+        mockEventEmitter.clear()
+
+        // Update with explicit empty lists
+        val taskUpdate = TaskUpdate(
+            title = "Test Task",
+            description = "Test Description",
+            status = TaskStatus.PLANNED,
+            priority = TaskPriority.MEDIUM,
+            assignees = listOf(),  // Explicitly empty
+            categories = listOf()  // Explicitly empty
+        )
+
+        taskService.updateTask(createdTask.id, taskUpdate)
+        delay(100)
+
+        val event = mockEventEmitter.events[0] as TaskEvent.TaskUpdated
+        assertTrue(!event.changes.assigneesChanged, "Assignees should NOT be marked as changed (both empty)")
+        assertTrue(!event.changes.categoriesChanged, "Categories should NOT be marked as changed (both empty)")
+    }
 }
