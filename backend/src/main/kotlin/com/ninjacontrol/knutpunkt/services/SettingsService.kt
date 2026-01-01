@@ -39,9 +39,19 @@ class SettingsService {
                 key = "terminal.idleTimeoutMinutes",
                 value = config.propertyOrNull("knutpunkt.terminal.idleTimeoutMinutes")?.getString() ?: "30",
                 description = "Terminal idle timeout in minutes"
+            ),
+            Setting(
+                key = "terminal.outputBufferSize",
+                value = config.propertyOrNull("knutpunkt.terminal.outputBufferSize")?.getString() ?: "100",
+                description = "Terminal output buffer size"
+            ),
+            Setting(
+                key = "sse.keepaliveIntervalSeconds",
+                value = config.propertyOrNull("knutpunkt.sse.keepaliveIntervalSeconds")?.getString() ?: "15",
+                description = "SSE heartbeat interval in seconds"
             )
         )
-        
+
         return SettingsResponse(settings)
     }
 }

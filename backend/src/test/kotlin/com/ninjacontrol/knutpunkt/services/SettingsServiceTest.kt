@@ -24,6 +24,8 @@ class SettingsServiceTest {
         assertTrue(keys.contains("tasks.cacheEnabled"))
         assertTrue(keys.contains("terminal.enabled"))
         assertTrue(keys.contains("terminal.idleTimeoutMinutes"))
+        assertTrue(keys.contains("terminal.outputBufferSize"))
+        assertTrue(keys.contains("sse.keepaliveIntervalSeconds"))
     }
     
     @Test
@@ -54,11 +56,33 @@ class SettingsServiceTest {
     fun `getSettings includes descriptions`() {
         val service = SettingsService()
         val response = service.getSettings()
-        
+
         // All settings should have descriptions
         response.settings.forEach { setting ->
             assertNotNull(setting.description)
             assertTrue(setting.description!!.isNotEmpty())
         }
+    }
+
+    @Test
+    fun `getSettings returns SSE heartbeat interval default value`() {
+        val service = SettingsService()
+        val response = service.getSettings()
+
+        val sseSetting = response.settings.find { it.key == "sse.keepaliveIntervalSeconds" }
+        assertNotNull(sseSetting)
+        assertEquals("15", sseSetting.value)
+        assertEquals("SSE heartbeat interval in seconds", sseSetting.description)
+    }
+
+    @Test
+    fun `getSettings returns terminal output buffer default value`() {
+        val service = SettingsService()
+        val response = service.getSettings()
+
+        val bufferSetting = response.settings.find { it.key == "terminal.outputBufferSize" }
+        assertNotNull(bufferSetting)
+        assertEquals("100", bufferSetting.value)
+        assertEquals("Terminal output buffer size", bufferSetting.description)
     }
 }
