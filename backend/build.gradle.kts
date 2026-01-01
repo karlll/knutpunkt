@@ -49,7 +49,7 @@ dependencies {
     
     // Logging
     implementation("ch.qos.logback:logback-classic:$logbackVersion")
-    
+
     // HOCON configuration
     implementation("com.typesafe:config:1.4.3")
     

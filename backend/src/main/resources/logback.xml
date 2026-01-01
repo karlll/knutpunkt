@@ -5,13 +5,29 @@
         </encoder>
     </appender>
 
+    <!-- Filtered appender that suppresses SSE heartbeat race conditions -->
+    <appender name="STDOUT_FILTERED" class="ch.qos.logback.core.ConsoleAppender">
+        <!-- Custom filter to suppress ClosedWriteChannelException from SSE heartbeat -->
+        <!-- These are harmless race conditions when clients disconnect during heartbeat -->
+        <filter class="com.ninjacontrol.knutpunkt.logging.SseHeartbeatErrorFilter"/>
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
     <!-- Default root level is INFO -->
     <root level="${LOG_LEVEL:-INFO}">
         <appender-ref ref="STDOUT"/>
     </root>
-    
+
     <!-- Ktor framework logging -->
     <logger name="io.ktor" level="${KTOR_LOG_LEVEL:-INFO}"/>
+
+    <!-- Ktor Application logger with SSE heartbeat error filtering -->
+    <!-- Suppresses harmless race conditions when clients disconnect during heartbeat -->
+    <logger name="io.ktor.server.Application" level="${KTOR_LOG_LEVEL:-INFO}" additivity="false">
+        <appender-ref ref="STDOUT_FILTERED"/>
+    </logger>
     
     <!-- Application logging - DEBUG shows detailed task operations -->
     <logger name="com.ninjacontrol.knutpunkt" level="${APP_LOG_LEVEL:-DEBUG}"/>
