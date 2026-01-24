@@ -17,6 +17,11 @@ vi.mock('@/lib/api', () => ({
   },
 }))
 
+// Mock the WorkflowViewerPane component
+vi.mock('@/components/workflow/WorkflowViewerPane', () => ({
+  WorkflowViewerPane: () => <div data-testid="workflow-viewer-pane">Workflow Viewer</div>,
+}))
+
 const mockTasks: Task[] = [
   {
     id: '1',

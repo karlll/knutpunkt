@@ -18,6 +18,7 @@ import { applyDragResult, type DragPosition } from './dndLogic'
 import { useSettings } from '@/hooks/useSettings'
 import { useTaskEvents } from '@/contexts/TaskEventsContext'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
+import { WorkflowViewerPane } from '@/components/workflow/WorkflowViewerPane'
 
 const COLUMNS: { status: TaskStatus; title: string }[] = [
   { status: 'planned', title: 'Planned' },
@@ -246,15 +247,23 @@ export function KanbanBoard({ createDialogOpen = false, onCreateDialogChange }: 
           onDragEnd={handleDragEnd}
         >
           <div className="flex gap-6 h-full overflow-x-auto pb-4">
-            {COLUMNS.map((column) => (
-              <KanbanColumn
-                key={column.status}
-                status={column.status}
-                title={column.title}
-                tasks={tasksByStatus[column.status]}
-                maxVisibleTasks={column.status === 'done' ? settings.maxDoneTasksVisible : undefined}
-              />
-            ))}
+            {/* Kanban columns */}
+            <div className="flex gap-6 flex-shrink-0">
+              {COLUMNS.map((column) => (
+                <KanbanColumn
+                  key={column.status}
+                  status={column.status}
+                  title={column.title}
+                  tasks={tasksByStatus[column.status]}
+                  maxVisibleTasks={column.status === 'done' ? settings.maxDoneTasksVisible : undefined}
+                />
+              ))}
+            </div>
+
+            {/* Workflow Viewer Pane */}
+            <div className="flex-1 min-w-[400px]">
+              <WorkflowViewerPane />
+            </div>
           </div>
           <DragOverlay dropAnimation={dropAnimationConfig}>
             {activeTask ? <TaskCard task={activeTask} /> : null}
