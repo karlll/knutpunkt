@@ -2,10 +2,12 @@
 
 All notable changes to Knutpunkt will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.10.0] - 2026-01-24
 
 ### Added
 - **Integrated Terminal Emulation**
@@ -23,12 +25,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Integration with pinned terminal sessions
 - **Keyboard Shortcuts**
   - Press 'n' key to quickly create a new task
+- **Server-Sent Events Improvements**
+  - SSE keepalive heartbeat mechanism for connection stability
+  - Configurable SSE heartbeat interval in backend settings
+  - Configurable terminal buffer size in backend settings
+- **Logging Enhancements**
+  - Custom filter to suppress SSE heartbeat race condition errors
 
 ### Fixed
 - Terminal UTF-8 character corruption and PTY lifecycle management
 - Layout hierarchy for consistent vertical spacing
 - Terminal UI/UX improvements (scrolling, loading, session picker)
 - Delete button styling (outlined variant with red border)
+- TaskChanges detection to only report actually changed fields in events
+- Test warnings and stderr output in terminal tests
+- Storybook configuration with missing providers and API mocks
 
 ## [0.9.0] - 2025-12-20
 
@@ -60,5 +71,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - JAR manifest includes build metadata (version, timestamp, git commit)
 - Deployment: Single JAR with embedded static frontend
 
-[Unreleased]: https://github.com/karlll/knutpunkt/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/karlll/knutpunkt/compare/v0.10.0...HEAD
+[0.10.0]: https://github.com/karlll/knutpunkt/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/karlll/knutpunkt/releases/tag/v0.9.0
