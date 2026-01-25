@@ -1,5 +1,7 @@
 import { useState } from 'react'
-import { WorkflowBrowser, Workflow, useWorkflowDefinition } from '@dirigent/workflow-viewer'
+import { InstanceBrowser, InstanceMonitor } from '@dirigent/workflow-viewer'
+import { ArrowLeft } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import '@dirigent/workflow-viewer/dist/index.css'
 
 interface WorkflowViewerPaneProps {
@@ -7,35 +9,43 @@ interface WorkflowViewerPaneProps {
 }
 
 export function WorkflowViewerPane({ apiBaseUrl = 'http://127.0.0.1:8081' }: WorkflowViewerPaneProps) {
-  const [selectedWorkflow, setSelectedWorkflow] = useState<string | null>(null)
-
-  // Fetch selected workflow definition
-  const { yaml, loading } = useWorkflowDefinition(selectedWorkflow || '', apiBaseUrl)
+  const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(null)
 
   return (
     <div className="flex flex-col h-full border-l pl-6">
-      {/* Workflow Browser at top */}
-      <div className="mb-4">
-        <WorkflowBrowser
-          apiBaseUrl={apiBaseUrl}
-          selectedWorkflow={selectedWorkflow || undefined}
-          onSelect={(workflowName) => setSelectedWorkflow(workflowName)}
-          mode="dropdown"
-        />
-      </div>
-
-      {/* Workflow Viewer fills remaining space */}
-      <div className="flex-1 min-h-0" style={{ position: 'relative' }}>
-        {yaml ? (
-          <div style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
-            <Workflow yaml={yaml} direction="LR" colorMode="system" />
+      {selectedInstanceId ? (
+        // Detail View: Show InstanceMonitor with back button
+        <>
+          <div className="mb-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSelectedInstanceId(null)}
+              className="gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Instances
+            </Button>
           </div>
-        ) : (
-          <div className="flex items-center justify-center h-full text-muted-foreground">
-            {loading ? 'Loading workflow...' : selectedWorkflow ? 'Loading...' : 'Select a workflow to view'}
+          <div className="flex-1 min-h-0 overflow-auto">
+            <InstanceMonitor
+              instanceId={selectedInstanceId}
+              apiBaseUrl={apiBaseUrl}
+              direction="LR"
+            />
           </div>
-        )}
-      </div>
+        </>
+      ) : (
+        // List View: Show InstanceBrowser
+        <div className="flex-1 min-h-0 overflow-hidden">
+          <InstanceBrowser
+            apiBaseUrl={apiBaseUrl}
+            onSelect={(instanceId) => setSelectedInstanceId(instanceId)}
+            refreshInterval={5000}
+            showMetadata
+          />
+        </div>
+      )}
     </div>
   )
 }

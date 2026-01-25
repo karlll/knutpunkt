@@ -1,36 +1,33 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import { userEvent } from '@testing-library/user-event'
 import { WorkflowViewerPane } from './WorkflowViewerPane'
 
 // Mock the @dirigent/workflow-viewer module
 vi.mock('@dirigent/workflow-viewer', () => ({
-  WorkflowBrowser: ({ apiBaseUrl, selectedWorkflow, onSelect, mode }: any) => {
+  InstanceBrowser: ({ apiBaseUrl, onSelect, refreshInterval, showMetadata }: any) => {
     return (
-      <div data-testid="workflow-browser">
-        <div data-testid="workflow-browser-api-url">{apiBaseUrl}</div>
-        <div data-testid="workflow-browser-mode">{mode}</div>
+      <div data-testid="instance-browser">
+        <div data-testid="instance-browser-api-url">{apiBaseUrl}</div>
+        <div data-testid="instance-browser-refresh-interval">{refreshInterval}</div>
+        <div data-testid="instance-browser-show-metadata">{showMetadata ? 'true' : 'false'}</div>
         <button
-          onClick={() => onSelect && onSelect('test-workflow')}
-          data-testid="select-workflow-button"
+          onClick={() => onSelect && onSelect('test-instance-123')}
+          data-testid="select-instance-button"
         >
-          Select Workflow
+          Select Instance
         </button>
-        {selectedWorkflow && <div data-testid="selected-workflow">{selectedWorkflow}</div>}
       </div>
     )
   },
-  Workflow: ({ yaml, direction, colorMode }: any) => (
-    <div data-testid="workflow-viewer">
-      <div data-testid="workflow-yaml">{yaml}</div>
-      <div data-testid="workflow-direction">{direction}</div>
-      <div data-testid="workflow-color-mode">{colorMode}</div>
+  InstanceMonitor: ({ instanceId, apiBaseUrl, direction }: any) => (
+    <div data-testid="instance-monitor">
+      <div data-testid="instance-monitor-instance-id">{instanceId}</div>
+      <div data-testid="instance-monitor-api-url">{apiBaseUrl}</div>
+      <div data-testid="instance-monitor-direction">{direction}</div>
     </div>
   ),
-  useWorkflowDefinition: vi.fn(),
 }))
-
-import { useWorkflowDefinition } from '@dirigent/workflow-viewer'
 
 describe('WorkflowViewerPane', () => {
   beforeEach(() => {
@@ -38,121 +35,104 @@ describe('WorkflowViewerPane', () => {
   })
 
   it('renders without crashing', () => {
-    vi.mocked(useWorkflowDefinition).mockReturnValue({
-      yaml: null,
-      workflow: null,
-      loading: false,
-      error: null,
-    } as any)
-
     render(<WorkflowViewerPane />)
-    expect(screen.getByTestId('workflow-browser')).toBeInTheDocument()
+    expect(screen.getByTestId('instance-browser')).toBeInTheDocument()
   })
 
-  it('passes correct API URL to WorkflowBrowser', () => {
-    vi.mocked(useWorkflowDefinition).mockReturnValue({
-      yaml: null,
-      workflow: null,
-      loading: false,
-      error: null,
-    } as any)
-
+  it('passes correct API URL to InstanceBrowser', () => {
     render(<WorkflowViewerPane />)
-    expect(screen.getByTestId('workflow-browser-api-url')).toHaveTextContent('http://127.0.0.1:8081')
-  })
-
-  it('uses dropdown mode for WorkflowBrowser', () => {
-    vi.mocked(useWorkflowDefinition).mockReturnValue({
-      yaml: null,
-      workflow: null,
-      loading: false,
-      error: null,
-    } as any)
-
-    render(<WorkflowViewerPane />)
-    expect(screen.getByTestId('workflow-browser-mode')).toHaveTextContent('dropdown')
-  })
-
-  it('displays placeholder message when no workflow is selected', () => {
-    vi.mocked(useWorkflowDefinition).mockReturnValue({
-      yaml: null,
-      workflow: null,
-      loading: false,
-      error: null,
-    } as any)
-
-    render(<WorkflowViewerPane />)
-    expect(screen.getByText('Select a workflow to view')).toBeInTheDocument()
-  })
-
-  it('displays loading message when workflow is loading', () => {
-    vi.mocked(useWorkflowDefinition).mockReturnValue({
-      yaml: null,
-      workflow: null,
-      loading: true,
-      error: null,
-    } as any)
-
-    const { rerender } = render(<WorkflowViewerPane />)
-
-    // Select a workflow
-    const selectButton = screen.getByTestId('select-workflow-button')
-    userEvent.click(selectButton)
-
-    rerender(<WorkflowViewerPane />)
-
-    expect(screen.getByText('Loading workflow...')).toBeInTheDocument()
-  })
-
-  it('displays workflow viewer when workflow YAML is loaded', async () => {
-    const mockYaml = 'name: test-workflow\nversion: 1\nstart: first_step'
-
-    const useWorkflowDefinitionMock = vi.mocked(useWorkflowDefinition)
-    useWorkflowDefinitionMock.mockReturnValue({
-      yaml: mockYaml,
-      workflow: null,
-      loading: false,
-      error: null,
-    } as any)
-
-    render(<WorkflowViewerPane />)
-
-    await waitFor(() => {
-      expect(screen.getByTestId('workflow-viewer')).toBeInTheDocument()
-      const yamlElement = screen.getByTestId('workflow-yaml')
-      expect(yamlElement.textContent).toContain('name: test-workflow')
-      expect(yamlElement.textContent).toContain('version: 1')
-      expect(yamlElement.textContent).toContain('start: first_step')
-      expect(screen.getByTestId('workflow-direction')).toHaveTextContent('LR')
-      expect(screen.getByTestId('workflow-color-mode')).toHaveTextContent('system')
-    })
+    expect(screen.getByTestId('instance-browser-api-url')).toHaveTextContent('http://127.0.0.1:8081')
   })
 
   it('uses custom API base URL when provided', () => {
     const customApiUrl = 'http://custom-api:9000'
-
-    vi.mocked(useWorkflowDefinition).mockReturnValue({
-      yaml: null,
-      workflow: null,
-      loading: false,
-      error: null,
-    } as any)
-
     render(<WorkflowViewerPane apiBaseUrl={customApiUrl} />)
-
-    expect(screen.getByTestId('workflow-browser-api-url')).toHaveTextContent(customApiUrl)
+    expect(screen.getByTestId('instance-browser-api-url')).toHaveTextContent(customApiUrl)
   })
 
-  it('uses default API base URL when not provided', () => {
-    vi.mocked(useWorkflowDefinition).mockReturnValue({
-      yaml: null,
-      workflow: null,
-      loading: false,
-      error: null,
-    } as any)
+  it('configures 5 second refresh interval', () => {
+    render(<WorkflowViewerPane />)
+    expect(screen.getByTestId('instance-browser-refresh-interval')).toHaveTextContent('5000')
+  })
 
+  it('enables metadata display', () => {
+    render(<WorkflowViewerPane />)
+    expect(screen.getByTestId('instance-browser-show-metadata')).toHaveTextContent('true')
+  })
+
+  it('shows InstanceBrowser by default (list view)', () => {
+    render(<WorkflowViewerPane />)
+    expect(screen.getByTestId('instance-browser')).toBeInTheDocument()
+    expect(screen.queryByTestId('instance-monitor')).not.toBeInTheDocument()
+    expect(screen.queryByText('Back to Instances')).not.toBeInTheDocument()
+  })
+
+  it('switches to detail view when instance is selected', async () => {
+    const user = userEvent.setup()
     render(<WorkflowViewerPane />)
 
-    expect(screen.getByTestId('workflow-browser-api-url')).toHaveTextContent('http://127.0.0.1:8081')
+    // Click on instance
+    const selectButton = screen.getByTestId('select-instance-button')
+    await user.click(selectButton)
+
+    // Should show InstanceMonitor and hide InstanceBrowser
+    expect(screen.getByTestId('instance-monitor')).toBeInTheDocument()
+    expect(screen.queryByTestId('instance-browser')).not.toBeInTheDocument()
+    expect(screen.getByText('Back to Instances')).toBeInTheDocument()
+  })
+
+  it('displays selected instance in InstanceMonitor', async () => {
+    const user = userEvent.setup()
+    render(<WorkflowViewerPane />)
+
+    const selectButton = screen.getByTestId('select-instance-button')
+    await user.click(selectButton)
+
+    expect(screen.getByTestId('instance-monitor-instance-id')).toHaveTextContent('test-instance-123')
+  })
+
+  it('passes correct props to InstanceMonitor', async () => {
+    const user = userEvent.setup()
+    const customApiUrl = 'http://custom-api:9000'
+    render(<WorkflowViewerPane apiBaseUrl={customApiUrl} />)
+
+    const selectButton = screen.getByTestId('select-instance-button')
+    await user.click(selectButton)
+
+    expect(screen.getByTestId('instance-monitor-api-url')).toHaveTextContent(customApiUrl)
+    expect(screen.getByTestId('instance-monitor-direction')).toHaveTextContent('LR')
+  })
+
+  it('returns to list view when back button is clicked', async () => {
+    const user = userEvent.setup()
+    render(<WorkflowViewerPane />)
+
+    // Select an instance
+    const selectButton = screen.getByTestId('select-instance-button')
+    await user.click(selectButton)
+
+    expect(screen.getByTestId('instance-monitor')).toBeInTheDocument()
+
+    // Click back button
+    const backButton = screen.getByText('Back to Instances')
+    await user.click(backButton)
+
+    // Should show InstanceBrowser again
+    expect(screen.getByTestId('instance-browser')).toBeInTheDocument()
+    expect(screen.queryByTestId('instance-monitor')).not.toBeInTheDocument()
+    expect(screen.queryByText('Back to Instances')).not.toBeInTheDocument()
+  })
+
+  it('renders back button with ArrowLeft icon', async () => {
+    const user = userEvent.setup()
+    render(<WorkflowViewerPane />)
+
+    const selectButton = screen.getByTestId('select-instance-button')
+    await user.click(selectButton)
+
+    const backButton = screen.getByText('Back to Instances')
+    expect(backButton).toBeInTheDocument()
+    // Button should be a ghost variant (minimal styling)
+    expect(backButton.closest('button')).toHaveClass('gap-2')
   })
 })
