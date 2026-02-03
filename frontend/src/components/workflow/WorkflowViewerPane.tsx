@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { InstanceBrowser, InstanceMonitor } from '@dirigent/workflow-viewer'
 import { ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useThemeStore } from '@/stores/themeStore'
 import '@dirigent/workflow-viewer/dist/index.css'
 
 interface WorkflowViewerPaneProps {
@@ -10,6 +11,7 @@ interface WorkflowViewerPaneProps {
 
 export function WorkflowViewerPane({ apiBaseUrl = 'http://127.0.0.1:8081' }: WorkflowViewerPaneProps) {
   const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(null)
+  const theme = useThemeStore((state) => state.theme)
 
   return (
     <div className="flex flex-col h-full border-l pl-6">
@@ -32,6 +34,7 @@ export function WorkflowViewerPane({ apiBaseUrl = 'http://127.0.0.1:8081' }: Wor
               instanceId={selectedInstanceId}
               apiBaseUrl={apiBaseUrl}
               direction="LR"
+              colorMode={theme}
             />
           </div>
         </>
@@ -43,6 +46,7 @@ export function WorkflowViewerPane({ apiBaseUrl = 'http://127.0.0.1:8081' }: Wor
             onSelect={(instanceId) => setSelectedInstanceId(instanceId)}
             refreshInterval={5000}
             showMetadata
+            colorMode={theme}
           />
         </div>
       )}
