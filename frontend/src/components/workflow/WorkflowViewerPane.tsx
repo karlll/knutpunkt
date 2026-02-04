@@ -3,6 +3,7 @@ import { InstanceBrowser, InstanceMonitor } from '@dirigent/workflow-viewer'
 import { ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useThemeStore } from '@/stores/themeStore'
+import '@xyflow/react/dist/style.css'
 import '@dirigent/workflow-viewer/dist/index.css'
 
 interface WorkflowViewerPaneProps {
