@@ -10,6 +10,7 @@ import {
   defaultDropAnimationSideEffects,
 } from '@dnd-kit/core'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { ChevronLeft } from 'lucide-react'
 import { KanbanColumn } from './KanbanColumn'
 import { TaskCard } from './TaskCard'
 import { TaskDialog } from './TaskDialog'
@@ -19,6 +20,8 @@ import { useSettings } from '@/hooks/useSettings'
 import { useTaskEvents } from '@/contexts/TaskEventsContext'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { WorkflowViewerPane } from '@/components/workflow/WorkflowViewerPane'
+import { useWorkflowPaneStore } from '@/stores/workflowPaneStore'
+import { cn } from '@/lib/utils'
 
 const COLUMNS: { status: TaskStatus; title: string }[] = [
   { status: 'planned', title: 'Planned' },
@@ -83,6 +86,7 @@ export function KanbanBoard({ createDialogOpen = false, onCreateDialogChange }: 
   const [originalTask, setOriginalTask] = useState<Task | null>(null)
   const queryClient = useQueryClient()
   const [settings] = useSettings()
+  const workflowPaneExpanded = useWorkflowPaneStore((state) => state.isExpanded)
 
   // Access trackMutation for deduplication
   const { trackMutation } = useTaskEvents()
@@ -259,17 +263,40 @@ export function KanbanBoard({ createDialogOpen = false, onCreateDialogChange }: 
                 />
               ))}
             </div>
-
-            {/* Workflow Viewer Pane */}
-            <div className="flex-1 min-w-[400px]">
-              <WorkflowViewerPane />
-            </div>
           </div>
+
           <DragOverlay dropAnimation={dropAnimationConfig}>
             {activeTask ? <TaskCard task={activeTask} /> : null}
           </DragOverlay>
         </DndContext>
       </main>
+
+      {/* Workflow Viewer Pane - Fixed position, slides in from right */}
+      <WorkflowViewerPane />
+
+      {/* Collapsed Tab Button - Fixed position on right edge */}
+      {!workflowPaneExpanded && (
+        <button
+          onClick={() => useWorkflowPaneStore.getState().setExpanded(true)}
+          className={cn(
+            'fixed right-0 top-1/2 -translate-y-1/2 z-40',
+            'w-10 h-32 bg-background border border-r-0 rounded-l-lg shadow-lg',
+            'flex items-center justify-center',
+            'hover:bg-accent transition-colors duration-200'
+          )}
+          aria-label="Open workflow viewer"
+        >
+          <div className="flex flex-col items-center gap-2">
+            <ChevronLeft className="h-5 w-5 text-muted-foreground" />
+            <span
+              className="text-xs text-muted-foreground"
+              style={{ writingMode: 'vertical-rl' }}
+            >
+              Workflows
+            </span>
+          </div>
+        </button>
+      )}
 
       {/* Create task dialog */}
       <TaskDialog
