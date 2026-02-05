@@ -13,3 +13,9 @@ data class Setting(
 data class SettingsResponse(
     val settings: List<Setting>
 )
+
+@Serializable
+data class UpdateSettingRequest(
+    val key: String,
+    val value: String
+)

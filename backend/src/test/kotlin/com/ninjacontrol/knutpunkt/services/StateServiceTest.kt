@@ -57,12 +57,42 @@ class StateServiceTest {
     @Test
     fun `getCurrentCounter returns current value`() {
         assertEquals(0, stateService.getCurrentCounter())
-        
+
         stateService.getNextTaskNumber()
         assertEquals(1, stateService.getCurrentCounter())
-        
+
         stateService.getNextTaskNumber()
         stateService.getNextTaskNumber()
         assertEquals(3, stateService.getCurrentCounter())
+    }
+
+    @Test
+    fun `getTitle returns null when not set`() {
+        assertNull(stateService.getTitle(), "Title should be null initially")
+    }
+
+    @Test
+    fun `setTitle stores and retrieves title`() {
+        stateService.setTitle("My Project")
+        assertEquals("My Project", stateService.getTitle(), "Title should be stored and retrieved")
+    }
+
+    @Test
+    fun `title persists across service instances`() {
+        stateService.setTitle("Test Title")
+
+        // Create new instance with same directory
+        val stateService2 = StateService(tempDir.absolutePath)
+        assertEquals("Test Title", stateService2.getTitle(), "Title should persist across instances")
+    }
+
+    @Test
+    fun `title and counter work independently`() {
+        stateService.setTitle("Project Name")
+        val num1 = stateService.getNextTaskNumber()
+
+        assertEquals("Project Name", stateService.getTitle())
+        assertEquals(1, num1)
+        assertEquals(1, stateService.getCurrentCounter())
     }
 }

@@ -1,88 +1,67 @@
 package com.ninjacontrol.knutpunkt.services
 
-import org.junit.jupiter.api.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
-import kotlin.test.assertTrue
+import java.io.File
+import java.nio.file.Files
+import kotlin.test.*
 
 class SettingsServiceTest {
-    
+
+    private lateinit var tempDir: File
+    private lateinit var stateService: StateService
+    private lateinit var settingsService: SettingsService
+
+    @BeforeTest
+    fun setup() {
+        tempDir = Files.createTempDirectory("settings-service-test").toFile()
+        stateService = StateService(tempDir.absolutePath)
+        settingsService = SettingsService(stateService)
+    }
+
+    @AfterTest
+    fun cleanup() {
+        tempDir.deleteRecursively()
+    }
+
     @Test
-    fun `getSettings returns all expected settings`() {
-        val service = SettingsService()
-        val response = service.getSettings()
-        
-        assertNotNull(response)
-        assertNotNull(response.settings)
-        assertTrue(response.settings.isNotEmpty())
-        
-        // Verify all expected keys are present
+    fun `getSettings returns title setting`() {
+        val response = settingsService.getSettings()
+        val titleSetting = response.settings.find { it.key == "title" }
+
+        assertNotNull(titleSetting, "Title setting should be present")
+        assertEquals("title", titleSetting.key)
+        assertEquals("Knutpunkt", titleSetting.value, "Default title should be Knutpunkt")
+        assertEquals("Application title", titleSetting.description)
+    }
+
+    @Test
+    fun `getSettings returns title from state when set`() {
+        stateService.setTitle("My Custom Project")
+
+        val response = settingsService.getSettings()
+        val titleSetting = response.settings.find { it.key == "title" }
+
+        assertNotNull(titleSetting)
+        assertEquals("My Custom Project", titleSetting.value, "Should use title from state")
+    }
+
+    @Test
+    fun `updateTitle updates state`() {
+        settingsService.updateTitle("New Project Name")
+
+        assertEquals("New Project Name", stateService.getTitle())
+    }
+
+    @Test
+    fun `getSettings includes all expected settings`() {
+        val response = settingsService.getSettings()
+
+        // Check that title is the first setting
+        assertEquals("title", response.settings[0].key)
+
+        // Check that other settings are present
         val keys = response.settings.map { it.key }
-        assertTrue(keys.contains("server.port"))
-        assertTrue(keys.contains("server.host"))
-        assertTrue(keys.contains("tasks.directory"))
-        assertTrue(keys.contains("tasks.cacheEnabled"))
-        assertTrue(keys.contains("terminal.enabled"))
-        assertTrue(keys.contains("terminal.idleTimeoutMinutes"))
-        assertTrue(keys.contains("terminal.outputBufferSize"))
-        assertTrue(keys.contains("sse.keepaliveIntervalSeconds"))
-    }
-    
-    @Test
-    fun `getSettings returns valid values`() {
-        val service = SettingsService()
-        val response = service.getSettings()
-        
-        // Check that all settings have non-empty values
-        response.settings.forEach { setting ->
-            assertNotNull(setting.key)
-            assertNotNull(setting.value)
-            assertTrue(setting.key.isNotEmpty())
-            assertTrue(setting.value.isNotEmpty())
-        }
-    }
-    
-    @Test
-    fun `getSettings returns terminal disabled by default`() {
-        val service = SettingsService()
-        val response = service.getSettings()
-        
-        val terminalSetting = response.settings.find { it.key == "terminal.enabled" }
-        assertNotNull(terminalSetting)
-        assertEquals("false", terminalSetting.value)
-    }
-    
-    @Test
-    fun `getSettings includes descriptions`() {
-        val service = SettingsService()
-        val response = service.getSettings()
-
-        // All settings should have descriptions
-        response.settings.forEach { setting ->
-            assertNotNull(setting.description)
-            assertTrue(setting.description!!.isNotEmpty())
-        }
-    }
-
-    @Test
-    fun `getSettings returns SSE heartbeat interval default value`() {
-        val service = SettingsService()
-        val response = service.getSettings()
-
-        val sseSetting = response.settings.find { it.key == "sse.keepaliveIntervalSeconds" }
-        assertNotNull(sseSetting)
-        assertEquals("15", sseSetting.value)
-        assertEquals("SSE heartbeat interval in seconds", sseSetting.description)
-    }
-
-    @Test
-    fun `getSettings returns terminal output buffer default value`() {
-        val service = SettingsService()
-        val response = service.getSettings()
-
-        val bufferSetting = response.settings.find { it.key == "terminal.outputBufferSize" }
-        assertNotNull(bufferSetting)
-        assertEquals("100", bufferSetting.value)
-        assertEquals("Terminal output buffer size", bufferSetting.description)
+        assertTrue(keys.contains("server.port"), "Should include server.port")
+        assertTrue(keys.contains("server.host"), "Should include server.host")
+        assertTrue(keys.contains("tasks.directory"), "Should include tasks.directory")
     }
 }

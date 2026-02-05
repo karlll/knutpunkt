@@ -11,7 +11,8 @@ import java.nio.file.StandardOpenOption
 
 @Serializable
 data class ApplicationState(
-    val task_counter: Int = 0
+    val task_counter: Int = 0,
+    val title: String? = null
 )
 
 class StateService(private val tasksDirectory: String) {
@@ -71,5 +72,27 @@ class StateService(private val tasksDirectory: String) {
     
     fun getCurrentCounter(): Int {
         return readState().task_counter
+    }
+
+    fun getTitle(): String? {
+        return readState().title
+    }
+
+    @Synchronized
+    fun setTitle(title: String) {
+        // Use file locking for thread safety
+        FileChannel.open(
+            stateFile.toPath(),
+            StandardOpenOption.READ,
+            StandardOpenOption.WRITE
+        ).use { channel ->
+            channel.lock().use { lock ->
+                val state = readState()
+                val newState = state.copy(title = title)
+                writeState(newState)
+
+                logger.debug("Updated title: {}", title)
+            }
+        }
     }
 }

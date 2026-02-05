@@ -33,7 +33,7 @@ fun Application.configureRouting(taskService: TaskService, eventServices: EventS
         ?.getString()?.toLongOrNull() ?: 15L
 
     // Create settings service
-    val settingsService = SettingsService()
+    val settingsService = SettingsService(taskService.stateService)
 
     routing {
         route("/api/v1") {

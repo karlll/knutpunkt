@@ -20,9 +20,9 @@ class TaskService(
     private val tasksDirectory: String = getTasksDirectory(),
     private val enableCache: Boolean = false
 ) {
-    
+
     private val logger = LoggerFactory.getLogger(TaskService::class.java)
-    private val stateService = StateService(tasksDirectory)
+    val stateService = StateService(tasksDirectory)  // Expose as public for SettingsService
     private val eventScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
     
     // Event emitter - set by Application during initialization
