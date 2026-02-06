@@ -96,7 +96,11 @@ export interface paths {
          *     (e.g., show/hide terminal UI based on terminal.enabled setting).
          */
         get: operations["getSettings"];
-        put?: never;
+        /**
+         * Update a writable setting
+         * @description Update a backend setting by key. Currently only the `title` setting is writable.
+         */
+        put: operations["updateSetting"];
         post?: never;
         delete?: never;
         options?: never;
@@ -308,6 +312,18 @@ export interface components {
         };
         SettingsResponse: {
             settings: components["schemas"]["Setting"][];
+        };
+        UpdateSettingRequest: {
+            /**
+             * @description The setting key to update
+             * @example title
+             */
+            key: string;
+            /**
+             * @description The new value for the setting
+             * @example My Board
+             */
+            value: string;
         };
         Task: {
             /**
@@ -737,6 +753,42 @@ export interface operations {
                      *     }
                      */
                     "application/json": components["schemas"]["SettingsResponse"];
+                };
+            };
+        };
+    };
+    updateSetting: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateSettingRequest"];
+            };
+        };
+        responses: {
+            /** @description Setting updated successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example Setting updated successfully */
+                        message?: string;
+                    };
+                };
+            };
+            /** @description Setting is not writable */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
         };

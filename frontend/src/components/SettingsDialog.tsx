@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Dialog,
   DialogContent,
@@ -13,6 +14,7 @@ import { Switch } from '@/components/ui/switch'
 import { Input } from '@/components/ui/input'
 import { useSettings, type AppSettings } from '@/hooks/useSettings'
 import { BackendSettingsDialog } from './BackendSettingsDialog'
+import { api } from '@/lib/api'
 
 interface SettingsDialogProps {
   open: boolean
@@ -22,17 +24,41 @@ interface SettingsDialogProps {
 export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   const [settings, updateSettings] = useSettings()
   const [formData, setFormData] = useState<AppSettings>(settings)
+  const [titleValue, setTitleValue] = useState('')
   const [backendSettingsOpen, setBackendSettingsOpen] = useState(false)
+  const queryClient = useQueryClient()
+
+  const { data: backendSettings } = useQuery({
+    queryKey: ['backendSettings'],
+    queryFn: () => api.settings.get(),
+    staleTime: 5 * 60 * 1000,
+  })
+
+  const titleMutation = useMutation({
+    mutationFn: (newTitle: string) => api.settings.update('title', newTitle),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['backendSettings'] })
+    },
+  })
+
+  const backendTitle =
+    backendSettings?.settings.find((s) => s.key === 'title')?.value ?? 'Knutpunkt'
 
   // Sync form data with settings when dialog opens
   useEffect(() => {
     if (open) {
       setFormData(settings)
+      setTitleValue(backendTitle)
     }
-  }, [open, settings])
+    // Only re-initialize when dialog opens, not when backend data re-fetches
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open])
 
   const handleSave = () => {
     updateSettings(formData)
+    if (titleValue.trim() && titleValue !== backendTitle) {
+      titleMutation.mutate(titleValue.trim())
+    }
     onOpenChange(false)
   }
 
@@ -60,6 +86,27 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
           </DialogHeader>
 
           <div className="space-y-6 py-4">
+            {/* Application Settings Section */}
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-sm font-semibold mb-3">Application</h3>
+                <div className="space-y-2">
+                  <Label htmlFor="app-title">Title</Label>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Application title shown in the header and browser tab
+                  </p>
+                  <Input
+                    id="app-title"
+                    type="text"
+                    value={titleValue}
+                    onChange={(e) => setTitleValue(e.target.value)}
+                    placeholder="Knutpunkt"
+                    className="w-64"
+                  />
+                </div>
+              </div>
+            </div>
+
             {/* Editor Settings Section */}
             <div className="space-y-4">
               <div>

@@ -130,6 +130,15 @@ export const api = {
       const response = await fetch(`${API_BASE}/settings`)
       return handleResponse<SettingsResponse>(response)
     },
+
+    update: async (key: string, value: string): Promise<{ message: string }> => {
+      const response = await fetch(`${API_BASE}/settings`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key, value }),
+      })
+      return handleResponse<{ message: string }>(response)
+    },
   },
 
   terminal: {

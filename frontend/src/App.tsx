@@ -1,4 +1,4 @@
-import { useMemo, useCallback, useState } from 'react'
+import { useMemo, useCallback, useState, useEffect } from 'react'
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query'
 import { KanbanBoard } from '@/components/kanban/KanbanBoard'
 import { TaskEventsProvider } from '@/contexts/TaskEventsContext'
@@ -39,9 +39,16 @@ function AppContent() {
     refetchInterval: 5000, // Refresh every 5 seconds
   })
 
-  // Check if terminal is enabled from backend settings
+  // Extract settings from backend
   const terminalEnabled =
     backendSettings?.settings.find((s) => s.key === 'terminal.enabled')?.value === 'true'
+  const appTitle =
+    backendSettings?.settings.find((s) => s.key === 'title')?.value || 'Knutpunkt'
+
+  // Update document title when app title changes
+  useEffect(() => {
+    document.title = appTitle
+  }, [appTitle])
 
   const handleCloseTerminalTab = useCallback(
     (sessionId: string) => {
@@ -103,6 +110,7 @@ function AppContent() {
   return (
     <div className="h-screen flex flex-col">
       <Header
+        title={appTitle}
         onCreateTask={() => setCreateTaskDialogOpen(true)}
         onOpenTerminal={() => setTerminalDialogOpen(true)}
         terminalEnabled={terminalEnabled}

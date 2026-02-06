@@ -2,6 +2,23 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@/test/test-utils'
 import { SettingsDialog } from './SettingsDialog'
 import * as useSettingsModule from '@/hooks/useSettings'
+import { api } from '@/lib/api'
+
+vi.mock('@/lib/api', () => ({
+  api: {
+    settings: {
+      get: vi.fn(),
+      update: vi.fn(),
+    },
+  },
+}))
+
+const mockBackendSettings = {
+  settings: [
+    { key: 'title', value: 'Knutpunkt', description: 'Application title' },
+    { key: 'terminal.enabled', value: 'false', description: 'PTY terminal support enabled' },
+  ],
+}
 
 describe('SettingsDialog', () => {
   const mockUpdateSettings = vi.fn()
@@ -19,6 +36,10 @@ describe('SettingsDialog', () => {
       },
       mockUpdateSettings,
     ])
+
+    // Mock API calls
+    vi.mocked(api.settings.get).mockResolvedValue(mockBackendSettings)
+    vi.mocked(api.settings.update).mockResolvedValue({ message: 'Setting updated successfully' })
   })
 
   afterEach(() => {
@@ -178,6 +199,7 @@ describe('SettingsDialog', () => {
   it('displays section headings', () => {
     render(<SettingsDialog open={true} onOpenChange={mockOnOpenChange} />)
 
+    expect(screen.getByText('Application')).toBeInTheDocument()
     expect(screen.getByText('Editor Settings')).toBeInTheDocument()
     expect(screen.getByText('Display Settings')).toBeInTheDocument()
   })
@@ -192,5 +214,79 @@ describe('SettingsDialog', () => {
     render(<SettingsDialog open={true} onOpenChange={mockOnOpenChange} />)
 
     expect(screen.getByText(/Number of tasks to show in the Done column before archiving \(1-50\)/i)).toBeInTheDocument()
+  })
+
+  describe('Title setting', () => {
+    it('displays title input field', () => {
+      render(<SettingsDialog open={true} onOpenChange={mockOnOpenChange} />)
+
+      const titleInput = screen.getByLabelText('Title')
+      expect(titleInput).toBeInTheDocument()
+    })
+
+    it('shows title description', () => {
+      render(<SettingsDialog open={true} onOpenChange={mockOnOpenChange} />)
+
+      expect(screen.getByText(/Application title shown in the header and browser tab/i)).toBeInTheDocument()
+    })
+
+    it('populates title from backend settings when dialog opens', async () => {
+      render(<SettingsDialog open={true} onOpenChange={mockOnOpenChange} />)
+
+      await waitFor(() => {
+        const titleInput = screen.getByLabelText('Title') as HTMLInputElement
+        expect(titleInput.value).toBe('Knutpunkt')
+      })
+    })
+
+    it('allows editing the title', async () => {
+      render(<SettingsDialog open={true} onOpenChange={mockOnOpenChange} />)
+
+      await waitFor(() => {
+        const titleInput = screen.getByLabelText('Title') as HTMLInputElement
+        expect(titleInput.value).toBe('Knutpunkt')
+      })
+
+      const titleInput = screen.getByLabelText('Title') as HTMLInputElement
+      fireEvent.change(titleInput, { target: { value: 'My Board' } })
+      expect(titleInput.value).toBe('My Board')
+    })
+
+    it('calls API to update title on save when title changed', async () => {
+      render(<SettingsDialog open={true} onOpenChange={mockOnOpenChange} />)
+
+      await waitFor(() => {
+        const titleInput = screen.getByLabelText('Title') as HTMLInputElement
+        expect(titleInput.value).toBe('Knutpunkt')
+      })
+
+      const titleInput = screen.getByLabelText('Title')
+      fireEvent.change(titleInput, { target: { value: 'New Title' } })
+
+      const saveButton = screen.getByRole('button', { name: /Save Changes/i })
+      fireEvent.click(saveButton)
+
+      await waitFor(() => {
+        expect(api.settings.update).toHaveBeenCalledWith('title', 'New Title')
+      })
+    })
+
+    it('does not call API when title is unchanged', async () => {
+      render(<SettingsDialog open={true} onOpenChange={mockOnOpenChange} />)
+
+      await waitFor(() => {
+        const titleInput = screen.getByLabelText('Title') as HTMLInputElement
+        expect(titleInput.value).toBe('Knutpunkt')
+      })
+
+      // Save without changing title
+      const saveButton = screen.getByRole('button', { name: /Save Changes/i })
+      fireEvent.click(saveButton)
+
+      await waitFor(() => {
+        expect(mockOnOpenChange).toHaveBeenCalledWith(false)
+      })
+      expect(api.settings.update).not.toHaveBeenCalled()
+    })
   })
 })

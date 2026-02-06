@@ -20,7 +20,7 @@ tags:
   - name: events
     description: Real-time task update events via Server-Sent Events (SSE)
   - name: settings
-    description: Backend configuration (read-only)
+    description: Backend configuration
   - name: terminal
     description: Terminal session management (requires terminal.enabled=true)
 
@@ -168,6 +168,37 @@ paths:
                   - key: "terminal.outputBufferSize"
                     value: "100"
                     description: "Terminal output buffer size (lines)"
+
+    put:
+      summary: Update a writable setting
+      description: |
+        Update a backend setting by key. Currently only the `title` setting is writable.
+      operationId: updateSetting
+      tags:
+        - settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSettingRequest'
+      responses:
+        '200':
+          description: Setting updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Setting updated successfully"
+        '400':
+          description: Setting is not writable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   /terminal/sessions:
     get:
@@ -691,6 +722,21 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Setting'
+
+    UpdateSettingRequest:
+      type: object
+      required:
+        - key
+        - value
+      properties:
+        key:
+          type: string
+          description: The setting key to update
+          example: "title"
+        value:
+          type: string
+          description: The new value for the setting
+          example: "My Board"
     
     Task:
       type: object
