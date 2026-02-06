@@ -90,14 +90,20 @@ This creates `build/knutpunkt-<version>.jar` containing the backend server and b
 ### Run
 
 ```bash
-# Start the server (defaults to ./tasks directory)
-./start.sh
+# Start the server with a tasks directory
+./start.sh ./tasks
 
-# Or specify a custom tasks directory
-./start.sh /path/to/tasks
+# With a custom port and title
+./start.sh /path/to/tasks --port=9090 --title="My Project"
 
 # With debug logging
-APP_LOG_LEVEL=DEBUG ./start.sh
+APP_LOG_LEVEL=DEBUG ./start.sh ./tasks
+
+# Enable terminal support
+./start.sh ./tasks --terminal=true
+
+# Use an external config file
+./start.sh ./tasks --config=/path/to/application.conf
 ```
 
 Access the application at http://127.0.0.1:8080
@@ -107,48 +113,43 @@ Access the application at http://127.0.0.1:8080
 If you have the pre-built JAR file, you can run it directly with Java:
 
 ```bash
-# Run with default tasks directory (./tasks)
-java -jar build/knutpunkt-<version>.jar
-
-# Specify custom tasks directory
+# Specify tasks directory (required)
 java -jar build/knutpunkt-<version>.jar /path/to/tasks
+
+# With options
+java -jar build/knutpunkt-<version>.jar /path/to/tasks --port=9090 --cache=true
 ```
 
-### Environment Variables
+### CLI Options
 
-- `PORT` - Server port (default: 8080)
-- `HOST` - Server host (default: 0.0.0.0)
-- `TASKS_DIRECTORY` - Tasks storage directory (default: ./tasks)
-- `ENABLE_CACHE` - Enable task caching (default: true)
+The tasks directory is a required positional argument. All other settings are optional:
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--port`, `-p` | Server port | 8080 |
+| `--host` | Server host | 0.0.0.0 |
+| `--title` | Application title | Knutpunkt |
+| `--cache` | Enable task caching (true/false) | true |
+| `--terminal` | Enable PTY terminal support (true/false) | false |
+| `--terminal-timeout` | Terminal idle timeout in minutes | 30 |
+| `--terminal-buffer` | Terminal output buffer size | 100 |
+| `--sse-keepalive` | SSE heartbeat interval in seconds | 15 |
+| `--project-path` | Path to the project directory | (none) |
+| `--config`, `-c` | Path to external application.conf file | (none) |
+| `-h`, `--help` | Show help and exit | |
+
+### Environment Variables (Logging)
+
 - `APP_LOG_LEVEL` - Application log level: DEBUG, INFO, WARN, ERROR (default: DEBUG)
+- `KTOR_LOG_LEVEL` - Ktor framework log level (default: INFO)
+- `LOG_LEVEL` - Root log level (default: INFO)
 
-### Advanced Configuration
+### Configuration Precedence
 
-For more control over the application, you can use JVM system properties:
-
-```bash
-# Configure via JVM system properties
-java -Dktor.deployment.port=8080 \
-     -Dktor.deployment.host=0.0.0.0 \
-     -Dknutpunkt.tasks.directory=/path/to/tasks \
-     -Dknutpunkt.tasks.enableCache=true \
-     -Dknutpunkt.logging.appLevel=DEBUG \
-     -jar build/knutpunkt-<version>.jar
-```
-
-**Available JVM system properties:**
-- `-Dktor.deployment.port=<port>` - Server port
-- `-Dktor.deployment.host=<host>` - Server host
-- `-Dknutpunkt.tasks.directory=<path>` - Tasks storage directory
-- `-Dknutpunkt.tasks.enableCache=<boolean>` - Enable task caching
-- `-Dknutpunkt.logging.appLevel=<level>` - Application log level (DEBUG, INFO, WARN, ERROR)
-
-**Configuration precedence** (highest to lowest):
-1. Command line argument (for tasks directory only)
-2. Environment variables
-3. JVM system properties
-4. Configuration file (`application.conf`)
-5. Default values
+Settings are resolved in this order (highest to lowest):
+1. CLI arguments
+2. External config file (`--config`)
+3. Built-in `application.conf` defaults
 
 ## Development
 
