@@ -1,8 +1,8 @@
 import java.time.Instant
 
 plugins {
-    kotlin("jvm") version "2.0.21"
-    kotlin("plugin.serialization") version "2.0.21"
+    kotlin("jvm") version "2.3.0"
+    kotlin("plugin.serialization") version "2.3.0"
     application
     id("org.openapi.generator") version "7.1.0"
     id("com.github.johnrengelman.shadow") version "8.1.1"
@@ -21,6 +21,7 @@ val kotlinxSerializationVersion = "1.6.2"
 val kamlVersion = "0.55.0"
 val commonmarkVersion = "0.21.0"
 val logbackVersion = "1.4.14"
+val cliktVersion = "5.1.0"
 
 dependencies {
     // Ktor server
@@ -52,6 +53,9 @@ dependencies {
 
     // HOCON configuration
     implementation("com.typesafe:config:1.4.3")
+
+    // CLI argument parsing
+    implementation("com.github.ajalt.clikt:clikt:$cliktVersion")
     
     // Testing
     testImplementation("io.ktor:ktor-server-test-host-jvm:$ktorVersion")

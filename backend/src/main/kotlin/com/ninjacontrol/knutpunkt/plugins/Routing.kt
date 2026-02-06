@@ -1,5 +1,6 @@
 package com.ninjacontrol.knutpunkt.plugins
 
+import com.ninjacontrol.knutpunkt.AppConfig
 import com.ninjacontrol.knutpunkt.routes.eventRoutes
 import com.ninjacontrol.knutpunkt.routes.settingsRoutes
 import com.ninjacontrol.knutpunkt.routes.taskRoutes
@@ -8,47 +9,30 @@ import com.ninjacontrol.knutpunkt.routes.versionRoutes
 import com.ninjacontrol.knutpunkt.services.SettingsService
 import com.ninjacontrol.knutpunkt.services.TaskService
 import com.ninjacontrol.knutpunkt.services.TerminalService
-import com.typesafe.config.ConfigFactory
 import io.ktor.server.application.*
-import io.ktor.server.config.*
 import io.ktor.server.routing.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 
-fun Application.configureRouting(taskService: TaskService, eventServices: EventServices, tasksDirectory: String) {
-    // Read configuration
-    val config = HoconApplicationConfig(ConfigFactory.load())
-
-    // Terminal configuration
-    val terminalEnabled = config.propertyOrNull("knutpunkt.terminal.enabled")
-        ?.getString()?.toBoolean() ?: false
-    val idleTimeoutMinutes = config.propertyOrNull("knutpunkt.terminal.idleTimeoutMinutes")
-        ?.getString()?.toLongOrNull() ?: 30L
-    val outputBufferSize = config.propertyOrNull("knutpunkt.terminal.outputBufferSize")
-        ?.getString()?.toIntOrNull() ?: 100
-
-    // SSE configuration
-    val keepaliveIntervalSeconds = config.propertyOrNull("knutpunkt.sse.keepaliveIntervalSeconds")
-        ?.getString()?.toLongOrNull() ?: 15L
-
+fun Application.configureRouting(taskService: TaskService, eventServices: EventServices, config: AppConfig) {
     // Create settings service
-    val settingsService = SettingsService(taskService.stateService)
+    val settingsService = SettingsService(taskService.stateService, config)
 
     routing {
         route("/api/v1") {
             taskRoutes(taskService)
-            eventRoutes(eventServices.taskEventService, eventServices.fileEventService, keepaliveIntervalSeconds)
+            eventRoutes(eventServices.taskEventService, eventServices.fileEventService, config.sseKeepaliveIntervalSeconds)
             settingsRoutes(settingsService)
             versionRoutes()
 
-            if (terminalEnabled) {
+            if (config.terminalEnabled) {
                 val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
                 val terminalService = TerminalService(
-                    tasksDirectory = tasksDirectory,
+                    tasksDirectory = config.tasksDirectory,
                     scope = scope,
-                    idleTimeoutMinutes = idleTimeoutMinutes,
-                    outputBufferSize = outputBufferSize
+                    idleTimeoutMinutes = config.terminalIdleTimeoutMinutes,
+                    outputBufferSize = config.terminalOutputBufferSize
                 )
 
                 monitor.subscribe(ApplicationStopping) {
@@ -56,7 +40,7 @@ fun Application.configureRouting(taskService: TaskService, eventServices: EventS
                 }
 
                 terminalRoutes(terminalService)
-                log.info("Terminal support enabled (idleTimeout=${idleTimeoutMinutes}min, bufferSize=${outputBufferSize})")
+                log.info("Terminal support enabled (idleTimeout=${config.terminalIdleTimeoutMinutes}min, bufferSize=${config.terminalOutputBufferSize})")
             } else {
                 log.info("Terminal support disabled")
             }

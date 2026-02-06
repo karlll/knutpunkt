@@ -1,5 +1,6 @@
 package com.ninjacontrol.knutpunkt.routes
 
+import com.ninjacontrol.knutpunkt.AppConfig
 import com.ninjacontrol.knutpunkt.models.SettingsResponse
 import com.ninjacontrol.knutpunkt.models.UpdateSettingRequest
 import com.ninjacontrol.knutpunkt.plugins.configureSerialization
@@ -25,7 +26,18 @@ class SettingsRoutesTest {
     fun setup() {
         tempDir = Files.createTempDirectory("settings-routes-test").toFile()
         stateService = StateService(tempDir.absolutePath)
-        settingsService = SettingsService(stateService)
+        val config = AppConfig(
+            tasksDirectory = tempDir.absolutePath,
+            port = 8080,
+            host = "0.0.0.0",
+            title = "Knutpunkt",
+            enableCache = true,
+            terminalEnabled = false,
+            terminalIdleTimeoutMinutes = 30,
+            terminalOutputBufferSize = 100,
+            sseKeepaliveIntervalSeconds = 15
+        )
+        settingsService = SettingsService(stateService, config)
     }
 
     @AfterTest

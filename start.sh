@@ -4,30 +4,34 @@
 # Runs the application JAR file
 #
 # Usage:
-#   ./start.sh [tasks-directory]
+#   ./start.sh <tasks-directory> [options]
 #
 # Examples:
-#   ./start.sh                    # Use ./tasks (default)
-#   ./start.sh /path/to/tasks     # Use custom path
+#   ./start.sh ./tasks                          # Use default settings
+#   ./start.sh /path/to/tasks --port=9090       # Custom port
+#   ./start.sh ./tasks --terminal=true          # Enable terminal
+#   ./start.sh ./tasks --config=./app.conf      # External config file
 #
-# Environment Variables:
-#   CONFIG_FILE        - Path to external application.conf
-#   TASKS_DIRECTORY    - Custom tasks directory path
-#   PORT               - Server port [default: 8080]
-#   HOST               - Server host [default: 0.0.0.0]
-#   ENABLE_CACHE       - Enable task caching [default: true]
-#   TERMINAL_ENABLED   - Enable PTY terminal support [default: true]
-#   APP_LOG_LEVEL      - Application log level (DEBUG, INFO, WARN, ERROR) [default: DEBUG]
-#   KTOR_LOG_LEVEL     - Ktor framework log level [default: INFO]
-#   LOG_LEVEL          - Root log level [default: INFO]
+# Options (passed through to the application):
+#   --port=<int>               Server port [default: 8080]
+#   --host=<text>              Server host [default: 0.0.0.0]
+#   --title=<text>             Application title [default: Knutpunkt]
+#   --cache=<true|false>       Enable task caching [default: true]
+#   --terminal=<true|false>    Enable PTY terminal support [default: false]
+#   --terminal-timeout=<int>   Terminal idle timeout in minutes [default: 30]
+#   --terminal-buffer=<int>    Terminal output buffer size [default: 100]
+#   --sse-keepalive=<int>      SSE heartbeat interval in seconds [default: 15]
+#   --config=<path>            External application.conf file
+#   -h, --help                 Show help and exit
+#
+# Environment variables (logging only):
+#   APP_LOG_LEVEL      Application log level (DEBUG, INFO, WARN, ERROR) [default: DEBUG]
+#   KTOR_LOG_LEVEL     Ktor framework log level [default: INFO]
+#   LOG_LEVEL          Root log level [default: INFO]
 #
 # Examples with logging:
-#   APP_LOG_LEVEL=INFO ./start.sh              # Only INFO and above
-#   APP_LOG_LEVEL=DEBUG ./start.sh             # Show all debug logs
-#   KTOR_LOG_LEVEL=DEBUG ./start.sh            # Debug Ktor framework too
-#
-# Examples with external config:
-#   CONFIG_FILE=/path/to/app.conf ./start.sh   # Use external config file
+#   APP_LOG_LEVEL=INFO ./start.sh ./tasks              # Only INFO and above
+#   APP_LOG_LEVEL=DEBUG ./start.sh ./tasks             # Show all debug logs
 
 set -e
 
@@ -37,9 +41,6 @@ if [ -z "$VERSION" ]; then
 fi
 
 JAR_FILE="build/knutpunkt-${VERSION}.jar"
-PORT=8080
-TASKS_ARG="${1:-}"
-TASKS_DIR="${TASKS_ARG:-${TASKS_DIRECTORY:-./tasks}}"
 
 # Check if specific version JAR exists, otherwise try to find any JAR
 if [ ! -f "$JAR_FILE" ]; then
@@ -64,33 +65,12 @@ if [ ! -f "$JAR_FILE" ]; then
     fi
 fi
 
-# Build JVM options
-JVM_OPTS=""
-
-# Add external config file if provided
-if [ -n "${CONFIG_FILE:-}" ]; then
-    if [ ! -f "$CONFIG_FILE" ]; then
-        echo "Error: Config file not found: $CONFIG_FILE"
-        exit 1
-    fi
-    JVM_OPTS="$JVM_OPTS -Dconfig.file=$CONFIG_FILE"
-    echo "External config: $CONFIG_FILE"
-fi
-
-# Display startup information
 echo "Starting Knutpunkt v$VERSION..."
 echo "JAR: $JAR_FILE"
-echo "Port: ${PORT:-8080} (set PORT to change)"
-echo "Tasks directory: $TASKS_DIR"
 echo "Log level: ${APP_LOG_LEVEL:-DEBUG} (set APP_LOG_LEVEL to change)"
-echo "URL: http://127.0.0.1:${PORT:-8080}"
 echo ""
 echo "Press Ctrl+C to stop"
 echo ""
 
-# Run the JAR with tasks directory as argument if provided
-if [ -n "$TASKS_ARG" ]; then
-    java $JVM_OPTS -jar "$JAR_FILE" "$TASKS_ARG"
-else
-    java $JVM_OPTS -jar "$JAR_FILE"
-fi
+# Pass all arguments directly to the application
+java -jar "$JAR_FILE" "$@"

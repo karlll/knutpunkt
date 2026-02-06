@@ -17,7 +17,7 @@ import java.time.Instant
 import java.util.*
 
 class TaskService(
-    private val tasksDirectory: String = getTasksDirectory(),
+    private val tasksDirectory: String,
     private val enableCache: Boolean = false
 ) {
 
@@ -632,12 +632,3 @@ class TaskService(
     }
 }
 
-// Helper function to determine tasks directory with precedence:
-// 1. Command line argument (highest)
-// 2. Environment variable
-// 3. Default ./tasks (lowest)
-private fun getTasksDirectory(): String {
-    return com.ninjacontrol.knutpunkt.tasksDirectoryOverride
-        ?: System.getenv("TASKS_DIRECTORY")
-        ?: "./tasks"
-}

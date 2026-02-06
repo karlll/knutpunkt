@@ -1,5 +1,6 @@
 package com.ninjacontrol.knutpunkt.services
 
+import com.ninjacontrol.knutpunkt.AppConfig
 import java.io.File
 import java.nio.file.Files
 import kotlin.test.*
@@ -14,7 +15,18 @@ class SettingsServiceTest {
     fun setup() {
         tempDir = Files.createTempDirectory("settings-service-test").toFile()
         stateService = StateService(tempDir.absolutePath)
-        settingsService = SettingsService(stateService)
+        val config = AppConfig(
+            tasksDirectory = tempDir.absolutePath,
+            port = 8080,
+            host = "0.0.0.0",
+            title = "Knutpunkt",
+            enableCache = true,
+            terminalEnabled = false,
+            terminalIdleTimeoutMinutes = 30,
+            terminalOutputBufferSize = 100,
+            sseKeepaliveIntervalSeconds = 15
+        )
+        settingsService = SettingsService(stateService, config)
     }
 
     @AfterTest

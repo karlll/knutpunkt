@@ -1,15 +1,13 @@
 package com.ninjacontrol.knutpunkt.services
 
+import com.ninjacontrol.knutpunkt.AppConfig
 import com.ninjacontrol.knutpunkt.models.Setting
 import com.ninjacontrol.knutpunkt.models.SettingsResponse
-import com.typesafe.config.ConfigFactory
-import io.ktor.server.config.*
 
 class SettingsService(
-    private val stateService: StateService
+    private val stateService: StateService,
+    private val config: AppConfig
 ) {
-    private val config = HoconApplicationConfig(ConfigFactory.load())
-
     fun getSettings(): SettingsResponse {
         val settings = listOf(
             Setting(
@@ -19,42 +17,42 @@ class SettingsService(
             ),
             Setting(
                 key = "server.port",
-                value = config.propertyOrNull("ktor.deployment.port")?.getString() ?: "8080",
+                value = config.port.toString(),
                 description = "Server port"
             ),
             Setting(
                 key = "server.host",
-                value = config.propertyOrNull("ktor.deployment.host")?.getString() ?: "0.0.0.0",
+                value = config.host,
                 description = "Server host"
             ),
             Setting(
                 key = "tasks.directory",
-                value = config.propertyOrNull("knutpunkt.tasks.directory")?.getString() ?: "./tasks",
+                value = config.tasksDirectory,
                 description = "Tasks storage directory"
             ),
             Setting(
                 key = "tasks.cacheEnabled",
-                value = (config.propertyOrNull("knutpunkt.tasks.enableCache")?.getString()?.toBoolean() ?: true).toString(),
+                value = config.enableCache.toString(),
                 description = "Task caching enabled"
             ),
             Setting(
                 key = "terminal.enabled",
-                value = (config.propertyOrNull("knutpunkt.terminal.enabled")?.getString()?.toBoolean() ?: false).toString(),
+                value = config.terminalEnabled.toString(),
                 description = "PTY terminal support enabled"
             ),
             Setting(
                 key = "terminal.idleTimeoutMinutes",
-                value = config.propertyOrNull("knutpunkt.terminal.idleTimeoutMinutes")?.getString() ?: "30",
+                value = config.terminalIdleTimeoutMinutes.toString(),
                 description = "Terminal idle timeout in minutes"
             ),
             Setting(
                 key = "terminal.outputBufferSize",
-                value = config.propertyOrNull("knutpunkt.terminal.outputBufferSize")?.getString() ?: "100",
+                value = config.terminalOutputBufferSize.toString(),
                 description = "Terminal output buffer size"
             ),
             Setting(
                 key = "sse.keepaliveIntervalSeconds",
-                value = config.propertyOrNull("knutpunkt.sse.keepaliveIntervalSeconds")?.getString() ?: "15",
+                value = config.sseKeepaliveIntervalSeconds.toString(),
                 description = "SSE heartbeat interval in seconds"
             )
         )
@@ -63,10 +61,9 @@ class SettingsService(
     }
 
     private fun getTitle(): String {
-        // Precedence: state.json > application.conf > default
+        // Precedence: state.json (runtime override) > CLI/config title
         return stateService.getTitle()
-            ?: config.propertyOrNull("knutpunkt.title")?.getString()
-            ?: "Knutpunkt"
+            ?: config.title
     }
 
     fun updateTitle(newTitle: String) {
