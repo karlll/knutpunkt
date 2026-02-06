@@ -75,5 +75,26 @@ class SettingsServiceTest {
         assertTrue(keys.contains("server.port"), "Should include server.port")
         assertTrue(keys.contains("server.host"), "Should include server.host")
         assertTrue(keys.contains("tasks.directory"), "Should include tasks.directory")
+        assertTrue(keys.contains("project.path"), "Should include project.path")
+    }
+
+    @Test
+    fun `getSettings returns empty project path when not set`() {
+        val response = settingsService.getSettings()
+        val projectPathSetting = response.settings.find { it.key == "project.path" }
+
+        assertNotNull(projectPathSetting, "project.path setting should be present")
+        assertEquals("", projectPathSetting.value, "Should be empty when not set")
+    }
+
+    @Test
+    fun `getSettings returns project path from state when set`() {
+        stateService.setProjectPath("/home/user/myproject")
+
+        val response = settingsService.getSettings()
+        val projectPathSetting = response.settings.find { it.key == "project.path" }
+
+        assertNotNull(projectPathSetting)
+        assertEquals("/home/user/myproject", projectPathSetting.value)
     }
 }

@@ -118,6 +118,27 @@ class SettingsRoutesTest {
     }
 
     @Test
+    fun `GET settings includes project path`() = testApplication {
+        application {
+            configureSerialization()
+            routing {
+                route("/api/v1") {
+                    settingsRoutes(settingsService)
+                }
+            }
+        }
+
+        val response = client.get("/api/v1/settings")
+        assertEquals(HttpStatusCode.OK, response.status)
+
+        val json = Json { ignoreUnknownKeys = true }
+        val settingsResponse = json.decodeFromString<SettingsResponse>(response.bodyAsText())
+        val projectPathSetting = settingsResponse.settings.find { it.key == "project.path" }
+        assertNotNull(projectPathSetting, "project.path should be present in settings")
+        assertEquals("", projectPathSetting.value, "Should be empty when not set")
+    }
+
+    @Test
     fun `PUT settings with read-only key returns 400`() = testApplication {
         application {
             configureSerialization()

@@ -54,6 +54,11 @@ class SettingsService(
                 key = "sse.keepaliveIntervalSeconds",
                 value = config.sseKeepaliveIntervalSeconds.toString(),
                 description = "SSE heartbeat interval in seconds"
+            ),
+            Setting(
+                key = "project.path",
+                value = stateService.getProjectPath() ?: "",
+                description = "Path to the project directory"
             )
         )
 

@@ -12,7 +12,8 @@ import java.nio.file.StandardOpenOption
 @Serializable
 data class ApplicationState(
     val task_counter: Int = 0,
-    val title: String? = null
+    val title: String? = null,
+    val project_path: String? = null
 )
 
 class StateService(private val tasksDirectory: String) {
@@ -76,6 +77,27 @@ class StateService(private val tasksDirectory: String) {
 
     fun getTitle(): String? {
         return readState().title
+    }
+
+    fun getProjectPath(): String? {
+        return readState().project_path
+    }
+
+    @Synchronized
+    fun setProjectPath(path: String) {
+        FileChannel.open(
+            stateFile.toPath(),
+            StandardOpenOption.READ,
+            StandardOpenOption.WRITE
+        ).use { channel ->
+            channel.lock().use { lock ->
+                val state = readState()
+                val newState = state.copy(project_path = path)
+                writeState(newState)
+
+                logger.debug("Updated project path: {}", path)
+            }
+        }
     }
 
     @Synchronized

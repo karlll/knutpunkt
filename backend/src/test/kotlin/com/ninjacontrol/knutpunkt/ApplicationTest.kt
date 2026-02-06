@@ -59,10 +59,11 @@ class KnutpunktCommandTest {
         assertEquals(100, config.terminalOutputBufferSize)
         assertEquals(15L, config.sseKeepaliveIntervalSeconds)
         assertNull(config.configFile)
+        assertNull(config.projectPath)
     }
 
     @Test
-    fun `AppConfig configFile defaults to null`() {
+    fun `AppConfig configFile and projectPath default to null`() {
         val config = AppConfig(
             tasksDirectory = "/tmp/tasks",
             port = 8080,
@@ -76,7 +77,26 @@ class KnutpunktCommandTest {
         )
 
         assertNull(config.configFile)
+        assertNull(config.projectPath)
         assertTrue(config.terminalEnabled)
         assertFalse(config.enableCache)
+    }
+
+    @Test
+    fun `AppConfig accepts projectPath`() {
+        val config = AppConfig(
+            tasksDirectory = "/tmp/tasks",
+            port = 8080,
+            host = "0.0.0.0",
+            title = "Test",
+            enableCache = true,
+            terminalEnabled = false,
+            terminalIdleTimeoutMinutes = 30,
+            terminalOutputBufferSize = 100,
+            sseKeepaliveIntervalSeconds = 15,
+            projectPath = "/home/user/myproject"
+        )
+
+        assertEquals("/home/user/myproject", config.projectPath)
     }
 }

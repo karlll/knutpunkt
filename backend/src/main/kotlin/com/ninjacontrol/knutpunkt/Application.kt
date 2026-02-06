@@ -31,7 +31,8 @@ data class AppConfig(
     val terminalIdleTimeoutMinutes: Long,
     val terminalOutputBufferSize: Int,
     val sseKeepaliveIntervalSeconds: Long,
-    val configFile: Path? = null
+    val configFile: Path? = null,
+    val projectPath: String? = null
 )
 
 // Global config set by CLI parsing, read by module()
@@ -89,6 +90,11 @@ class KnutpunktCommand : CliktCommand(name = "knutpunkt") {
         help = "SSE heartbeat interval in seconds"
     ).long()
 
+    private val projectPath: Path? by option(
+        "--project-path",
+        help = "Path to the project directory being managed"
+    ).path(mustExist = true, canBeDir = true, canBeFile = false)
+
     override fun run() {
         // Load external config file if provided (must happen before ConfigFactory.load())
         if (configFilePath != null) {
@@ -110,7 +116,8 @@ class KnutpunktCommand : CliktCommand(name = "knutpunkt") {
             terminalIdleTimeoutMinutes = terminalTimeout ?: hocon.longOrDefault("knutpunkt.terminal.idleTimeoutMinutes", DEFAULT_TERMINAL_TIMEOUT),
             terminalOutputBufferSize = terminalBuffer ?: hocon.intOrDefault("knutpunkt.terminal.outputBufferSize", DEFAULT_TERMINAL_BUFFER),
             sseKeepaliveIntervalSeconds = sseKeepalive ?: hocon.longOrDefault("knutpunkt.sse.keepaliveIntervalSeconds", DEFAULT_SSE_KEEPALIVE),
-            configFile = configFilePath
+            configFile = configFilePath,
+            projectPath = projectPath?.toAbsolutePath()?.toString()
         )
 
         println("Starting Knutpunkt server on ${appConfig.host}:${appConfig.port}")

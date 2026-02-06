@@ -19,6 +19,12 @@ fun Application.configureRouting(taskService: TaskService, eventServices: EventS
     // Create settings service
     val settingsService = SettingsService(taskService.stateService, config)
 
+    // Persist project path to state if provided via CLI
+    if (config.projectPath != null) {
+        taskService.stateService.setProjectPath(config.projectPath)
+        log.info("Project path: ${config.projectPath}")
+    }
+
     routing {
         route("/api/v1") {
             taskRoutes(taskService)

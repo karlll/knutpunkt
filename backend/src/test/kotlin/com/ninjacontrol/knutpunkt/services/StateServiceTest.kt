@@ -95,4 +95,34 @@ class StateServiceTest {
         assertEquals(1, num1)
         assertEquals(1, stateService.getCurrentCounter())
     }
+
+    @Test
+    fun `getProjectPath returns null when not set`() {
+        assertNull(stateService.getProjectPath(), "Project path should be null initially")
+    }
+
+    @Test
+    fun `setProjectPath stores and retrieves path`() {
+        stateService.setProjectPath("/home/user/myproject")
+        assertEquals("/home/user/myproject", stateService.getProjectPath())
+    }
+
+    @Test
+    fun `project path persists across service instances`() {
+        stateService.setProjectPath("/tmp/project")
+
+        val stateService2 = StateService(tempDir.absolutePath)
+        assertEquals("/tmp/project", stateService2.getProjectPath(), "Project path should persist across instances")
+    }
+
+    @Test
+    fun `project path, title and counter work independently`() {
+        stateService.setProjectPath("/tmp/project")
+        stateService.setTitle("Project Name")
+        val num1 = stateService.getNextTaskNumber()
+
+        assertEquals("/tmp/project", stateService.getProjectPath())
+        assertEquals("Project Name", stateService.getTitle())
+        assertEquals(1, num1)
+    }
 }
