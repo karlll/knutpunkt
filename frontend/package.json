@@ -52,11 +52,11 @@
   "devDependencies": {
     "@chromatic-com/storybook": "^4.1.3",
     "@eslint/js": "^9.39.1",
-    "@storybook/addon-a11y": "^10.1.2",
-    "@storybook/addon-docs": "^10.1.2",
-    "@storybook/addon-onboarding": "^10.1.2",
-    "@storybook/addon-vitest": "^10.1.2",
-    "@storybook/react-vite": "^10.1.2",
+    "@storybook/addon-a11y": "^10.4.4",
+    "@storybook/addon-docs": "^10.4.4",
+    "@storybook/addon-onboarding": "^10.4.4",
+    "@storybook/addon-vitest": "^10.4.4",
+    "@storybook/react-vite": "^10.4.4",
     "@tailwindcss/postcss": "^4.1.17",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",
@@ -64,13 +64,13 @@
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
-    "@vitest/browser-playwright": "^4.0.14",
-    "@vitest/coverage-v8": "^4.0.14",
+    "@vitest/browser-playwright": "^4.1.8",
+    "@vitest/coverage-v8": "^4.1.8",
     "autoprefixer": "^10.4.22",
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
-    "eslint-plugin-storybook": "^10.1.2",
+    "eslint-plugin-storybook": "^0.12.0",
     "globals": "^16.5.0",
     "jsdom": "^27.0.1",
     "msw": "^2.12.3",
@@ -79,17 +79,23 @@
     "playwright": "^1.57.0",
     "postcss": "^8.5.6",
     "sharp": "^0.34.5",
-    "storybook": "^10.1.2",
+    "storybook": "^10.4.4",
     "tailwindcss": "^4.1.17",
     "tw-animate-css": "^1.4.0",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.46.4",
-    "vite": "^7.2.4",
-    "vitest": "^4.0.14"
+    "vite": "^8.0.16",
+    "vitest": "^4.1.8"
   },
   "msw": {
     "workerDirectory": [
       "public"
     ]
+  },
+  "overrides": {
+    "esbuild": "^0.28.1",
+    "vitest": "^4.1.8",
+    "@vitest/browser": "^4.1.8",
+    "@vitest/mocker": "^4.1.8"
   }
 }
