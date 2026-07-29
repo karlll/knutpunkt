@@ -25,6 +25,49 @@ This symlinks `skills/knutpunkt` into `~/.claude/skills/`, so the skill is avail
 every project and this repository stays the source of truth. Use `--copy` for a
 standalone copy, `--uninstall` to remove.
 
+### Put `kp` on PATH
+
+```sh
+ln -s ~/.claude/skills/knutpunkt/scripts/kp ~/.local/bin/kp
+```
+
+Not strictly required — the skill can invoke the CLI by its full path — but it makes the
+permission rule below much tidier, and lets you use `kp` from your own shell.
+
+### Avoid a permission prompt per call
+
+Unlike MCP tools, which are approved once per tool, every `kp` invocation is a `Bash`
+call and will raise a permission prompt unless it is allowlisted. Add to
+`~/.claude/settings.json`:
+
+```json
+{
+  "permissions": {
+    "allow": ["Bash(kp:*)"]
+  }
+}
+```
+
+Merge this into any `permissions.allow` array you already have rather than replacing it.
+
+The rule matches on the command as written, so it only covers invocations of `kp`
+itself — it requires the PATH symlink above. Without it, allowlist the full path
+instead:
+
+```json
+{
+  "permissions": {
+    "allow": ["Bash(~/.claude/skills/knutpunkt/scripts/kp:*)"]
+  }
+}
+```
+
+Use `.claude/settings.json` inside a project instead of `~/.claude/settings.json` if you
+want the allowance scoped to that project rather than to every session. Note that this
+allows all `kp` subcommands, including `kp rm <n> --yes`; narrow it to specific
+subcommands (`"Bash(kp ls:*)"`, `"Bash(kp get:*)"`) if you want deletions to keep
+prompting.
+
 ## Why skills instead of MCP
 
 **Context.** An MCP server's tool schemas are loaded into every session whether or not

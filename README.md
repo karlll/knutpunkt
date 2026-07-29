@@ -288,10 +288,19 @@ resolution of which board to talk to when several instances run for several proj
 
 ```sh
 ./skills/install.sh
+ln -s ~/.claude/skills/knutpunkt/scripts/kp ~/.local/bin/kp   # optional, puts kp on PATH
 ```
 
-**Setup**: See [skills/README.md](skills/README.md). The MCP server remains the
-integration path for Claude Desktop, Copilot, and other MCP clients.
+Every `kp` call goes through Claude Code's `Bash` tool, so allowlist it in
+`~/.claude/settings.json` to avoid a permission prompt per call:
+
+```json
+{ "permissions": { "allow": ["Bash(kp:*)"] } }
+```
+
+**Setup**: See [skills/README.md](skills/README.md) for the full details, including
+scoping the allowlist per project. The MCP server remains the integration path for
+Claude Desktop, Copilot, and other MCP clients.
 
 ## Documentation
 
