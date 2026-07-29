@@ -188,9 +188,12 @@ async function resolveBase(flags) {
     return matches[0].base;
   }
 
-  if (instances.length === 1) {
+  // A lone board that claims no project at all is ambiguous rather than wrong: there is
+  // exactly one plausible target, so use it and say so. A board that claims a *different*
+  // project is a mismatch, and using it would put tasks on the wrong board.
+  if (instances.length === 1 && !instances[0].settings['project.path']) {
     process.stderr.write(
-      `note: instance on port ${instances[0].port} declares no matching project path; using it anyway.\n` +
+      `note: instance on port ${instances[0].port} declares no project path; using it anyway.\n` +
       'Start it with --project-path to make discovery unambiguous.\n'
     );
     return instances[0].base;
@@ -200,8 +203,9 @@ async function resolveBase(flags) {
     .map((i) => `  port ${i.port}  project.path=${i.settings['project.path'] || '(unset)'}`)
     .join('\n');
   fail(
-    `${instances.length} instances running, none matching ${cwd}`,
-    `${listing}\nPick one with --port <port>, or restart it with --project-path.`
+    `no board found for ${cwd} (${instances.length} running)`,
+    `${listing}\nPick one explicitly with --port <port>, or start a board for this ` +
+    'project with --project-path.'
   );
 }
 
