@@ -1,0 +1,536 @@
+#!/usr/bin/env node
+// kp - command line client for the Knutpunkt Kanban API.
+//
+// Resolves which Knutpunkt instance to talk to automatically, so several boards
+// can run on different ports for different projects at the same time.
+//
+// Resolution order:
+//   1. --url / --port
+//   2. $KNUTPUNKT_API_URL
+//   3. discovery: find the running instance whose project.path is the current
+//      directory or an ancestor of it
+//
+// Requires Node 20+ (global fetch). No dependencies.
+
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
+import { homedir, tmpdir } from 'node:os';
+import { join, sep, resolve } from 'node:path';
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const STATUSES = ['planned', 'ongoing', 'done'];
+const PRIORITIES = ['low', 'medium', 'high'];
+
+const CACHE_FILE = join(tmpdir(), 'knutpunkt-endpoints.json');
+const REGISTRY_FILE = join(homedir(), '.knutpunkt', 'instances.json');
+
+// ---------------------------------------------------------------- arg parsing
+
+// Flags that take a value; everything else is a boolean flag or a positional.
+const VALUE_FLAGS = new Set([
+  'url', 'port', 'status', 'priority', 'assignee', 'category', 'title',
+  'desc', 'desc-file', 'order', 'agent', 'ports',
+]);
+// Flags that may be repeated and collect into an array.
+const MULTI_FLAGS = new Set(['assignee', 'category']);
+
+function parseArgs(argv) {
+  const flags = {};
+  const positional = [];
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
+    if (!arg.startsWith('--')) {
+      positional.push(arg);
+      continue;
+    }
+    let name = arg.slice(2);
+    let value;
+    const eq = name.indexOf('=');
+    if (eq !== -1) {
+      value = name.slice(eq + 1);
+      name = name.slice(0, eq);
+    } else if (VALUE_FLAGS.has(name)) {
+      value = argv[++i];
+      if (value === undefined) fail(`--${name} requires a value`);
+    } else {
+      value = true;
+    }
+    if (MULTI_FLAGS.has(name)) (flags[name] ||= []).push(value);
+    else flags[name] = value;
+  }
+  return { flags, positional };
+}
+
+function fail(message, hint) {
+  process.stderr.write(`error: ${message}\n`);
+  if (hint) process.stderr.write(`${hint}\n`);
+  process.exit(1);
+}
+
+function oneOf(value, allowed, name) {
+  if (value === undefined) return undefined;
+  if (!allowed.includes(value)) fail(`invalid ${name} "${value}" (expected: ${allowed.join(', ')})`);
+  return value;
+}
+
+// ----------------------------------------------------------------- discovery
+
+function readJsonFile(path) {
+  try {
+    return JSON.parse(readFileSync(path, 'utf8'));
+  } catch {
+    return null;
+  }
+}
+
+function portRange(flags) {
+  const spec = flags.ports || process.env.KNUTPUNKT_PORTS || '8080-8099';
+  const match = /^(\d+)(?:-(\d+))?$/.exec(spec);
+  if (!match) fail(`invalid port range "${spec}" (expected e.g. 8080-8099)`);
+  const from = Number(match[1]);
+  const to = match[2] ? Number(match[2]) : from;
+  if (to < from || to - from > 200) fail(`invalid port range "${spec}"`);
+  return Array.from({ length: to - from + 1 }, (_, i) => from + i);
+}
+
+function baseUrlForPort(port) {
+  return `http://127.0.0.1:${port}/api/v1`;
+}
+
+// Probe one instance. Returns { base, port, settings } or null.
+async function probe(port, timeoutMs = 400) {
+  const base = baseUrlForPort(port);
+  try {
+    const response = await fetch(`${base}/settings`, { signal: AbortSignal.timeout(timeoutMs) });
+    if (!response.ok) return null;
+    const body = await response.json();
+    const settings = {};
+    for (const setting of body.settings || []) settings[setting.key] = setting.value;
+    return { base, port, settings };
+  } catch {
+    return null;
+  }
+}
+
+// All instances currently listening, cheapest source first.
+async function discoverInstances(flags) {
+  const registry = readJsonFile(REGISTRY_FILE);
+  const ports = Array.isArray(registry) && registry.length
+    ? [...new Set(registry.map((entry) => Number(entry.port)).filter(Boolean))]
+    : portRange(flags);
+  const results = await Promise.all(ports.map((port) => probe(port)));
+  return results.filter(Boolean);
+}
+
+// Does `projectPath` contain `cwd`?
+function covers(projectPath, cwd) {
+  if (!projectPath) return false;
+  const root = resolve(projectPath);
+  return cwd === root || cwd.startsWith(root + sep);
+}
+
+function loadCache() {
+  return readJsonFile(CACHE_FILE) || {};
+}
+
+function saveCache(cache) {
+  try {
+    writeFileSync(CACHE_FILE, JSON.stringify(cache));
+  } catch {
+    // A non-writable temp dir just means no caching; not worth failing over.
+  }
+}
+
+async function resolveBase(flags) {
+  if (flags.url) return String(flags.url).replace(/\/+$/, '');
+  if (flags.port) return baseUrlForPort(Number(flags.port));
+  if (process.env.KNUTPUNKT_API_URL) return process.env.KNUTPUNKT_API_URL.replace(/\/+$/, '');
+
+  const cwd = process.cwd();
+  const cache = loadCache();
+
+  if (!flags['no-cache'] && cache[cwd]) {
+    const cached = await probe(new URL(cache[cwd]).port);
+    if (cached && covers(cached.settings['project.path'], cwd)) return cached.base;
+    delete cache[cwd];
+    saveCache(cache);
+  }
+
+  const instances = await discoverInstances(flags);
+  if (instances.length === 0) {
+    fail(
+      'no Knutpunkt instance found',
+      'Start one with:  ./start.sh <tasks-dir> --port=<port> --project-path=<project-dir>\n' +
+      'Or point kp at a known instance with --port / --url / $KNUTPUNKT_API_URL.'
+    );
+  }
+
+  const matches = instances
+    .filter((instance) => covers(instance.settings['project.path'], cwd))
+    .sort((a, b) => b.settings['project.path'].length - a.settings['project.path'].length);
+
+  if (matches.length > 0) {
+    // Longest matching project path wins, so a worktree beats its parent repo.
+    cache[cwd] = matches[0].base;
+    saveCache(cache);
+    return matches[0].base;
+  }
+
+  if (instances.length === 1) {
+    process.stderr.write(
+      `note: instance on port ${instances[0].port} declares no matching project path; using it anyway.\n` +
+      'Start it with --project-path to make discovery unambiguous.\n'
+    );
+    return instances[0].base;
+  }
+
+  const listing = instances
+    .map((i) => `  port ${i.port}  project.path=${i.settings['project.path'] || '(unset)'}`)
+    .join('\n');
+  fail(
+    `${instances.length} instances running, none matching ${cwd}`,
+    `${listing}\nPick one with --port <port>, or restart it with --project-path.`
+  );
+}
+
+// ---------------------------------------------------------------- API client
+
+async function api(base, method, path, body) {
+  let response;
+  try {
+    response = await fetch(`${base}${path}`, {
+      method,
+      headers: body === undefined ? {} : { 'Content-Type': 'application/json' },
+      body: body === undefined ? undefined : JSON.stringify(body),
+      signal: AbortSignal.timeout(15000),
+    });
+  } catch (error) {
+    fail(`cannot reach Knutpunkt at ${base} (${error.message})`, 'Is the board still running?');
+  }
+  if (response.status === 204) return null;
+  const text = await response.text();
+  let data = null;
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = null;
+    }
+  }
+  if (!response.ok) {
+    const message = (data && (data.message || data.error)) || text || `HTTP ${response.status}`;
+    fail(`${method} ${path} failed: ${message}`);
+  }
+  return data;
+}
+
+function queryString(params) {
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== null) search.set(key, value);
+  }
+  const query = search.toString();
+  return query ? `?${query}` : '';
+}
+
+const listTasks = (base, filters = {}) => api(base, 'GET', `/tasks${queryString(filters)}`);
+const getTaskById = (base, id) => api(base, 'GET', `/tasks/${id}`);
+
+// Accepts a UUID, "12" or "#12".
+async function resolveTask(base, ref) {
+  if (!ref) fail('missing task reference (a number like 12, or a UUID)');
+  if (UUID_RE.test(ref)) return getTaskById(base, ref);
+  const number = Number(String(ref).replace(/^#/, ''));
+  if (!Number.isInteger(number)) fail(`invalid task reference "${ref}"`);
+  const tasks = await listTasks(base);
+  const task = tasks.find((candidate) => candidate.number === number);
+  if (!task) fail(`no task #${number} on this board`);
+  return task;
+}
+
+// PUT requires the whole task, so every partial edit is a read-modify-write.
+function putTask(base, task, changes) {
+  return api(base, 'PUT', `/tasks/${task.id}`, {
+    title: task.title,
+    description: task.description,
+    status: task.status,
+    assignees: task.assignees,
+    categories: task.categories,
+    priority: task.priority,
+    order: task.order,
+    ...changes,
+  });
+}
+
+// ------------------------------------------------------------------- output
+
+function formatTaskLine(task) {
+  const meta = [
+    task.assignees.length ? `@${task.assignees.join(' @')}` : null,
+    task.categories.length ? `[${task.categories.join(' ')}]` : null,
+  ].filter(Boolean).join(' ');
+  const number = `#${task.number}`.padEnd(5);
+  const priority = task.priority.padEnd(6);
+  return `${number} ${priority} ${task.title}${meta ? '  ' + meta : ''}`;
+}
+
+function printTaskList(tasks) {
+  if (tasks.length === 0) {
+    console.log('No tasks match.');
+    return;
+  }
+  for (const status of STATUSES) {
+    const group = tasks
+      .filter((task) => task.status === status)
+      .sort((a, b) => a.order - b.order);
+    if (group.length === 0) continue;
+    console.log(`\n${status} (${group.length})`);
+    for (const task of group) console.log('  ' + formatTaskLine(task));
+  }
+}
+
+function printTask(task) {
+  console.log(`#${task.number} ${task.title}`);
+  console.log(`id: ${task.id}`);
+  console.log(`status: ${task.status}   priority: ${task.priority}   order: ${task.order}`);
+  console.log(`assignees: ${task.assignees.join(', ') || 'none'}`);
+  console.log(`categories: ${task.categories.join(', ') || 'none'}`);
+  console.log(`updated: ${task.updatedAt}`);
+  console.log('---');
+  console.log(task.description);
+}
+
+function printSummary(action, task) {
+  console.log(
+    `${action}: #${task.number} ${task.title} ` +
+    `(${task.status}, ${task.priority}${task.assignees.length ? ', @' + task.assignees.join(' @') : ''})`
+  );
+}
+
+function readDescription(flags, { required = false } = {}) {
+  if (flags['desc-file']) {
+    const path = flags['desc-file'];
+    if (path === '-') return readFileSync(0, 'utf8');
+    if (!existsSync(path)) fail(`description file not found: ${path}`);
+    return readFileSync(path, 'utf8');
+  }
+  if (flags.desc !== undefined) return String(flags.desc);
+  if (required) fail('a description is required (--desc-file <path>, --desc-file - for stdin, or --desc <text>)');
+  return undefined;
+}
+
+// ------------------------------------------------------------------ commands
+
+const USAGE = `kp - Knutpunkt Kanban CLI
+
+  kp ls [--status planned|ongoing|done] [--assignee X] [--category Y] [--priority low|medium|high]
+  kp get <#num|uuid>
+  kp new --title "..." (--desc-file <path>|--desc-file -|--desc "...") [--priority P] [--status S]
+                       [--assignee A]... [--category C]... [--order N]
+  kp set <#num|uuid> [--title "..."] [--desc-file <path>] [--desc "..."] [--priority P] [--status S] [--order N]
+  kp claim <#num|uuid> [--agent "Claude Code"]     claim a planned task and move it to ongoing
+  kp done <#num|uuid>                              move a task to done
+  kp move <#num|uuid> <planned|ongoing|done>
+  kp assign|unassign <#num|uuid> <name>
+  kp tag|untag <#num|uuid> <category>
+  kp rm <#num|uuid> --yes
+  kp where                                         show which instance kp resolves to here
+  kp instances                                     list all running Knutpunkt instances
+
+Global: --json  --port <n>  --url <base>  --ports 8080-8099  --no-cache
+Tasks are referenced by board number (12 or #12) or UUID.`;
+
+const commands = {
+  async ls(base, positional, flags) {
+    const tasks = await listTasks(base, {
+      status: oneOf(flags.status, STATUSES, 'status'),
+      assignee: flags.assignee?.[0],
+      category: flags.category?.[0],
+      priority: oneOf(flags.priority, PRIORITIES, 'priority'),
+    });
+    if (flags.json) return console.log(JSON.stringify(tasks, null, 2));
+    printTaskList(tasks);
+  },
+
+  async get(base, positional, flags) {
+    const task = await resolveTask(base, positional[0]);
+    if (flags.json) return console.log(JSON.stringify(task, null, 2));
+    printTask(task);
+  },
+
+  async new(base, positional, flags) {
+    if (!flags.title) fail('--title is required');
+    const task = await api(base, 'POST', '/tasks', {
+      title: String(flags.title),
+      description: readDescription(flags, { required: true }),
+      status: oneOf(flags.status, STATUSES, 'status'),
+      priority: oneOf(flags.priority, PRIORITIES, 'priority'),
+      assignees: flags.assignee,
+      categories: flags.category,
+      order: flags.order === undefined ? undefined : Number(flags.order),
+    });
+    if (flags.json) return console.log(JSON.stringify(task, null, 2));
+    printSummary('created', task);
+  },
+
+  async set(base, positional, flags) {
+    const task = await resolveTask(base, positional[0]);
+    const changes = {};
+    if (flags.title !== undefined) changes.title = String(flags.title);
+    const description = readDescription(flags);
+    if (description !== undefined) changes.description = description;
+    if (flags.status !== undefined) changes.status = oneOf(flags.status, STATUSES, 'status');
+    if (flags.priority !== undefined) changes.priority = oneOf(flags.priority, PRIORITIES, 'priority');
+    if (flags.order !== undefined) changes.order = Number(flags.order);
+    if (flags.assignee) changes.assignees = flags.assignee;
+    if (flags.category) changes.categories = flags.category;
+    if (Object.keys(changes).length === 0) fail('nothing to change; pass at least one of --title --desc --desc-file --status --priority --order --assignee --category');
+    const updated = await putTask(base, task, changes);
+    if (flags.json) return console.log(JSON.stringify(updated, null, 2));
+    printSummary('updated', updated);
+  },
+
+  async claim(base, positional, flags) {
+    const agent = flags.agent || process.env.KNUTPUNKT_AGENT || 'Claude Code';
+    const task = await resolveTask(base, positional[0]);
+    if (task.status !== 'planned') {
+      fail(`cannot claim #${task.number} "${task.title}": already ${task.status} (only planned tasks can be claimed)`);
+    }
+    if (task.assignees.includes(agent)) {
+      console.log(`#${task.number} "${task.title}" is already assigned to ${agent}; moving to ongoing.`);
+    }
+    const updated = await putTask(base, task, {
+      status: 'ongoing',
+      assignees: task.assignees.includes(agent) ? task.assignees : [...task.assignees, agent],
+    });
+    if (flags.json) return console.log(JSON.stringify(updated, null, 2));
+    printSummary('claimed', updated);
+  },
+
+  async done(base, positional, flags) {
+    return commands.move(base, [positional[0], 'done'], flags);
+  },
+
+  async move(base, positional, flags) {
+    const status = oneOf(positional[1], STATUSES, 'status');
+    if (!status) fail(`usage: kp move <#num|uuid> <${STATUSES.join('|')}>`);
+    const task = await resolveTask(base, positional[0]);
+    const updated = await api(base, 'PATCH', `/tasks/${task.id}/status`, { status });
+    if (flags.json) return console.log(JSON.stringify(updated, null, 2));
+    printSummary('moved', updated);
+  },
+
+  async assign(base, positional, flags) {
+    const name = positional[1];
+    if (!name) fail('usage: kp assign <#num|uuid> <name>');
+    const task = await resolveTask(base, positional[0]);
+    if (task.assignees.includes(name)) {
+      console.log(`#${task.number} is already assigned to ${name}.`);
+      return;
+    }
+    printSummary('assigned', await putTask(base, task, { assignees: [...task.assignees, name] }));
+  },
+
+  async unassign(base, positional, flags) {
+    const name = positional[1];
+    if (!name) fail('usage: kp unassign <#num|uuid> <name>');
+    const task = await resolveTask(base, positional[0]);
+    if (!task.assignees.includes(name)) {
+      console.log(`#${task.number} is not assigned to ${name}.`);
+      return;
+    }
+    printSummary('unassigned', await putTask(base, task, {
+      assignees: task.assignees.filter((assignee) => assignee !== name),
+    }));
+  },
+
+  async tag(base, positional, flags) {
+    const category = positional[1];
+    if (!category) fail('usage: kp tag <#num|uuid> <category>');
+    const task = await resolveTask(base, positional[0]);
+    if (task.categories.includes(category)) {
+      console.log(`#${task.number} already has category "${category}".`);
+      return;
+    }
+    printSummary('tagged', await putTask(base, task, { categories: [...task.categories, category] }));
+  },
+
+  async untag(base, positional, flags) {
+    const category = positional[1];
+    if (!category) fail('usage: kp untag <#num|uuid> <category>');
+    const task = await resolveTask(base, positional[0]);
+    if (!task.categories.includes(category)) {
+      console.log(`#${task.number} does not have category "${category}".`);
+      return;
+    }
+    printSummary('untagged', await putTask(base, task, {
+      categories: task.categories.filter((existing) => existing !== category),
+    }));
+  },
+
+  async rm(base, positional, flags) {
+    const task = await resolveTask(base, positional[0]);
+    if (!flags.yes) {
+      fail(`refusing to delete #${task.number} "${task.title}" without --yes`);
+    }
+    await api(base, 'DELETE', `/tasks/${task.id}`);
+    console.log(`deleted: #${task.number} ${task.title}`);
+  },
+
+  async where(base, positional, flags) {
+    const probed = await probe(new URL(base).port || 80, 2000);
+    const settings = probed ? probed.settings : {};
+    if (flags.json) return console.log(JSON.stringify({ base, settings }, null, 2));
+    console.log(`endpoint:     ${base}`);
+    console.log(`title:        ${settings.title || '(unknown)'}`);
+    console.log(`project.path: ${settings['project.path'] || '(unset)'}`);
+    console.log(`tasks.dir:    ${settings['tasks.directory'] || '(unknown)'}`);
+  },
+};
+
+// Runs without a resolved endpoint, since it is what finds the endpoints.
+async function instancesCommand(flags) {
+  const instances = await discoverInstances(flags);
+  if (flags.json) {
+    console.log(JSON.stringify(
+      instances.map((i) => ({
+        port: i.port,
+        base: i.base,
+        title: i.settings.title,
+        projectPath: i.settings['project.path'] || null,
+        tasksDirectory: i.settings['tasks.directory'] || null,
+      })),
+      null,
+      2
+    ));
+    return;
+  }
+  if (instances.length === 0) {
+    console.log('No Knutpunkt instances found.');
+    return;
+  }
+  const cwd = process.cwd();
+  for (const instance of instances) {
+    const projectPath = instance.settings['project.path'] || '(unset)';
+    const marker = covers(instance.settings['project.path'], cwd) ? ' <- matches cwd' : '';
+    console.log(`port ${instance.port}  ${instance.settings.title || 'Knutpunkt'}  ${projectPath}${marker}`);
+  }
+}
+
+// ---------------------------------------------------------------------- main
+
+async function main() {
+  const { flags, positional } = parseArgs(process.argv.slice(2));
+  const command = positional.shift();
+
+  if (!command || command === 'help' || flags.help) {
+    console.log(USAGE);
+    return;
+  }
+  if (command === 'instances') return instancesCommand(flags);
+  if (!commands[command]) fail(`unknown command "${command}"`, USAGE);
+
+  const base = await resolveBase(flags);
+  await commands[command](base, positional, flags);
+}
+
+main().catch((error) => fail(error?.message || String(error)));

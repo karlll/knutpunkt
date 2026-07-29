@@ -245,6 +245,8 @@ knutpunkt/
 │       └── utils/            # Utilities
 ├── mcp-server/               # MCP server for AI integration
 │   └── src/
+├── skills/                   # Claude Code agent skills (kp CLI)
+│   └── knutpunkt/
 ├── tasks/                    # Task storage (file-based)
 │   ├── planned/
 │   ├── ongoing/
@@ -278,8 +280,22 @@ The MCP (Model Context Protocol) server enables AI assistants like Claude Code t
 
 **Setup**: See [docs/MCP_SERVER.md](docs/MCP_SERVER.md) for installation, configuration, and usage examples.
 
+## Agent Skills (Claude Code)
+
+For Claude Code, `skills/` provides the same capabilities as a skill instead of an MCP
+server: near-zero context cost until the board is actually used, and automatic
+resolution of which board to talk to when several instances run for several projects.
+
+```sh
+./skills/install.sh
+```
+
+**Setup**: See [skills/README.md](skills/README.md). The MCP server remains the
+integration path for Claude Desktop, Copilot, and other MCP clients.
+
 ## Documentation
 
+- [skills/README.md](skills/README.md) - Agent skills for Claude Code
 - [docs/MCP_SERVER.md](docs/MCP_SERVER.md) - MCP server setup and usage guide
 - [docs/TASK_WRITING_GUIDE.md](docs/TASK_WRITING_GUIDE.md) - Guidelines for writing effective tasks
 - [api/openapi.yaml](api/openapi.yaml) - Complete API specification
