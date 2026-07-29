@@ -21,7 +21,10 @@ const STATUSES = ['planned', 'ongoing', 'done'];
 const PRIORITIES = ['low', 'medium', 'high'];
 
 const CACHE_FILE = join(tmpdir(), 'knutpunkt-endpoints.json');
-const REGISTRY_FILE = join(homedir(), '.knutpunkt', 'instances.json');
+// Instances register themselves here at startup; the backend uses the same
+// $KNUTPUNKT_HOME override.
+const KNUTPUNKT_HOME = process.env.KNUTPUNKT_HOME || join(homedir(), '.knutpunkt');
+const REGISTRY_FILE = join(KNUTPUNKT_HOME, 'instances.json');
 
 // ---------------------------------------------------------------- arg parsing
 
@@ -111,13 +114,23 @@ async function probe(port, timeoutMs = 400) {
   }
 }
 
-// All instances currently listening, cheapest source first.
+// All instances currently listening.
+//
+// An explicit --ports / $KNUTPUNKT_PORTS wins outright. Otherwise the default
+// range is scanned and any registered ports are unioned in, so a board on an
+// unusual port is found while a board that never registered stays visible.
 async function discoverInstances(flags) {
-  const registry = readJsonFile(REGISTRY_FILE);
-  const ports = Array.isArray(registry) && registry.length
-    ? [...new Set(registry.map((entry) => Number(entry.port)).filter(Boolean))]
-    : portRange(flags);
-  const results = await Promise.all(ports.map((port) => probe(port)));
+  const ports = new Set(portRange(flags));
+  if (!flags.ports && !process.env.KNUTPUNKT_PORTS) {
+    const registry = readJsonFile(REGISTRY_FILE);
+    if (Array.isArray(registry)) {
+      for (const entry of registry) {
+        const port = Number(entry?.port);
+        if (port) ports.add(port);
+      }
+    }
+  }
+  const results = await Promise.all([...ports].map((port) => probe(port)));
   return results.filter(Boolean);
 }
 

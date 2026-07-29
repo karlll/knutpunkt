@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Claude Code Agent Skill** (`skills/`)
+  - `knutpunkt` skill wrapping the REST API through a dependency-free `kp` CLI
+  - Automatic instance resolution: finds the board whose `--project-path` contains the
+    current directory, so several projects can be worked on concurrently
+  - Task references by board number (`kp get 12`) rather than UUID
+  - `install.sh` to symlink the skill into `~/.claude/skills/`
+- **Instance Registry**
+  - Instances register themselves in `~/.knutpunkt/instances.json` at startup and
+    deregister on shutdown, letting clients discover boards on any port
+  - Registry location configurable via `$KNUTPUNKT_HOME`
+  - Entries left by processes killed without a shutdown hook are pruned on the next write
+
 ## [0.10.0] - 2026-01-24
 
 ### Added

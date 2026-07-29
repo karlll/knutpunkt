@@ -62,3 +62,15 @@ Only present when the server was started with `--terminal=true`.
 
 `--project-path` is what makes automatic instance resolution work; always pass it when
 running more than one board.
+
+## Instance registry
+
+`$KNUTPUNKT_HOME/instances.json` (default `~/.knutpunkt/instances.json`) lists running
+boards: `port`, `host`, `projectPath`, `tasksDirectory`, `title`, `pid`, `startedAt`.
+Instances add themselves at startup and remove themselves at shutdown.
+
+`kp` reads it to learn which ports to probe, which is how boards outside the default
+8080–8099 range are found. It is only a hint — `kp` still confirms every candidate with
+`GET /settings`, so a stale or hand-edited file cannot point it at the wrong board.
+Prefer `kp instances` over reading the file directly: it reports what is actually
+answering, not what was registered.

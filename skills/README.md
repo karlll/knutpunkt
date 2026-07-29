@@ -102,3 +102,10 @@ and can be used against the same board at the same time.
 
 `--project-path` is what makes resolution automatic. Check it with `kp instances` and
 `kp where`.
+
+Each instance registers itself in `~/.knutpunkt/instances.json` (override the directory
+with `$KNUTPUNKT_HOME`), so `kp` finds boards on any port rather than only the default
+8080–8099 scan range. Resolution still works without the registry — a board on an
+unusual port whose registration failed remains discoverable within the scan range, and
+`--ports 9000-9010` always overrides both. Boards from a backend build that predates the
+registry simply don't appear in the file and are found by scanning as before.

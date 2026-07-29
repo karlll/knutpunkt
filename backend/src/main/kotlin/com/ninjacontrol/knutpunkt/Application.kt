@@ -9,13 +9,17 @@ import com.github.ajalt.clikt.parameters.types.int
 import com.github.ajalt.clikt.parameters.types.long
 import com.github.ajalt.clikt.parameters.types.path
 import com.ninjacontrol.knutpunkt.plugins.*
+import com.ninjacontrol.knutpunkt.services.InstanceEntry
+import com.ninjacontrol.knutpunkt.services.InstanceRegistryService
 import com.ninjacontrol.knutpunkt.services.TaskService
 import com.typesafe.config.ConfigFactory
 import io.ktor.server.application.*
 import io.ktor.server.config.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
+import java.io.File
 import java.nio.file.Path
+import java.time.Instant
 
 /**
  * Holds all resolved application configuration.
@@ -170,4 +174,37 @@ fun Application.module() {
     val eventServices = configureFileWatch(taskService, config.tasksDirectory)
     configureRouting(taskService, eventServices, config)
     configureStaticContent()
+    configureInstanceRegistry(taskService, config)
+}
+
+/**
+ * Announces this instance in the machine-wide registry so local clients can find the
+ * board serving a given project without scanning ports.
+ *
+ * Registration happens once the port is bound, so a failed start never leaves a phantom
+ * entry, and the entry is removed on orderly shutdown. Instances killed outright are
+ * pruned by the next write from any instance.
+ */
+private fun Application.configureInstanceRegistry(taskService: TaskService, config: AppConfig) {
+    val registry = InstanceRegistryService()
+    val pid = ProcessHandle.current().pid()
+
+    monitor.subscribe(ApplicationStarted) {
+        registry.register(
+            InstanceEntry(
+                port = config.port,
+                host = config.host,
+                projectPath = config.projectPath,
+                tasksDirectory = File(config.tasksDirectory).absolutePath,
+                // State takes precedence over the CLI, matching the /settings response.
+                title = taskService.stateService.getTitle() ?: config.title,
+                pid = pid,
+                startedAt = Instant.now().toString()
+            )
+        )
+    }
+
+    monitor.subscribe(ApplicationStopping) {
+        registry.deregister(pid)
+    }
 }

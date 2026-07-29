@@ -134,12 +134,38 @@ The tasks directory is a required positional argument. All other settings are op
 | `--terminal-timeout` | Terminal idle timeout in minutes | 30 |
 | `--terminal-buffer` | Terminal output buffer size | 100 |
 | `--sse-keepalive` | SSE heartbeat interval in seconds | 15 |
-| `--project-path` | Path to the project directory | (none) |
+| `--project-path` | Path to the project directory this board serves | (none) |
 | `--config`, `-c` | Path to external application.conf file | (none) |
 | `-h`, `--help` | Show help and exit | |
 
-### Environment Variables (Logging)
+### Instance Registry
 
+On startup each instance records itself in `~/.knutpunkt/instances.json` (override the
+directory with `$KNUTPUNKT_HOME`), and removes itself on shutdown:
+
+```json
+[
+  {
+    "port": 8091,
+    "host": "0.0.0.0",
+    "projectPath": "/Users/karl/Projects/foo",
+    "tasksDirectory": "/Users/karl/Projects/foo/tasks",
+    "title": "Foo",
+    "pid": 41890,
+    "startedAt": "2026-07-29T20:08:25.129Z"
+  }
+]
+```
+
+This lets local clients find the board serving a given project without scanning ports —
+see `kp instances` in [skills/README.md](skills/README.md). It is a hint, not a source of
+truth: clients confirm an instance by calling `GET /api/v1/settings` on it. Entries left
+behind by a process that was killed outright are pruned the next time any instance writes
+the file, so a stale registry is self-correcting and never needs manual cleanup.
+
+### Environment Variables
+
+- `KNUTPUNKT_HOME` - Directory for the instance registry (default: `~/.knutpunkt`)
 - `APP_LOG_LEVEL` - Application log level: DEBUG, INFO, WARN, ERROR (default: DEBUG)
 - `KTOR_LOG_LEVEL` - Ktor framework log level (default: INFO)
 - `LOG_LEVEL` - Root log level (default: INFO)
