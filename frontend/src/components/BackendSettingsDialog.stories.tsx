@@ -12,7 +12,7 @@ const meta = {
     layout: 'centered',
     msw: {
       handlers: [
-        http.get('http://127.0.0.1:8080/api/v1/settings', () => {
+        http.get('/api/v1/settings', () => {
           return HttpResponse.json({
             server: {
               port: 8080,
