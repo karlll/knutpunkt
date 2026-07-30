@@ -38,7 +38,7 @@ export function TaskEventsProvider({ children, enabled = true }: TaskEventsProvi
   const connect = () => {
     if (!enabled) return
 
-    const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8080/api/v1'
+    const apiBase = import.meta.env.VITE_API_BASE_URL || '/api/v1'
     const eventSource = new EventSource(`${apiBase}/events/tasks`)
 
     eventSource.onopen = () => {

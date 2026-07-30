@@ -25,7 +25,15 @@ export interface UseTerminalSessionResult {
   error?: string
 }
 
-const WS_BASE_URL = import.meta.env.VITE_WS_BASE_URL || 'ws://127.0.0.1:8080/api/v1'
+// WebSocket URLs cannot be relative, so derive a same-origin base from the
+// current location. This keeps every instance pointed at the backend that
+// served it, regardless of which port it runs on.
+function defaultWsBaseUrl(): string {
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+  return `${protocol}//${window.location.host}/api/v1`
+}
+
+const WS_BASE_URL = import.meta.env.VITE_WS_BASE_URL || defaultWsBaseUrl()
 
 export function useTerminalSession(
   options: UseTerminalSessionOptions
